@@ -42,7 +42,7 @@ export default function BloqueoInfoModal({ bloqueo, empleadas, onClose, onDelete
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <User size={16} style={{ color: 'var(--text-3)' }} />
             <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase' }}>Empleada</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase' }}>Profesional</div>
               <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-1)' }}>{empleada?.nombre || 'Todas'}</div>
             </div>
           </div>

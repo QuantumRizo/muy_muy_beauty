@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Sidebar, { type Section } from './components/Layout/Sidebar'
 import AgendaPage from './pages/AgendaPage'
 import ClientesPage from './pages/ClientesPage'
-import ConfiguracionPage from './pages/ConfiguracionPage'
+import ProfesionalesPage from './pages/ProfesionalesPage'
 import type { Cliente } from './types/database'
 
 const queryClient = new QueryClient({
@@ -31,7 +31,7 @@ export default function App() {
               setSection('agenda')
             }} />
           )}
-          {section === 'configuracion' && <ConfiguracionPage />}
+          {section === 'configuracion' && <ProfesionalesPage />}
         </div>
       </div>
     </QueryClientProvider>

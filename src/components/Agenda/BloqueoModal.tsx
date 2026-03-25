@@ -62,7 +62,7 @@ export default function BloqueoModal({ empleadas, onClose }: Props) {
 
   const handleSave = async () => {
     if (selectedEmpleadas.length === 0) {
-      alert('Por favor selecciona al menos una empleada')
+      alert('Por favor selecciona al menos un profesional')
       return
     }
 

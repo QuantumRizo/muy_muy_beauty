@@ -1,4 +1,4 @@
-import { Calendar, Users, Settings } from 'lucide-react'
+import { Calendar, Users, Briefcase } from 'lucide-react'
 
 export type Section = 'agenda' | 'clientes' | 'configuracion'
 
@@ -10,7 +10,7 @@ interface Props {
 const items = [
   { id: 'agenda'        as Section, label: 'Agenda',       Icon: Calendar  },
   { id: 'clientes'      as Section, label: 'Clientes',     Icon: Users     },
-  { id: 'configuracion' as Section, label: 'Configuración', Icon: Settings  },
+  { id: 'configuracion' as Section, label: 'Profesionales', Icon: Briefcase },
 ]
 
 export default function Sidebar({ current, onChange }: Props) {

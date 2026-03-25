@@ -8,7 +8,7 @@ import type { Empleada } from '../types/database'
 
 interface EmpleadaForm { id?: string; nombre: string; nombre_corto: string }
 
-export default function ConfiguracionPage() {
+export default function ProfesionalesPage() {
   const qc = useQueryClient()
   const { data: empleadas = [], isLoading } = useTodasEmpleadas()
   const [showForm, setShowForm] = useState(false)
@@ -20,7 +20,7 @@ export default function ConfiguracionPage() {
     e.preventDefault()
     if (!form.nombre.trim()) return
     setSaving(true)
-    
+
     if (editingId) {
       await supabase
         .from('perfiles_empleadas')
@@ -65,7 +65,7 @@ export default function ConfiguracionPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar esta empleada? Esta acción no se puede deshacer.')) return
+    if (!confirm('¿Eliminar a este profesional? Esta acción no se puede deshacer.')) return
     await supabase.from('perfiles_empleadas').delete().eq('id', id)
     qc.invalidateQueries({ queryKey: ['empleadas'] })
   }
@@ -74,9 +74,9 @@ export default function ConfiguracionPage() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Topbar */}
       <div className="page-topbar">
-        <span className="topbar-title">Configuración — Empleadas</span>
+        <span className="topbar-title">Profesionales</span>
         <button onClick={() => setShowForm(true)} className="btn-primary">
-          <Plus size={14} /> Nueva empleada
+          <Plus size={14} /> Agregar profesional
         </button>
       </div>
 
@@ -85,7 +85,7 @@ export default function ConfiguracionPage() {
         {showForm && (
           <div className="card" style={{ marginBottom: 20 }}>
             <div className="card-header">
-              <span className="card-title">{editingId ? 'Editar empleada' : 'Agregar empleada'}</span>
+              <span className="card-title">{editingId ? 'Editar profesional' : 'Agregar profesional'}</span>
               <button onClick={cancelForm} className="modal-close-btn"><X size={15} /></button>
             </div>
             <form onSubmit={handleSubmit} style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>

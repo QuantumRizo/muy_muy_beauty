@@ -8,9 +8,9 @@
   --surface-2:    #f9fafb;
   --border:       #e5e7eb;
   --border-2:     #d1d5db;
-  --accent:       #7c3aed;
-  --accent-light: rgba(124,58,237,0.08);
-  --accent-mid:   rgba(124,58,237,0.18);
+  --accent:       #f59e0b;
+  --accent-light: rgba(245, 158, 11, 0.08);
+  --accent-mid:   rgba(245, 158, 11, 0.18);
   --text-1:       #111827;
   --text-2:       #6b7280;
   --text-3:       #9ca3af;
@@ -24,6 +24,31 @@
   --radius-lg:    14px;
   --shadow-sm:    0 1px 3px rgba(0,0,0,0.08);
   --shadow-md:    0 4px 16px rgba(0,0,0,0.1);
+}
+
+/* ─── High Resolution Scaling ────────────────────────────── */
+@media (min-width: 1366px) {
+  :root {
+    --sidebar-w: 240px;
+  }
+  html, body, #root {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1600px) {
+  :root {
+    --sidebar-w: 280px;
+  }
+  html, body, #root {
+    font-size: 16px;
+  }
+  .modal-box {
+    max-width: 500px;
+  }
+  .modal-lg-split {
+    max-width: 1000px;
+  }
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -309,11 +334,11 @@ html, body, #root {
   padding-right: 6px;
   font-size: 10px;
   color: var(--text-3);
-  border-bottom: 1px solid rgba(229,231,235,0.5);
+  border-bottom: 1px solid rgba(0,0,0,0.14); /* Much more visible */
 }
 /* Hour boundaries (every 4th slot) get a slightly stronger line */
 .agenda-time-slot.hour-mark {
-  border-bottom-color: var(--border);
+  border-bottom-color: var(--border-2);
   color: var(--text-1);
   font-weight: 600;
 }
@@ -331,7 +356,7 @@ html, body, #root {
 
 .day-body-group {
   display: flex;
-  border-right: 1px solid var(--border-2);
+  border-right: 2px solid var(--border-2); /* Thicker day separator */
   flex-shrink: 0;
 }
 .day-body-group:last-child { border-right: none; }
@@ -339,7 +364,7 @@ html, body, #root {
 /* Employee column */
 .emp-col {
   position: relative;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--border-2);
   flex-shrink: 0;
 }
 .emp-col:last-child { border-right: none; }
@@ -347,11 +372,11 @@ html, body, #root {
 /* Slot cell (clickable) */
 .slot-cell {
   height: 16px;
-  border-bottom: 1px solid rgba(229,231,235,0.4);
+  border-bottom: 1px solid rgba(0,0,0,0.12); /* Increased opacity */
   cursor: pointer;
   transition: background 0.08s;
 }
-.slot-cell.hour-mark { border-bottom-color: var(--border); }
+.slot-cell.hour-mark { border-bottom-color: var(--border-2); }
 .slot-cell:hover { background: var(--accent-light); }
 
 /* Today column highlight */
@@ -702,7 +727,7 @@ select.form-input { cursor: pointer; }
   display: inline-flex; align-items: center;
   padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500;
 }
-.estado-programada   { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.estado-programada   { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
 .estado-en-curso     { background: rgba(234,179,8,0.12);  color: #b45309; }
 .estado-finalizada   { background: var(--success-bg);      color: var(--success); }
 .estado-cancelada    { background: var(--danger-bg);        color: var(--danger); }
@@ -759,7 +784,7 @@ select.form-input { cursor: pointer; }
 
 .duracion-summary {
   margin: 8px 18px 0; padding: 7px 12px;
-  background: var(--accent-light); border: 1px solid rgba(124,58,237,0.2);
+  background: var(--accent-light); border: 1px solid rgba(245, 158, 11, 0.2);
   border-radius: var(--radius-sm); font-size: 12px; color: var(--text-2);
 }
 .duracion-total { font-weight: 600; color: var(--accent); }
@@ -788,7 +813,7 @@ select.form-input { cursor: pointer; }
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
 }
-.cart-client-name { font-size: 18px; font-weight: 700; color: #f59e0b; margin-bottom: 2px; }
+.cart-client-name { font-size: 18px; font-weight: 700; color: var(--accent); margin-bottom: 2px; }
 .cart-client-phone { font-size: 13px; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
 
 .cart-items-list {
@@ -1179,7 +1204,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .btn-primary {
-  box-shadow: 0 2px 8px rgba(124,58,237,0.3);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .btn-primary:active { transform: scale(0.96); }
