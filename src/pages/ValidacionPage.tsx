@@ -70,7 +70,7 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
     setSearch('')
   }
 
-  const removeService = (id: string, index: number) => {
+  const removeService = (_id: string, index: number) => {
     setSelectedServicios(prev => prev.filter((_, i) => i !== index))
   }
 

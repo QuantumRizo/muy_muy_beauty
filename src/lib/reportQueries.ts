@@ -102,11 +102,15 @@ function buildTotals(rows: ReportRow[]): Record<string, number> {
 // ─── 1.1.1 Clientes nuevos ────────────────────────────────────
 
 async function q_clientes_nuevos(desglose: string, sort: string, fi: string, ff: string, suc: string): Promise<ReportResult> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('clientes')
     .select('id, created_at, sucursal_id, sucursal:sucursales(nombre)')
     .gte('created_at', `${fi}T00:00:00`)
     .lte('created_at', `${ff}T23:59:59`)
+  
+  if (suc !== 'all') query = query.eq('sucursal_id', suc)
+  
+  const { data, error } = await query
   if (error) throw error
 
   const keyFn = (c: any) => {
@@ -505,11 +509,15 @@ async function q_facturacion_profesional(desglose: string, sort: string, fi: str
 // ─── 4.6.1 Facturación por familia ───────────────────────────
 
 async function q_facturacion_familia(desglose: string, sort: string, fi: string, ff: string, suc: string): Promise<ReportResult> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('ticket_items')
     .select('nombre, total, tipo, ticket:tickets!inner(fecha, estado, sucursal_id, sucursal:sucursales(nombre))')
     .eq('ticket.estado', 'Pagado')
     .gte('ticket.fecha', fi).lte('ticket.fecha', ff)
+
+  if (suc !== 'all') query = query.eq('ticket.sucursal_id', suc)
+
+  const { data, error } = await query
   if (error) throw error
 
   // We need to join with servicios to get familia. Build a fast lookup.
@@ -537,12 +545,16 @@ async function q_facturacion_vendedor(desglose: string, sort: string, fi: string
 // ─── 4.9.1 Facturación por producto ──────────────────────────
 
 async function q_facturacion_producto(desglose: string, sort: string, fi: string, ff: string, suc: string): Promise<ReportResult> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('ticket_items')
     .select('nombre, cantidad, total, ticket:tickets!inner(fecha, estado, sucursal_id, sucursal:sucursales(nombre))')
     .eq('tipo', 'Producto')
     .eq('ticket.estado', 'Pagado')
     .gte('ticket.fecha', fi).lte('ticket.fecha', ff)
+
+  if (suc !== 'all') query = query.eq('ticket.sucursal_id', suc)
+
+  const { data, error } = await query
   if (error) throw error
 
   const keyFn = (item: any) => desglose === 'sucursal' ? (item.ticket as any)?.sucursal?.nombre || 'Sin sucursal' : item.nombre
@@ -625,7 +637,7 @@ async function q_facturacion_por_hora(sort: string, fi: string, ff: string, suc:
   const rows = groupAndPct(data, keyFn, (t: any) => ({ cantidad: 1, total: t.total }))
   const totalMXN = rows.reduce((a, r) => a + (r.total ?? 0), 0)
   rows.forEach(r => { r.porcentaje = pct(r.total ?? 0, totalMXN) })
-  return { rows: rows.sort((a, b) => a.nombre.localeCompare(b.nombre)), totals: buildTotals(rows) }
+  return { rows: applySort(rows, sort), totals: buildTotals(rows) }
 }
 
 // ─── 4.18 Ingresos por servicios ─────────────────────────────

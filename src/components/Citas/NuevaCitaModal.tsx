@@ -83,6 +83,7 @@ export default function NuevaCitaModal({
         estado: 'Programada',
         duracion_manual_slots: manualSlots,
         comentarios: comentarios || null,
+        ticket_id: null,
       },
       servicioIds: selected,
     })

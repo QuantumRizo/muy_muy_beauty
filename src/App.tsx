@@ -5,6 +5,7 @@ import AgendaPage from './pages/AgendaPage'
 import ClientesPage from './pages/ClientesPage'
 import ProfesionalesPage from './pages/ProfesionalesPage'
 import InventarioPage from './pages/InventarioPage'
+import DocumentosPage from './pages/DocumentosPage'
 import type { Cliente } from './types/database'
 
 import EstadisticasPage from "./pages/EstadisticasPage"
@@ -38,6 +39,7 @@ export default function App() {
             }} />
           )}
           {section === 'inventario'    && <InventarioPage />}
+          {section === 'documentos'    && <DocumentosPage />}
           {section === 'estadisticas'  && <EstadisticasPage />}
           {section === 'configuracion' && <ProfesionalesPage />}
         </div>

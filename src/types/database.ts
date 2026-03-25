@@ -63,6 +63,16 @@ export interface Producto {
   created_at: string
 }
 
+export interface Documento {
+  id: string
+  nombre: string
+  descripcion: string | null
+  archivo_url: string
+  peso_bytes: number | null
+  tipo_mime: string | null
+  created_at: string
+}
+
 
 export interface Cita {
   id: string

@@ -36,6 +36,7 @@ export default function FormularioCliente({ onCreated, onClose }: Props) {
       nombre_completo,
       telefono_cel: telefono_cel || null,
       email: email || null,
+      sucursal_id: null,
       datos_extra: {
         rfc: extra.rfc || undefined,
         procedencia: extra.procedencia || undefined,
