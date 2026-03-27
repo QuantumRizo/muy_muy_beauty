@@ -28,6 +28,18 @@ function pct(val: number, total: number): number {
   return parseFloat(((val / total) * 100).toFixed(2))
 }
 
+function startOfDayIso(dateStr: string): string {
+  if (!dateStr) return ''
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d, 0, 0, 0, 0).toISOString()
+}
+
+function endOfDayIso(dateStr: string): string {
+  if (!dateStr) return ''
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString()
+}
+
 // ─── Individual Indicator Queries ─────────────────────────────
 
 export async function runQuery(
@@ -105,8 +117,8 @@ async function q_clientes_nuevos(desglose: string, sort: string, fi: string, ff:
   let query = supabase
     .from('clientes')
     .select('id, created_at, sucursal_id, sucursal:sucursales(nombre)')
-    .gte('created_at', `${fi}T00:00:00`)
-    .lte('created_at', `${ff}T23:59:59`)
+    .gte('created_at', startOfDayIso(fi))
+    .lte('created_at', endOfDayIso(ff))
   
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
   
@@ -130,26 +142,41 @@ async function q_clientes_nuevos(desglose: string, sort: string, fi: string, ff:
 // ─── 1.1.2 Primeras sesiones ──────────────────────────────────
 
 async function q_primeras_sesiones(desglose: string, sort: string, fi: string, ff: string, suc: string): Promise<ReportResult> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('citas')
     .select('id, cliente_id, fecha, sucursal_id, sucursal:sucursales(nombre), empleada:perfiles_empleadas(nombre)')
-    .gte('fecha', fi).lte('fecha', `${ff}T23:59:59`)
-    .neq('estado', 'Cancelada')
-    .neq('estado', 'No asistió')
+    .gte('fecha', fi).lte('fecha', ff)
+    .in('estado', ['Programada', 'En curso', 'Finalizada'])
+    .order('fecha', { ascending: true })
 
+  if (suc !== 'all') query = query.eq('sucursal_id', suc)
+  
+  const { data, error } = await query
   if (error) throw error
 
-  // Keep only first session per client
-  const seen = new Set<string>()
-  const firsts = (data || []).filter(c => {
-    if (seen.has(c.cliente_id)) return false
-    seen.add(c.cliente_id)
+  if (!data || data.length === 0) return { rows: [], totals: buildTotals([]) }
+
+  const clientIdsInPeriod = Array.from(new Set(data.map(c => c.cliente_id).filter(Boolean)))
+
+  let clientsWithPrior = new Set<string>()
+  const BATCH_SIZE = 100
+  for (let i = 0; i < clientIdsInPeriod.length; i += BATCH_SIZE) {
+    const batch = clientIdsInPeriod.slice(i, i + BATCH_SIZE)
+    const { data: prior } = await supabase
+      .from('citas')
+      .select('cliente_id')
+      .in('cliente_id', batch)
+      .lt('fecha', fi)
+      .in('estado', ['Programada', 'En curso', 'Finalizada'])
+    prior?.forEach(p => clientsWithPrior.add(p.cliente_id))
+  }
+
+  const seenNew = new Set<string>()
+  const firsts = data.filter(c => {
+    if (!c.cliente_id || clientsWithPrior.has(c.cliente_id) || seenNew.has(c.cliente_id)) return false
+    seenNew.add(c.cliente_id)
     return true
   })
-
-  if (suc !== 'all') {
-    firsts.filter((c: any) => c.sucursal_id === suc)
-  }
 
   const keyFn = (c: any) => {
     if (desglose === 'sucursal') return c.sucursal?.nombre || 'Sin sucursal'
@@ -171,7 +198,7 @@ async function q_primeras_compras(desglose: string, sort: string, fi: string, ff
   let query = supabase
     .from('tickets')
     .select('id, cliente_id, fecha, total, sucursal_id, sucursal:sucursales(nombre)')
-    .gte('fecha', fi).lte('fecha', `${ff}T23:59:59`)
+    .gte('fecha', fi).lte('fecha', ff)
     .eq('estado', 'Pagado')
     .order('fecha', { ascending: true })
 
@@ -179,10 +206,27 @@ async function q_primeras_compras(desglose: string, sort: string, fi: string, ff
   const { data, error } = await query
   if (error) throw error
 
-  const seen = new Set<string>()
-  const firsts = (data || []).filter(t => {
-    if (!t.cliente_id || seen.has(t.cliente_id)) return false
-    seen.add(t.cliente_id)
+  if (!data || data.length === 0) return { rows: [], totals: buildTotals([]) }
+
+  const clientIdsInPeriod = Array.from(new Set(data.map(t => t.cliente_id).filter(Boolean)))
+
+  let clientsWithPrior = new Set<string>()
+  const BATCH_SIZE = 100
+  for (let i = 0; i < clientIdsInPeriod.length; i += BATCH_SIZE) {
+    const batch = clientIdsInPeriod.slice(i, i + BATCH_SIZE)
+    const { data: prior } = await supabase
+      .from('tickets')
+      .select('cliente_id')
+      .in('cliente_id', batch)
+      .lt('fecha', fi)
+      .eq('estado', 'Pagado')
+    prior?.forEach(p => clientsWithPrior.add(p.cliente_id))
+  }
+
+  const seenNew = new Set<string>()
+  const firsts = data.filter(t => {
+    if (!t.cliente_id || clientsWithPrior.has(t.cliente_id) || seenNew.has(t.cliente_id)) return false
+    seenNew.add(t.cliente_id)
     return true
   })
 
@@ -206,8 +250,8 @@ async function q_como_conocio(sort: string, fi: string, ff: string): Promise<Rep
   const { data, error } = await supabase
     .from('clientes')
     .select('datos_extra, created_at')
-    .gte('created_at', `${fi}T00:00:00`)
-    .lte('created_at', `${ff}T23:59:59`)
+    .gte('created_at', startOfDayIso(fi))
+    .lte('created_at', endOfDayIso(ff))
   if (error) throw error
 
   const keyFn = (c: any) => c.datos_extra?.procedencia || 'No especificado'
@@ -223,30 +267,34 @@ async function q_como_conocio(sort: string, fi: string, ff: string): Promise<Rep
 async function q_clientes_por_tratamiento(desglose: string, sort: string, fi: string, ff: string, suc: string): Promise<ReportResult> {
   let query = supabase
     .from('citas')
-    .select('cliente_id, sucursal_id, fecha, cita_servicios(servicio_id, servicios(nombre))')
-    .gte('fecha', fi).lte('fecha', `${ff}T23:59:59`)
-    .neq('estado', 'Cancelada')
+    .select('cliente_id, sucursal_id, fecha, sucursal:sucursales(nombre), cita_servicios(servicio_id, servicios(nombre))')
+    .gte('fecha', fi).lte('fecha', ff)
+    .in('estado', ['Programada', 'En curso', 'Finalizada'])
+    
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
   const { data, error } = await query
   if (error) throw error
 
-  // Flatten to servicio entries
-  const flat: any[] = []
+  const groups: Record<string, Set<string>> = {}
+  
   data?.forEach((c: any) => {
     c.cita_servicios?.forEach((cs: any) => {
-      flat.push({ cliente_id: c.cliente_id, servicio: cs.servicios?.nombre || 'Sin nombre', mes: c.fecha.substring(0, 7) })
+      const trat = cs.servicios?.nombre || 'Sin nombre'
+      const key = desglose === 'sucursal' ? (c.sucursal?.nombre || 'Sin sucursal')
+        : desglose === 'mes' ? c.fecha.substring(0, 7)
+        : trat
+      if (!groups[key]) groups[key] = new Set()
+      if (c.cliente_id) groups[key].add(c.cliente_id)
     })
   })
 
-  const keyFn = (item: any) => {
-    if (desglose === 'sucursal') return item.sucursal || 'N/A'
-    if (desglose === 'mes') return item.mes
-    return item.servicio
-  }
+  const rows: ReportRow[] = Object.entries(groups).map(([nombre, pSet]) => ({
+    nombre, cantidad: pSet.size
+  }))
 
-  const rows = groupAndPct(flat, keyFn, () => ({ cantidad: 1 }))
   const totalCant = rows.reduce((a, r) => a + (r.cantidad ?? 0), 0)
-  rows.forEach(r => { r.porcentaje = pct(r.cantidad ?? 0, totalCant); r.total = undefined })
+  rows.forEach(r => { r.porcentaje = pct(r.cantidad ?? 0, totalCant) })
+
   return { rows: applySort(rows, sort), totals: buildTotals(rows) }
 }
 
@@ -256,7 +304,8 @@ async function q_media_tratamientos(desglose: string, sort: string, fi: string, 
   let query = supabase
     .from('citas')
     .select('cliente_id, sucursal_id, fecha, sucursal:sucursales(nombre), cita_servicios(id)')
-    .gte('fecha', fi).lte('fecha', `${ff}T23:59:59`).neq('estado', 'Cancelada')
+    .gte('fecha', fi).lte('fecha', ff)
+    .in('estado', ['Programada', 'En curso', 'Finalizada'])
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
   const { data, error } = await query
   if (error) throw error
@@ -306,7 +355,7 @@ async function q_sesiones_asistidas(desglose: string, sort: string, fi: string, 
   let query = supabase
     .from('citas')
     .select('fecha, sucursal_id, cita_servicios(servicio_id, servicios(nombre))')
-    .gte('fecha', fi).lte('fecha', `${ff}T23:59:59`)
+    .gte('fecha', fi).lte('fecha', ff)
     .eq('estado', 'Finalizada')
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
   const { data, error } = await query
@@ -332,7 +381,7 @@ async function q_sesiones_profesional_tratamiento(sort: string, fi: string, ff: 
   let query = supabase
     .from('citas')
     .select('empleada:perfiles_empleadas(nombre), fecha, cita_servicios(servicios(nombre))')
-    .gte('fecha', fi).lte('fecha', `${ff}T23:59:59`)
+    .gte('fecha', fi).lte('fecha', ff)
     .eq('estado', 'Finalizada')
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
   const { data, error } = await query
@@ -363,7 +412,7 @@ async function q_no_asistidas_pct(desglose: string, sort: string, fi: string, ff
   let query = supabase
     .from('citas')
     .select('estado, fecha, sucursal_id, empleada_id, sucursal:sucursales(nombre), empleada:perfiles_empleadas(nombre)')
-    .gte('fecha', fi).lte('fecha', `${ff}T23:59:59`)
+    .gte('fecha', fi).lte('fecha', ff)
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
   const { data, error } = await query
   if (error) throw error
@@ -395,7 +444,7 @@ async function q_desglose_no_asistidas(desglose: string, sort: string, fi: strin
   let query = supabase
     .from('citas')
     .select('estado, fecha, sucursal_id, empleada:perfiles_empleadas(nombre), sucursal:sucursales(nombre)')
-    .gte('fecha', fi).lte('fecha', `${ff}T23:59:59`)
+    .gte('fecha', fi).lte('fecha', ff)
     .or('estado.eq.No asistió,estado.eq.Cancelada')
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
   const { data, error } = await query
@@ -420,7 +469,7 @@ async function q_citas_agenda(desglose: string, sort: string, fi: string, ff: st
   let query = supabase
     .from('citas')
     .select('estado, fecha, sucursal_id, empleada:perfiles_empleadas(nombre), sucursal:sucursales(nombre)')
-    .gte('fecha', fi).lte('fecha', `${ff}T23:59:59`)
+    .gte('fecha', fi).lte('fecha', ff)
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
   const { data, error } = await query
   if (error) throw error
@@ -444,7 +493,7 @@ async function q_facturacion(desglose: string, sort: string, fi: string, ff: str
   let query = supabase
     .from('tickets')
     .select('total, fecha, sucursal_id, vendedor_id, sucursal:sucursales(nombre), vendedor:perfiles_empleadas(nombre)')
-    .gte('fecha', fi).lte('fecha', `${ff}T23:59:59`)
+    .gte('fecha', fi).lte('fecha', ff)
   if (!includeAll) query = query.eq('estado', 'Pagado')
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
   const { data, error } = await query
@@ -494,7 +543,7 @@ async function q_facturacion_profesional(desglose: string, sort: string, fi: str
   let query = supabase
     .from('tickets')
     .select('total, fecha, sucursal_id, vendedor:perfiles_empleadas(nombre)')
-    .gte('fecha', fi).lte('fecha', `${ff}T23:59:59`).eq('estado', 'Pagado')
+    .gte('fecha', fi).lte('fecha', ff).eq('estado', 'Pagado')
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
   const { data, error } = await query
   if (error) throw error
@@ -570,7 +619,7 @@ async function q_facturacion_estimada(desglose: string, sort: string, fi: string
   let query = supabase
     .from('citas')
     .select('fecha, sucursal_id, empleada_id, sucursal:sucursales(nombre), empleada:perfiles_empleadas(nombre), cita_servicios(servicios(precio))')
-    .gte('fecha', fi).lte('fecha', `${ff}T23:59:59`)
+    .gte('fecha', fi).lte('fecha', ff)
     .eq('estado', 'Programada')
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
   const { data, error } = await query
@@ -623,7 +672,7 @@ async function q_facturacion_por_hora(sort: string, fi: string, ff: string, suc:
   let query = supabase
     .from('tickets')
     .select('total, created_at')
-    .gte('fecha', fi).lte('fecha', `${ff}T23:59:59`)
+    .gte('fecha', fi).lte('fecha', ff)
     .eq('estado', 'Pagado')
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
   const { data, error } = await query

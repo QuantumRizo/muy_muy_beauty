@@ -2214,18 +2214,6 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 8px 24px rgba(0,0,0,0.06);
 }
 
-.dash-card-bg-shape {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 100px;
-  height: 100px;
-  background: var(--accent-light);
-  border-bottom-left-radius: 100px;
-  z-index: 0;
-  opacity: 0.8;
-}
-
 .dash-card-header {
   display: flex;
   justify-content: space-between;

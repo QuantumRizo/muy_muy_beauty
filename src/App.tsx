@@ -9,14 +9,13 @@ import DocumentosPage from './pages/DocumentosPage'
 import type { Cliente } from './types/database'
 
 import EstadisticasPage from "./pages/EstadisticasPage"
-import DashboardPage from './pages/DashboardPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 1000 * 30 } },
 })
 
 export default function App() {
-  const [section, setSection] = useState<Section>('inicio')
+  const [section, setSection] = useState<Section>('agenda')
   const [pendingClient, setPendingClient] = useState<Cliente | null>(null)
 
   return (
@@ -24,7 +23,7 @@ export default function App() {
       <div className="app-shell">
         <Sidebar current={section} onChange={setSection} />
         <div className="main-area">
-          {section === 'inicio'        && <DashboardPage />}
+
           {section === 'agenda'        && (
             <AgendaPage 
               preselectedCliente={pendingClient} 

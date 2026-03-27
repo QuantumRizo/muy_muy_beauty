@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react'
-import { format, isToday } from 'date-fns'
+import { format, isToday, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { CheckCircle2, User, Phone, ClipboardList, CalendarX } from 'lucide-react'
 
@@ -84,6 +84,21 @@ export default function AgendaGrid({
     window.addEventListener('resize', updateDimensions)
     return () => window.removeEventListener('resize', updateDimensions)
   }, [])
+
+  // Auto-scroll to "Today" if it exists in weekDates
+  useEffect(() => {
+    // Small timeout to ensure layout is ready
+    const timer = setTimeout(() => {
+      if (!mainGridRef.current) return
+      const todayIndex = weekDates.findIndex(d => isToday(d))
+      if (todayIndex > -1) {
+        const scrollPos = todayIndex * (colWidth * empleadas.length)
+        mainGridRef.current.scrollLeft = scrollPos
+        if (daysHeaderRef.current) daysHeaderRef.current.scrollLeft = scrollPos
+      }
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [weekDates, colWidth, empleadas.length])
 
   // Scroll sync: vertical → time col; horizontal → days header
   const handleScroll = useCallback(() => {
@@ -185,6 +200,7 @@ export default function AgendaGrid({
             <div className="agenda-days-body">
               {weekDates.map((date) => {
                 const isHoy = isToday(date)
+                const isPastDate = startOfDay(date).getTime() < startOfDay(new Date()).getTime()
                 return (
                   <div
                     key={format(date, 'yyyy-MM-dd')}
@@ -205,8 +221,15 @@ export default function AgendaGrid({
                             <div
                               key={label}
                               className={`slot-cell ${isHour ? 'hour-mark' : ''}`}
-                              style={{ height: slotHeight }}
-                              onClick={() => onSlotClick(emp.id, label, format(date, 'yyyy-MM-dd'))}
+                              style={{ 
+                                height: slotHeight,
+                                cursor: isPastDate ? 'default' : 'pointer',
+                                backgroundColor: isPastDate ? 'var(--bg-1)' : undefined
+                              }}
+                              onClick={() => {
+                                if (isPastDate) return
+                                onSlotClick(emp.id, label, format(date, 'yyyy-MM-dd'))
+                              }}
                             />
                           ))}
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { startOfWeek, addDays, addWeeks, subWeeks, format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Calendar, CalendarPlus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, CalendarPlus, X, Move } from 'lucide-react'
 import AgendaGrid from '../components/Agenda/AgendaGrid'
 import BuscadorModal from '../components/Clientes/BuscadorModal'
 import FormularioCliente from '../components/Clientes/FormularioCliente'
@@ -11,7 +11,7 @@ import BloqueoModal from '../components/Agenda/BloqueoModal'
 import BloqueoInfoModal from '../components/Agenda/BloqueoInfoModal'
 import { useSucursales } from '../hooks/useSucursales'
 import { useEmpleadas } from '../hooks/useEmpleadas'
-import { useCitasSemana, useBloqueosSemana, useEliminarBloqueo } from '../hooks/useCitas'
+import { useCitasSemana, useBloqueosSemana, useEliminarBloqueo, useActualizarCita } from '../hooks/useCitas'
 import type { Cliente, Cita, SlotInfo, BloqueoAgenda } from '../types/database'
 
 type Modal =
@@ -41,9 +41,11 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
   )
   const [sucursalId, setSucursalId] = useState<string>('')
   const [modal, setModal] = useState<Modal>({ type: 'none' })
+  const [movingCita, setMovingCita] = useState<Cita | null>(null)
 
   const { data: sucursales = [] } = useSucursales()
   const eliminarBloqueo = useEliminarBloqueo()
+  const actualizarCita = useActualizarCita()
 
   // Default to first sucursal when they load
   if (!sucursalId && sucursales.length > 0) {
@@ -64,7 +66,26 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
   const nextWeek  = () => setWeekStart((w) => addWeeks(w, 1))
   const thisWeek  = () => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))
 
-  const handleSlotClick = (empleadaId: string, hora: string, fecha: string) => {
+  const handleSlotClick = async (empleadaId: string, hora: string, fecha: string) => {
+    if (movingCita) {
+      if (confirm(`¿Mover cita de ${movingCita.cliente?.nombre_completo} a este horario?`)) {
+        try {
+          await actualizarCita.mutateAsync({
+            id: movingCita.id,
+            updates: {
+              fecha,
+              bloque_inicio: hora,
+              empleada_id: empleadaId
+            }
+          })
+          setMovingCita(null)
+        } catch (err) {
+          alert('Error al mover la cita')
+        }
+      }
+      return
+    }
+
     if (preselectedCliente) {
       setModal({ type: 'nueva-cita', slot: { empleadaId, hora, fecha }, cliente: preselectedCliente })
       onClearPreselected?.()
@@ -101,6 +122,20 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
 
   return (
     <div className="agenda-page-wrap">
+      <style>{`
+        @keyframes pulse-opacity {
+          0% { opacity: 0.6; transform: scale(0.95); }
+          50% { opacity: 1; transform: scale(1.05); }
+          100% { opacity: 0.6; transform: scale(0.95); }
+        }
+        .pulse-icon {
+          animation: pulse-opacity 2s infinite ease-in-out;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+      `}</style>
+
       {/* Preselected Client Notice */}
       {preselectedCliente && (
         <div style={{ background: 'var(--accent)', color: '#fff', padding: '8px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, fontWeight: 500 }}>
@@ -114,6 +149,22 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
             title="Cancelar selección"
           >
             <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Moving Cita Notice */}
+      {movingCita && (
+        <div style={{ background: 'var(--accent)', color: '#fff', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, fontWeight: 500, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="pulse-icon"><Move size={16} /></div>
+            <span>Moviendo cita de: <strong>{movingCita.cliente?.nombre_completo}</strong>. Haz clic en el <b>nuevo horario</b> o <b>profesional</b> deseado.</span>
+          </div>
+          <button 
+            onClick={() => setMovingCita(null)}
+            style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 4, cursor: 'pointer', color: '#fff', fontSize: 11, fontWeight: 600 }}
+          >
+            Cancelar Movimiento
           </button>
         </div>
       )}
@@ -199,6 +250,10 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
         <GestionCitaModal 
           cita={modal.cita} 
           onClose={closeModal} 
+          onMove={(cita) => {
+            setMovingCita(cita)
+            closeModal()
+          }}
           onValidar={() => {
             closeModal()
             onValidarCita?.(modal.cita)

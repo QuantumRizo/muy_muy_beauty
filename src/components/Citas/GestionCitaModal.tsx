@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { X, Check, Trash2, Search, Calendar, Clock, MapPin, Phone, MessageCircle, Move, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react'
+import { startOfDay, parseISO } from 'date-fns'
 import { useActualizarCita } from '../../hooks/useCitas'
 import { useServicios } from '../../hooks/useServicios'
 import { useTodasEmpleadas } from '../../hooks/useEmpleadas'
@@ -8,11 +9,12 @@ import type { Cita, CitaStatus, Servicio } from '../../types/database'
 interface Props {
   cita: Cita
   onClose: () => void
+  onMove?: (cita: Cita) => void
   onValidar?: () => void
 }
 
 
-export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
+export default function GestionCitaModal({ cita, onClose, onMove, onValidar }: Props) {
 
   const actualizar = useActualizarCita()
   const { data: servicios = [] } = useServicios()
@@ -27,14 +29,16 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
   // Modules management
   const [manualSlots, setManualSlots] = useState<number | null>(cita.duracion_manual_slots)
 
+  const isPastDate = startOfDay(parseISO(cita.fecha)).getTime() < startOfDay(new Date()).getTime()
+
   const toggleServicio = (id: string) =>
-    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
+    setSelected((prev: string[]) => (prev.includes(id) ? prev.filter((x: string) => x !== id) : [...prev, id]))
 
   const serviciosSeleccionados = useMemo(() => 
-    servicios.filter((s) => selected.includes(s.id)),
+    servicios.filter((s: Servicio) => selected.includes(s.id)),
   [servicios, selected])
 
-  const autoSlots = serviciosSeleccionados.reduce((sum, s) => sum + s.duracion_slots, 0)
+  const autoSlots = serviciosSeleccionados.reduce((sum: number, s: Servicio) => sum + s.duracion_slots, 0)
   const effectiveSlots = manualSlots ?? autoSlots
   const totalMin = effectiveSlots * 15
 
@@ -48,7 +52,7 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
   }, [servicios, search])
 
   const groups = useMemo(() => {
-    return filteredServices.reduce<Record<string, Servicio[]>>((acc, s) => {
+    return filteredServices.reduce<Record<string, Servicio[]>>((acc, s: Servicio) => {
       const fam = s.familia ?? 'Otros'
       acc[fam] = acc[fam] ? [...acc[fam], s] : [s]
       return acc
@@ -126,13 +130,19 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
                   No hay servicios seleccionados
                 </div>
               ) : (
-                serviciosSeleccionados.map(s => (
+                serviciosSeleccionados.map((s: Servicio) => (
                   <div key={s.id} className="cart-item">
                     <div className="cart-item-info">
                       <div className="cart-item-name">{s.nombre}</div>
                       <div className="cart-item-meta">{s.duracion_slots * 15} min · ${s.precio}</div>
                     </div>
-                    <button type="button" onClick={() => toggleServicio(s.id)} className="cart-item-remove">
+                    <button 
+                      type="button" 
+                      onClick={() => toggleServicio(s.id)} 
+                      className="cart-item-remove"
+                      disabled={isPastDate}
+                      style={{ cursor: isPastDate ? 'default' : 'pointer' }}
+                    >
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -142,26 +152,36 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
 
             {/* Quick Actions Grid */}
             <div className="action-grid">
-              <button className="btn-action-gray" title="Mover cita"><Move size={15} /> Mover</button>
+              <button 
+                className="btn-action-gray" 
+                title="Mover cita" 
+                disabled={isPastDate} 
+                style={{ cursor: isPastDate ? 'default' : 'pointer' }}
+                onClick={() => onMove?.(cita)}
+              >
+                <Move size={15} /> Mover
+              </button>
               <button 
                 className="btn-action-gray" 
                 onClick={() => handleStatus('Cancelada')}
-                style={{ color: 'var(--danger)' }}
+                style={{ color: isPastDate ? 'var(--text-3)' : 'var(--danger)', cursor: isPastDate ? 'default' : 'pointer' }}
+                disabled={isPastDate}
               >
                 <Trash2 size={15} /> Cancelar
               </button>
-              <button className="btn-action-gray" onClick={() => handleStatus('No asistió')}>No asistió</button>
+              <button className="btn-action-gray" onClick={() => handleStatus('No asistió')} disabled={isPastDate} style={{ cursor: isPastDate ? 'default' : 'pointer' }}>No asistió</button>
               <button className="btn-action-gray" onClick={() => {
                 const note = prompt('Añadir/Editar comentario:', comentarios)
                 if (note !== null) setComentarios(note)
-              }}>
+              }} disabled={isPastDate} style={{ cursor: isPastDate ? 'default' : 'pointer' }}>
                 <MessageSquare size={15} /> Notas
               </button>
               
               <button 
                 className={`btn-action-validate ${cita.estado === 'Finalizada' ? 'validated' : ''}`}
                 onClick={() => onValidar ? onValidar() : handleStatus('Finalizada')}
-                disabled={saving}
+                disabled={saving || isPastDate}
+                style={{ cursor: isPastDate ? 'default' : (saving ? 'wait' : 'pointer') }}
               >
                 <Check size={18} /> {cita.estado === 'Finalizada' ? 'Cita Validada' : 'Validar Cita'}
               </button>
@@ -178,9 +198,10 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
                   type="text"
                   placeholder="Buscar servicio..."
                   className="selection-search-input"
-                  style={{ paddingLeft: 38 }}
+                  style={{ paddingLeft: 38, cursor: isPastDate ? 'default' : 'text' }}
                   value={search}
                   onChange={e => setSearch(e.target.value)}
+                  disabled={isPastDate}
                 />
               </div>
             </div>
@@ -189,9 +210,10 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)', minWidth: 80 }}>Profesional:</span>
               <select 
                 className="form-input" 
-                style={{ fontSize: 13, flex: 1, height: 36, padding: '0 12px' }}
+                style={{ fontSize: 13, flex: 1, height: 36, padding: '0 12px', cursor: isPastDate ? 'default' : 'pointer' }}
                 value={empleadaId || ''} 
                 onChange={e => setEmpleadaId(e.target.value)}
+                disabled={isPastDate}
               >
                 <option value="">Elegir profesional...</option>
                 {empleadas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
@@ -199,11 +221,11 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
             </div>
 
             <div className="selection-services-list">
-              {Object.entries(groups).map(([familia, items]) => (
+              {Object.entries(groups).map(([familia, items]: [string, Servicio[]]) => (
                 <div key={familia} style={{ marginBottom: 20 }}>
                   <div className="servicio-familia" style={{ marginBottom: 8 }}>{familia}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {items.map(s => {
+                    {items.map((s: Servicio) => {
                       const isAdded = selected.includes(s.id)
                       return (
                         <button
@@ -211,7 +233,8 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
                           type="button"
                           onClick={() => toggleServicio(s.id)}
                           className={`servicio-btn ${isAdded ? 'active' : ''}`}
-                          style={{ padding: '10px 14px' }}
+                          style={{ padding: '10px 14px', cursor: isPastDate ? 'default' : 'pointer' }}
+                          disabled={isPastDate}
                         >
                           <div className="servicio-btn-inner">
                             <span style={{ fontSize: 13 }}>{s.nombre}</span>
@@ -238,43 +261,47 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
                       <button 
                         type="button" 
                         className="btn-ghost" 
-                        style={{ padding: 2 }}
+                        style={{ padding: 2, cursor: isPastDate ? 'default' : 'pointer' }}
                         onClick={() => setManualSlots(Math.max(1, (manualSlots ?? autoSlots) - 1))}
+                        disabled={isPastDate}
                       >
-                        <ChevronLeft size={16} color="var(--accent)" />
+                        <ChevronLeft size={16} color={isPastDate ? 'var(--text-3)' : 'var(--accent)'} />
                       </button>
-                      <span style={{ fontSize: 15, fontWeight: 700, minWidth: 20, textAlign: 'center' }}>
+                      <span style={{ fontSize: 15, fontWeight: 700, minWidth: 20, textAlign: 'center', color: isPastDate ? 'var(--text-3)' : 'inherit' }}>
                         {manualSlots ?? autoSlots}
                       </span>
                       <button 
                         type="button" 
                         className="btn-ghost" 
-                        style={{ padding: 2 }}
+                        style={{ padding: 2, cursor: isPastDate ? 'default' : 'pointer' }}
                         onClick={() => setManualSlots((manualSlots ?? autoSlots) + 1)}
+                        disabled={isPastDate}
                       >
-                        <ChevronRight size={16} color="var(--accent)" />
+                        <ChevronRight size={16} color={isPastDate ? 'var(--text-3)' : 'var(--accent)'} />
                       </button>
                     </div>
                   </div>
-                  <div style={{ fontSize: 13 }}>
+                  <div style={{ fontSize: 13, color: isPastDate ? 'var(--text-3)' : 'inherit' }}>
                     <span style={{ color: 'var(--text-3)' }}>Duración:</span> <b>{totalMin} min</b>
                   </div>
                   {manualSlots !== null && (
                      <button 
                        onClick={() => setManualSlots(null)} 
-                       style={{ fontSize: 10, color: 'var(--accent)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                       style={{ fontSize: 10, color: isPastDate ? 'var(--text-3)' : 'var(--accent)', background: 'none', border: 'none', padding: 0, cursor: isPastDate ? 'default' : 'pointer' }}
+                       disabled={isPastDate}
                      >
                        Restablecer
                      </button>
                    )}
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={onClose} className="btn-ghost">Salir</button>
+                  <button type="button" onClick={onClose} className="btn-ghost" style={{ cursor: 'pointer' }}>Salir</button>
                   <button 
                     type="button" 
                     onClick={() => handleUpdate()} 
-                    disabled={saving || !selected.length || !empleadaId} 
+                    disabled={saving || !selected.length || !empleadaId || isPastDate} 
                     className="btn-primary"
+                    style={{ cursor: isPastDate ? 'default' : (saving ? 'wait' : 'pointer') }}
                   >
                     {saving ? 'Guardando...' : 'Guardar Cambios'}
                   </button>
