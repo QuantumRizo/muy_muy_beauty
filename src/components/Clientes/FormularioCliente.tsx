@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { X, Save } from 'lucide-react'
 import { useCrearCliente } from '../../hooks/useClientes'
+import { useSucursales } from '../../hooks/useSucursales'
 import type { Cliente, SexoType } from '../../types/database'
 
 const PROCEDENCIAS = [
@@ -15,6 +16,7 @@ interface Props {
 
 export default function FormularioCliente({ onCreated, onClose }: Props) {
   const crearCliente = useCrearCliente()
+  const { data: sucursales = [] } = useSucursales()
   const [form, setForm] = useState({
     nombre_completo: '',
     telefono_cel: '',
@@ -25,6 +27,7 @@ export default function FormularioCliente({ onCreated, onClose }: Props) {
     fecha_nacimiento: '',
     pais: 'México',
     notas: '',
+    sucursal_id: '',
   })
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
@@ -36,7 +39,7 @@ export default function FormularioCliente({ onCreated, onClose }: Props) {
       nombre_completo,
       telefono_cel: telefono_cel || null,
       email: email || null,
-      sucursal_id: null,
+      sucursal_id: form.sucursal_id || null,
       datos_extra: {
         rfc: extra.rfc || undefined,
         procedencia: extra.procedencia || undefined,
@@ -106,6 +109,13 @@ export default function FormularioCliente({ onCreated, onClose }: Props) {
             <div className="form-group">
               <label>País</label>
               <input value={form.pais} onChange={(e) => set('pais', e.target.value)} className="form-input" placeholder="México" />
+            </div>
+            <div className="form-group">
+              <label>Sucursal de origen</label>
+              <select value={form.sucursal_id} onChange={(e) => set('sucursal_id', e.target.value)} className="form-input">
+                <option value="">Ninguna / Global</option>
+                {sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+              </select>
             </div>
           </div>
           <div className="form-group">

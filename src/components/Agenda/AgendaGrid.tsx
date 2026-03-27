@@ -1,7 +1,7 @@
 import { useRef, useCallback, useState, useEffect } from 'react'
 import { format, isToday, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { CheckCircle2, User, Phone, ClipboardList, CalendarX } from 'lucide-react'
+import { CheckCircle2, User, Phone, ClipboardList, CalendarX, Move } from 'lucide-react'
 
 import type { Cita, BloqueoAgenda, Empleada } from '../../types/database'
 
@@ -309,14 +309,30 @@ export default function AgendaGrid({
                               }}
                             >
 
-                              <div className="cita-block-inner">
-                                {isFinalizada && (
-                                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
-                                    <CheckCircle2 size={12} className="cita-check" color="#ffffff" />
-                                  </div>
-                                )}
+                                <div className="cita-block-inner">
+                                  {isFinalizada && (
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
+                                      <CheckCircle2 size={12} className="cita-check" color="#ffffff" />
+                                    </div>
+                                  )}
+                                  {cita.reagendada_por && (
+                                    <div style={{ 
+                                      position: 'absolute', 
+                                      bottom: 4, 
+                                      right: 4, 
+                                      background: 'rgba(255,255,255,0.2)', 
+                                      borderRadius: '50%', 
+                                      width: 14, 
+                                      height: 14, 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      justifyContent: 'center' 
+                                    }}>
+                                      <Move size={8} color="#ffffff" />
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
                           )
                         })}
 
@@ -374,6 +390,21 @@ export default function AgendaGrid({
                   <span className="tooltip-sub">Profesional: <b>{hoveredCita.empleada?.nombre}</b></span>
                 </div>
               </div>
+
+              {hoveredCita.reagendada_por && (
+                <>
+                  <div className="tooltip-divider" style={{ borderTop: '1px dashed var(--accent)', opacity: 0.3 }} />
+                  <div className="tooltip-move">
+                    <div className="tooltip-header move" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#7c3aed', fontSize: 13, marginBottom: 4 }}>
+                      <Move size={14} />
+                      <span style={{ fontWeight: 600 }}>Visita desplazada</span>
+                    </div>
+                    <div className="tooltip-body" style={{ fontSize: 12, color: 'var(--text-2)' }}>
+                      <p style={{ margin: 0 }}>Movida por <b>{hoveredCita.reagendada_por}</b> el {new Date(hoveredCita.reagendada_fecha!).toLocaleDateString('es-ES')} a las {new Date(hoveredCita.reagendada_fecha!).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

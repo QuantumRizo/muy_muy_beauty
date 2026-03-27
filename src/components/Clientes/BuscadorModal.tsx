@@ -49,6 +49,7 @@ export default function BuscadorModal({ onSelect, onNuevoCliente, onClose }: Pro
               <div className="search-result-meta">
                 <span>#{c.num_cliente}</span>
                 {c.telefono_cel && <span>· {c.telefono_cel}</span>}
+                {c.sucursal?.nombre && <span> · {c.sucursal.nombre}</span>}
               </div>
             </button>
           ))}

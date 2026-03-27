@@ -12,6 +12,9 @@ interface ChartProps {
 // SaaS Palette: Amber/Yellow shades
 const DEFAULT_COLORS = ['#f59e0b', '#fbbf24', '#d97706', '#fcd34d', '#78350f']
 
+const truncate = (str: string, max = 15) => 
+  (str && str.length > max) ? str.substring(0, max) + '...' : (str || '')
+
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
@@ -39,6 +42,7 @@ export const DashboardBarChart = ({ data, height = 300, colors = DEFAULT_COLORS 
             dataKey="nombre" 
             axisLine={false} 
             tickLine={false} 
+            tickFormatter={(val) => truncate(val, 12)}
             tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 500 }} 
             dy={8}
           />
@@ -78,6 +82,7 @@ export const DashboardAreaChart = ({ data, height = 300, colors = DEFAULT_COLORS
             dataKey="nombre" 
             axisLine={false} 
             tickLine={false} 
+            tickFormatter={(val) => truncate(val, 12)}
             tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 500 }} 
             dy={8}
           />
@@ -131,6 +136,7 @@ export const DashboardPieChart = ({ data, height = 300, colors = DEFAULT_COLORS 
             align="center" 
             iconType="circle"
             iconSize={8}
+            formatter={(value) => truncate(value, 18)}
             wrapperStyle={{ paddingTop: '24px', fontSize: '11px', fontWeight: 500, color: '#64748b' }}
           />
         </PieChart>

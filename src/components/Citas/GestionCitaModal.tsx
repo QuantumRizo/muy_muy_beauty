@@ -1,20 +1,22 @@
 import { useState, useMemo } from 'react'
-import { X, Check, Trash2, Search, Calendar, Clock, MapPin, Phone, MessageCircle, Move, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, Check, Trash2, Search, Calendar, Clock, MapPin, Phone, MessageCircle, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react'
 import { startOfDay, parseISO } from 'date-fns'
-import { useActualizarCita } from '../../hooks/useCitas'
+import { useActualizarCita, useCheckDisponibilidad } from '../../hooks/useCitas'
 import { useServicios } from '../../hooks/useServicios'
 import { useTodasEmpleadas } from '../../hooks/useEmpleadas'
 import type { Cita, CitaStatus, Servicio } from '../../types/database'
+import { timeToSlots, haySolapamiento } from '../../utils/agenda'
+
+import DatePicker from '../Common/DatePicker'
 
 interface Props {
   cita: Cita
   onClose: () => void
-  onMove?: (cita: Cita) => void
   onValidar?: () => void
 }
 
 
-export default function GestionCitaModal({ cita, onClose, onMove, onValidar }: Props) {
+export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
 
   const actualizar = useActualizarCita()
   const { data: servicios = [] } = useServicios()
@@ -25,6 +27,11 @@ export default function GestionCitaModal({ cita, onClose, onMove, onValidar }: P
   const [comentarios, setComentarios] = useState(cita.comentarios || '')
   const [empleadaId, setEmpleadaId] = useState(cita.empleada_id || '')
   const [saving, setSaving] = useState(false)
+  
+  // Reagendar state
+  const [isReagendar, setIsReagendar] = useState(false)
+  const [newFecha, setNewFecha] = useState(cita.fecha)
+  const [newHora, setNewHora] = useState(cita.bloque_inicio.substring(0, 5))
   
   // Modules management
   const [manualSlots, setManualSlots] = useState<number | null>(cita.duracion_manual_slots)
@@ -41,6 +48,17 @@ export default function GestionCitaModal({ cita, onClose, onMove, onValidar }: P
   const autoSlots = serviciosSeleccionados.reduce((sum: number, s: Servicio) => sum + s.duracion_slots, 0)
   const effectiveSlots = manualSlots ?? autoSlots
   const totalMin = effectiveSlots * 15
+
+  // Check availability
+  const checkFecha = isReagendar ? newFecha : cita.fecha
+  const { data: ocupacion = [] } = useCheckDisponibilidad(checkFecha, empleadaId, cita.id)
+  
+  const hasOverlap = useMemo(() => {
+    if (!empleadaId) return false
+    const start = timeToSlots(isReagendar ? newHora : cita.bloque_inicio)
+    const end = start + effectiveSlots
+    return ocupacion.some(slot => haySolapamiento({ start, end }, slot))
+  }, [ocupacion, isReagendar, newHora, cita.bloque_inicio, effectiveSlots, empleadaId])
 
   const filteredServices = useMemo(() => {
     const s = search.toLowerCase().trim()
@@ -59,19 +77,41 @@ export default function GestionCitaModal({ cita, onClose, onMove, onValidar }: P
     }, {})
   }, [filteredServices])
 
+  const timeOptions = useMemo(() => {
+    const times = []
+    for (let h = 8; h <= 21; h++) {
+      for (let m = 0; m < 60; m += 15) {
+        const hh = h.toString().padStart(2, '0')
+        const mm = m.toString().padStart(2, '0')
+        times.push(`${hh}:${mm}`)
+      }
+    }
+    return times
+  }, [])
+
   const handleUpdate = async (extraUpdates: any = {}) => {
     if (!empleadaId) return
     setSaving(true)
-    await actualizar.mutateAsync({
-      id: cita.id,
-      updates: {
-        empleada_id: empleadaId,
-        comentarios: comentarios || null,
-        duracion_manual_slots: manualSlots,
-        ...extraUpdates
-      },
-      servicioIds: selected
-    })
+      const isDateChanged = newFecha !== cita.fecha
+      const isTimeChanged = (newHora + ':00') !== cita.bloque_inicio
+      const isRescheduled = isReagendar && (isDateChanged || isTimeChanged)
+
+      await actualizar.mutateAsync({
+        id: cita.id,
+        updates: {
+          empleada_id: empleadaId,
+          comentarios: comentarios || null,
+          duracion_manual_slots: manualSlots,
+          fecha: isReagendar ? newFecha : cita.fecha,
+          bloque_inicio: isReagendar ? newHora + ':00' : cita.bloque_inicio,
+          ...(isRescheduled ? {
+            reagendada_por: 'Recepción', // Placeholder for future account system
+            reagendada_fecha: new Date().toISOString()
+          } : {}),
+          ...extraUpdates
+        },
+        servicioIds: selected
+      })
     setSaving(false)
     onClose()
   }
@@ -153,13 +193,17 @@ export default function GestionCitaModal({ cita, onClose, onMove, onValidar }: P
             {/* Quick Actions Grid */}
             <div className="action-grid">
               <button 
-                className="btn-action-gray" 
-                title="Mover cita" 
+                className={`btn-action-gray ${isReagendar ? 'active' : ''}`}
+                title="Reagendar cita" 
                 disabled={isPastDate} 
-                style={{ cursor: isPastDate ? 'default' : 'pointer' }}
-                onClick={() => onMove?.(cita)}
+                style={{ 
+                  cursor: isPastDate ? 'default' : 'pointer',
+                  color: isReagendar ? 'var(--accent)' : 'inherit',
+                  borderColor: isReagendar ? 'var(--accent)' : 'transparent'
+                }}
+                onClick={() => setIsReagendar(!isReagendar)}
               >
-                <Move size={15} /> Mover
+                <Calendar size={15} /> Reagendar
               </button>
               <button 
                 className="btn-action-gray" 
@@ -192,18 +236,52 @@ export default function GestionCitaModal({ cita, onClose, onMove, onValidar }: P
           {/* RIGHT: EDITING */}
           <div className="modal-side-selection">
             <div className="selection-search-wrap">
-              <div style={{ position: 'relative', width: '100%' }}>
-                <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }} />
-                <input 
-                  type="text"
-                  placeholder="Buscar servicio..."
-                  className="selection-search-input"
-                  style={{ paddingLeft: 38, cursor: isPastDate ? 'default' : 'text' }}
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  disabled={isPastDate}
-                />
-              </div>
+              {isReagendar ? (
+                <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <DatePicker 
+                      label="Nueva Fecha"
+                      value={newFecha}
+                      onChange={setNewFecha}
+                    />
+                    <div className="outlined-group">
+                      <label>Nueva Hora</label>
+                      <select 
+                        className="outlined-select"
+                        value={newHora}
+                        onChange={e => setNewHora(e.target.value)}
+                      >
+                        {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600 }}>
+                      * El cambio se aplicará al guardar todos los cambios.
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setIsReagendar(false)}
+                      style={{ fontSize: 11, background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      Cancelar Reagendada / Volver
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)' }} />
+                  <input 
+                    type="text"
+                    placeholder="Buscar servicio..."
+                    className="selection-search-input"
+                    style={{ paddingLeft: 38, cursor: isPastDate ? 'default' : 'text' }}
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    disabled={isPastDate}
+                  />
+                </div>
+              )}
             </div>
 
             <div style={{ padding: '0 20px 15px', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -294,12 +372,15 @@ export default function GestionCitaModal({ cita, onClose, onMove, onValidar }: P
                      </button>
                    )}
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  {hasOverlap && (
+                    <div style={{ color: 'var(--danger)', fontSize: 11, fontWeight: 700, marginRight: 10 }}> Profesional ocupada</div>
+                  )}
                   <button type="button" onClick={onClose} className="btn-ghost" style={{ cursor: 'pointer' }}>Salir</button>
                   <button 
                     type="button" 
                     onClick={() => handleUpdate()} 
-                    disabled={saving || !selected.length || !empleadaId || isPastDate} 
+                    disabled={saving || !selected.length || !empleadaId || isPastDate || hasOverlap} 
                     className="btn-primary"
                     style={{ cursor: isPastDate ? 'default' : (saving ? 'wait' : 'pointer') }}
                   >

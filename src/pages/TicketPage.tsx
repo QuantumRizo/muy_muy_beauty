@@ -44,6 +44,10 @@ export default function TicketPage({ cita, onBack, onFinish }: Props) {
   const [showProductModal, setShowProductModal] = useState(false)
   const [productSearch, setProductSearch] = useState('')
   const [propina, setPropina] = useState(0)
+  
+  // Invoice numbering
+  const [serie] = useState('MXDUO4')
+  const [numTicket] = useState(() => Math.floor(1000 + Math.random() * 9000).toString())
 
   const { data: allProducts = [] } = useProductos()
 
@@ -102,7 +106,7 @@ export default function TicketPage({ cita, onBack, onFinish }: Props) {
           sucursal_id: cita.sucursal_id,
           cliente_id: cita.cliente_id,
           vendedor_id: vendedorId || null,
-          num_ticket: `T-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+          num_ticket: `${serie}/${numTicket}`,
           fecha: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD en hora local
 
           base_imponible: subtotal / 1.16,
@@ -144,7 +148,7 @@ export default function TicketPage({ cita, onBack, onFinish }: Props) {
       {/* Header */}
       <div className="validacion-header">
         <div className="header-left">
-          <h1>Ticket Nº <span style={{ color: 'var(--text-3)' }}>PENDIENTE</span></h1>
+          <h1>Factura Nº <span style={{ color: 'var(--text-1)' }}>{serie}O/{numTicket}</span></h1>
         </div>
         <div className="client-info-card" onClick={() => setShowClientData(!showClientData)} style={{ cursor: 'pointer' }}>
           <div className="client-avatar"><User size={24} /></div>
@@ -175,7 +179,9 @@ export default function TicketPage({ cita, onBack, onFinish }: Props) {
         </div>
         <div className="form-group">
           <label style={{ fontSize: 11 }}>Nº Serie</label>
-          <span style={{ fontSize: 13, fontWeight: 500, height: 32, display: 'flex', alignItems: 'center' }}>MXVA01</span>
+          <select className="table-select" style={{ height: 32, padding: '0 8px', fontWeight: 600 }}>
+            <option>{serie}</option>
+          </select>
         </div>
       </div>
 

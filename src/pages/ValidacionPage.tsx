@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { X, Check, Search, User, ArrowLeft, Plus, Trash2 } from 'lucide-react'
 
 import { useTodasEmpleadas } from '../hooks/useEmpleadas'
@@ -39,6 +39,16 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
     }
     return '10:00'
   })
+  
+  // Auto-recalculate horaFin when services or horaInicio change
+  useEffect(() => {
+    const totalSlots = selectedServicios.reduce((sum, s) => sum + (s.duracion_slots || 0), 0) || 4
+    const [h, m] = horaInicio.split(':').map(Number)
+    const totalMin = h * 60 + m + totalSlots * 15
+    const hh = Math.floor(totalMin / 60).toString().padStart(2, '0')
+    const mm = (totalMin % 60).toString().padStart(2, '0')
+    setHoraFin(`${hh}:${mm}`)
+  }, [selectedServicios, horaInicio])
 
 
   // Helper to generate time options every 15 mins (reused from BloqueoModal)

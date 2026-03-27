@@ -9,7 +9,7 @@ export function useClientes(query: string) {
     queryFn: async () => {
       if (!query.trim()) return []
       const isNumeric = /^\d+$/.test(query.trim())
-      let supaQuery = supabase.from('clientes').select('*').limit(10)
+      let supaQuery = supabase.from('clientes').select('*, sucursal:sucursales(nombre)').limit(10)
       if (isNumeric) {
         supaQuery = supaQuery.eq('num_cliente', parseInt(query))
       } else {

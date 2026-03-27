@@ -2,9 +2,10 @@ import React, { useState, useMemo } from 'react'
 import { X, Check, Trash2, Search, Calendar, Clock, MapPin, Phone, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useServicios } from '../../hooks/useServicios'
 import { useSucursales } from '../../hooks/useSucursales'
-import { useCrearCita } from '../../hooks/useCitas'
+import { useCrearCita, useCheckDisponibilidad } from '../../hooks/useCitas'
 import { useTodasEmpleadas } from '../../hooks/useEmpleadas'
 import type { Cliente, Servicio } from '../../types/database'
+import { timeToSlots, haySolapamiento } from '../../utils/agenda'
 
 interface Props {
   cliente: Cliente
@@ -48,6 +49,16 @@ export default function NuevaCitaModal({
   const autoSlots = serviciosSeleccionados.reduce((sum, s) => sum + s.duracion_slots, 0)
   const effectiveSlots = manualSlots ?? autoSlots
   const totalMin = effectiveSlots * 15
+
+  // Check availability
+  const { data: ocupacion = [] } = useCheckDisponibilidad(fecha, localEmpleadaId)
+  
+  const hasOverlap = useMemo(() => {
+    if (!localEmpleadaId || !horaInicio) return false
+    const start = timeToSlots(horaInicio)
+    const end = start + effectiveSlots
+    return ocupacion.some(slot => haySolapamiento({ start, end }, slot))
+  }, [ocupacion, horaInicio, effectiveSlots, localEmpleadaId])
 
   // When services change, if not manually adjusted yet, keep it null to follow auto
   // But user wants a UI like < 6 >. 
@@ -261,11 +272,16 @@ export default function NuevaCitaModal({
         </div>
 
         <div className="modal-footer">
+          {hasOverlap && (
+            <div style={{ color: 'var(--danger)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <X size={16} /> Horario ocupado para este profesional
+            </div>
+          )}
           <button type="button" onClick={onClose} className="btn-ghost">Cancelar</button>
           <button 
             type="button" 
             onClick={handleSubmit} 
-            disabled={!selected.length || !sucursalId || crearCita.isPending} 
+            disabled={!selected.length || !sucursalId || crearCita.isPending || hasOverlap} 
             className="btn-primary"
             style={{ padding: '10px 24px' }}
           >

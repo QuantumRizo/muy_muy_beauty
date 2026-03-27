@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { Cita, BloqueoAgenda } from '../types/database'
+import { timeToSlots } from '../utils/agenda'
 
 // ─── Weekly citas (for agenda) ────────────────────────────────
 export function useCitasSemana(inicioSemana: string, finSemana: string, sucursalId: string) {
@@ -186,3 +187,34 @@ export function useCitasCliente(clienteId: string) {
   })
 }
 
+
+// ─── Check Disponibilidad ─────────────────────────────────────
+export function useCheckDisponibilidad(fecha: string, empleadaId: string, excludeCitaId?: string) {
+  return useQuery({
+    queryKey: ['citas', 'check', fecha, empleadaId, excludeCitaId],
+    queryFn: async () => {
+      if (!fecha || !empleadaId) return []
+      let query = supabase
+        .from('citas')
+        .select('id, bloque_inicio, duracion_manual_slots, cita_servicios(servicios(duracion_slots))')
+        .eq('fecha', fecha)
+        .eq('empleada_id', empleadaId)
+        .neq('estado', 'Cancelada')
+      
+      if (excludeCitaId) {
+        query = query.neq('id', excludeCitaId)
+      }
+
+      const { data, error } = await query
+      
+      if (error) throw error
+      
+      return (data || []).map((c: any) => {
+        const start = timeToSlots(c.bloque_inicio)
+        const duration = c.duracion_manual_slots ?? (c.cita_servicios?.reduce((acc: number, item: any) => acc + (item.servicios?.duracion_slots || 0), 0) || 4)
+        return { start, end: start + duration }
+      })
+    },
+    enabled: !!fecha && !!empleadaId
+  })
+}

@@ -10,6 +10,9 @@ import type { Cliente } from './types/database'
 
 import EstadisticasPage from "./pages/EstadisticasPage"
 import InicioPage from "./pages/InicioPage"
+import ValidacionPage from './pages/ValidacionPage'
+import TicketPage from './pages/TicketPage'
+import type { Cita } from './types/database'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 1000 * 30 } },
@@ -18,6 +21,10 @@ const queryClient = new QueryClient({
 export default function App() {
   const [section, setSection] = useState<Section>('inicio')
   const [pendingClient, setPendingClient] = useState<Cliente | null>(null)
+  
+  // Checkout flow states
+  const [validatingCita, setValidatingCita] = useState<Cita | null>(null)
+  const [ticketCita, setTicketCita] = useState<Cita | null>(null)
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -26,11 +33,38 @@ export default function App() {
         <div className="main-area">
           {section === 'inicio'        && <InicioPage />}
 
-          {section === 'agenda'        && (
-            <AgendaPage 
-              preselectedCliente={pendingClient} 
-              onClearPreselected={() => setPendingClient(null)} 
-            />
+          {/* Agenda & Checkout Flow */}
+          {section === 'agenda' && (
+            <>
+              {validatingCita ? (
+                <ValidacionPage 
+                  cita={validatingCita} 
+                  onBack={() => setValidatingCita(null)}
+                  onNext={(updated) => {
+                    setTicketCita(updated)
+                    setValidatingCita(null)
+                  }}
+                />
+              ) : ticketCita ? (
+                <TicketPage 
+                  cita={ticketCita}
+                  onBack={() => {
+                    setValidatingCita(ticketCita)
+                    setTicketCita(null)
+                  }}
+                  onFinish={() => {
+                    setTicketCita(null)
+                    setValidatingCita(null)
+                  }}
+                />
+              ) : (
+                <AgendaPage 
+                  preselectedCliente={pendingClient} 
+                  onClearPreselected={() => setPendingClient(null)} 
+                  onValidarCita={(cita) => setValidatingCita(cita)}
+                />
+              )}
+            </>
           )}
 
           {section === 'clientes'      && (

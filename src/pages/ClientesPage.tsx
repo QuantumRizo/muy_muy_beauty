@@ -84,7 +84,7 @@ export default function ClientesPage({ onGoToAgenda }: Props) {
                   <td>#{c.num_cliente}</td>
                   <td>{c.telefono_cel || '—'}</td>
                   <td>{c.email || '—'}</td>
-                  <td>{c.datos_extra?.procedencia || '—'}</td>
+                  <td>{c.sucursal?.nombre || '—'}</td>
                   <td style={{ textAlign: 'right' }}>
                     <button
                       onClick={() => onGoToAgenda?.(c)}

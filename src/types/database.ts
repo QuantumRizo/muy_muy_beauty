@@ -87,6 +87,10 @@ export interface Cita {
   ticket_id: string | null
   created_at: string
 
+  // Rescheduling info
+  reagendada_por?: string | null
+  reagendada_fecha?: string | null
+
   // Joined fields
   cliente?: Cliente
   empleada?: Empleada
