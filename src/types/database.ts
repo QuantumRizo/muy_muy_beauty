@@ -12,6 +12,9 @@ export type TipoMovimientoCaja = 'Ingreso Extra' | 'Gasto / Salida'
 export interface Sucursal {
   id: string
   nombre: string
+  direccion: string | null
+  telefono: string | null
+  rfc: string | null
 }
 
 export interface Empleada {

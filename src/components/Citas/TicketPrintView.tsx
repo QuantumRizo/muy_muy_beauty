@@ -32,10 +32,9 @@ export default function TicketPrintView({ cita, ticketData }: TicketPrintViewPro
 
         {/* Info Sucursal */}
         <div className="ticket-print-company-info">
-          <h3>d-uñas Newton</h3>
-          <p>Newton 215 1A Chapultepec Morales -</p>
-          <p>11570 CDMX</p>
-          <p>Telf. 55 5255 2473 - GSE120523819</p>
+          <h3>d-uñas {cita.sucursal?.nombre}</h3>
+          <p>{cita.sucursal?.direccion}</p>
+          <p>Telf. {cita.sucursal?.telefono} - {cita.sucursal?.rfc}</p>
         </div>
 
         {/* Factura Title */}
