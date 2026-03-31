@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { 
   X, User, Plus, Trash2, Calculator, 
-  ChevronDown, ChevronUp, Gift, DollarSign, Package, Percent, Search 
+  ChevronDown, ChevronUp, Gift, DollarSign, Package, Percent, Search, Printer 
 } from 'lucide-react'
 import { useTodasEmpleadas } from '../hooks/useEmpleadas'
 import { useCrearTicket } from '../hooks/useTickets'
@@ -195,8 +195,8 @@ export default function TicketPage({ cita, onBack, onFinish }: Props) {
         
         <div style={{ padding: 20, display: 'flex', gap: 15, justifyContent: 'center' }}>
           <button className="btn-secondary" onClick={onFinish}>Volver a la Agenda</button>
-          <button className="btn-primary" onClick={() => window.print()}>
-            🖨️ Imprimir Ticket
+          <button className="btn-primary" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Printer size={18} /> Imprimir Ticket
           </button>
         </div>
       </div>
