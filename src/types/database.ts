@@ -125,6 +125,7 @@ export interface Ticket {
   vendedor_id: string | null
   num_ticket: string
   fecha: string
+  hora: string
   base_imponible: number
   iva: number
   total: number
@@ -162,6 +163,7 @@ export interface Pago {
   importe: number
   detalles: any
   fecha: string
+  hora: string
 }
 
 export interface TurnoCaja {
@@ -171,7 +173,9 @@ export interface TurnoCaja {
   empleada_cierra_id: string | null
   estado: EstadoCaja
   fecha_apertura: string
+  hora_apertura: string
   fecha_cierre: string | null
+  hora_cierre: string | null
   monto_apertura_efectivo: number
   monto_cierre_efectivo_real: number | null
   total_ventas_efectivo: number
@@ -195,6 +199,7 @@ export interface MovimientoCaja {
   monto: number
   concepto: string
   fecha: string
+  hora: string
   // Joins
   empleada?: Empleada
 }
@@ -222,9 +227,9 @@ export interface Database {
       productos: { Row: Producto; Insert: Omit<Producto, 'id' | 'created_at'>; Update: Partial<Producto> }
       tickets: { Row: Ticket; Insert: Omit<Ticket, 'id' | 'created_at' | 'cliente' | 'sucursal' | 'vendedor' | 'items' | 'pagos'>; Update: Partial<Ticket> }
       ticket_items: { Row: TicketItem; Insert: Omit<TicketItem, 'id'>; Update: Partial<TicketItem> }
-      pagos: { Row: Pago; Insert: Omit<Pago, 'id' | 'fecha'>; Update: Partial<Pago> }
+      pagos: { Row: Pago; Insert: Omit<Pago, 'id'>; Update: Partial<Pago> }
       turnos_caja: { Row: TurnoCaja; Insert: Omit<TurnoCaja, 'id' | 'created_at' | 'empleada_abre' | 'empleada_cierra'>; Update: Partial<TurnoCaja> }
-      movimientos_caja: { Row: MovimientoCaja; Insert: Omit<MovimientoCaja, 'id' | 'fecha' | 'empleada'>; Update: Partial<MovimientoCaja> }
+      movimientos_caja: { Row: MovimientoCaja; Insert: Omit<MovimientoCaja, 'id' | 'empleada'>; Update: Partial<MovimientoCaja> }
     }
   }
 }

@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { Ticket, TicketItem, Pago } from '../types/database'
 
+import { format } from 'date-fns'
+
 export function useCrearTicket() {
   const qc = useQueryClient()
   
@@ -14,13 +16,22 @@ export function useCrearTicket() {
     }: { 
       ticket: Omit<Ticket, 'id' | 'created_at' | 'cliente' | 'sucursal' | 'vendedor' | 'items' | 'pagos'>, 
       items: Omit<TicketItem, 'id' | 'ticket_id'>[], 
-      pagos: Omit<Pago, 'id' | 'ticket_id' | 'fecha'>[],
+      pagos: Omit<Pago, 'id'>[],
       citaId: string
     }) => {
+      
+      const now = new Date()
+      const fechaActual = format(now, 'yyyy-MM-dd')
+      const horaActual = format(now, 'HH:mm:ss')
+
       // 1. Crear el ticket
       const { data: tData, error: tError } = await supabase
         .from('tickets')
-        .insert(ticket)
+        .insert({
+          ...ticket,
+          fecha: fechaActual,
+          hora: horaActual
+        })
         .select()
         .single()
       
@@ -51,7 +62,12 @@ export function useCrearTicket() {
       if (pagos.length > 0) {
         const { error: pError } = await supabase
           .from('pagos')
-          .insert(pagos.map(p => ({ ...p, ticket_id: tData.id })))
+          .insert(pagos.map(p => ({ 
+            ...p, 
+            ticket_id: tData.id,
+            fecha: fechaActual,
+            hora: horaActual
+          })))
         
         if (pError) throw pError
       }

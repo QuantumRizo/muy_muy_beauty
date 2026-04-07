@@ -169,7 +169,7 @@ export default function CajaPage() {
             </select>
           </div>
           <p style={{ fontSize: 13, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Clock size={14} /> Abierto desde {new Date(cajaInfo.turno.fecha_apertura).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })}
+            <Clock size={14} /> Abierto desde {new Date(`${cajaInfo.turno.fecha_apertura}T${cajaInfo.turno.hora_apertura}`).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>

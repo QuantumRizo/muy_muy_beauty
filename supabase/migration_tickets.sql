@@ -31,7 +31,8 @@ CREATE TABLE tickets (
   cliente_id      UUID REFERENCES clientes(id) ON DELETE SET NULL,
   vendedor_id     UUID REFERENCES perfiles_empleadas(id) ON DELETE SET NULL,
   num_ticket      TEXT UNIQUE NOT NULL, -- Ej: T-0001
-  fecha           TIMESTAMPTZ DEFAULT NOW(),
+  fecha           DATE NOT NULL,
+  hora            TIME NOT NULL,
   base_imponible  NUMERIC(10,2) NOT NULL DEFAULT 0,
   iva             NUMERIC(10,2) NOT NULL DEFAULT 0,
   total           NUMERIC(10,2) NOT NULL DEFAULT 0,
@@ -63,7 +64,8 @@ CREATE TABLE pagos (
   metodo_pago   metodo_pago NOT NULL,
   importe       NUMERIC(10,2) NOT NULL,
   detalles      JSONB DEFAULT '{}'::jsonb, -- Para IDs de transacciones, etc.
-  fecha         TIMESTAMPTZ DEFAULT NOW()
+  fecha         DATE NOT NULL,
+  hora          TIME NOT NULL
 );
 
 -- ─── ACTUALIZAR CITAS ─────────────────────────────────────────

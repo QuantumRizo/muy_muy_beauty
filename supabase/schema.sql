@@ -117,3 +117,60 @@ CREATE POLICY "Allow all" ON servicios          FOR ALL USING (true) WITH CHECK 
 CREATE POLICY "Allow all" ON citas              FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON cita_servicios     FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON bloqueos_agenda    FOR ALL USING (true) WITH CHECK (true);
+
+-- ─── TRIGGERS Y FUNCIONES RESTRICCIONES ───────────────────────
+
+CREATE OR REPLACE FUNCTION validar_disponibilidad_cita()
+RETURNS TRIGGER AS $$
+DECLARE
+  conflict_count INT;
+  v_new_end_time TIME;
+BEGIN
+  -- We assume duracion_manual_slots is ALWAYS provided by frontend (e.g. 4 slots = 1 hour).
+  -- If it's missing, default to 4 (1 hour).
+  IF NEW.duracion_manual_slots IS NULL THEN
+     NEW.duracion_manual_slots := 4;
+  END IF;
+  
+  -- Calculate end time of the new appointment
+  v_new_end_time := NEW.bloque_inicio + (NEW.duracion_manual_slots * 15 || ' minutes')::interval;
+
+  -- 1. Check overlaps with other NO Canceladas citas for the same employee on the same date
+  SELECT count(*) INTO conflict_count
+  FROM citas
+  WHERE empleada_id = NEW.empleada_id
+    AND fecha = NEW.fecha
+    AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000')
+    AND estado != 'Cancelada'
+    AND estado != 'No asistió'
+    AND (
+      (NEW.bloque_inicio, v_new_end_time) OVERLAPS 
+      (bloque_inicio, bloque_inicio + (COALESCE(duracion_manual_slots, 4) * 15 || ' minutes')::interval)
+    );
+
+  IF conflict_count > 0 THEN
+    RAISE EXCEPTION 'Horario ocupado (Cita existente) para la profesional seleccionada en esta fecha.';
+  END IF;
+
+  -- 2. Check overlaps with bloqueos_agenda
+  SELECT count(*) INTO conflict_count
+  FROM bloqueos_agenda
+  WHERE empleada_id = NEW.empleada_id
+    AND fecha = NEW.fecha
+    AND (
+      (NEW.bloque_inicio, v_new_end_time) OVERLAPS 
+      (hora_inicio, hora_fin)
+    );
+    
+  IF conflict_count > 0 THEN
+    RAISE EXCEPTION 'Horario bloqueado (Descanso/Comida) para la profesional seleccionada.';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_validar_disponibilidad_cita ON citas;
+CREATE TRIGGER trg_validar_disponibilidad_cita
+BEFORE INSERT OR UPDATE ON citas
+FOR EACH ROW EXECUTE FUNCTION validar_disponibilidad_cita();

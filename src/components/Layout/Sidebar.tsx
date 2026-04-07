@@ -1,6 +1,6 @@
-import { Home, Calendar, Users, Briefcase, BarChart2, Package, FileText, Wallet } from 'lucide-react'
+import { Home, Calendar, Users, Briefcase, BarChart2, Package, FileText, Wallet, FileDown } from 'lucide-react'
 
-export type Section = 'inicio' | 'agenda' | 'clientes' | 'inventario' | 'documentos' | 'configuracion' | 'validacion' | 'cobro' | 'estadisticas' | 'caja'
+export type Section = 'inicio' | 'agenda' | 'clientes' | 'inventario' | 'documentos' | 'configuracion' | 'validacion' | 'cobro' | 'estadisticas' | 'reportes' | 'facturacion' | 'caja'
 
 interface Props {
   current: Section
@@ -12,10 +12,13 @@ const items: { id: Section; label: string; Icon: any }[] = [
   { id: 'clientes',     label: 'Clientes',     Icon: Users      },
   { id: 'agenda',       label: 'Agenda',       Icon: Calendar   },
   { id: 'estadisticas', label: 'Estadísticas', Icon: BarChart2  },
+  { id: 'reportes',     label: 'Reportes',     Icon: FileDown   },
   { id: 'configuracion',label: 'Profesionales', Icon: Briefcase  },
   { id: 'inventario',   label: 'Inventario',   Icon: Package    },
+  { id: 'facturacion',  label: 'Facturación',  Icon: FileText   },
   { id: 'caja',         label: 'Caja',         Icon: Wallet     },
   { id: 'documentos',   label: 'Documentos',   Icon: FileText   },
+
 ]
 
 

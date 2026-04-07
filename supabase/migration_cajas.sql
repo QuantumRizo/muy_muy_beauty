@@ -14,8 +14,10 @@ CREATE TABLE turnos_caja (
   
   estado                      estado_caja NOT NULL DEFAULT 'Abierta',
   
-  fecha_apertura              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  fecha_cierre                TIMESTAMPTZ,
+  fecha_apertura              DATE NOT NULL,
+  hora_apertura               TIME NOT NULL,
+  fecha_cierre                DATE,
+  hora_cierre                 TIME,
   
   monto_apertura_efectivo     NUMERIC(10,2) NOT NULL DEFAULT 0,
   monto_cierre_efectivo_real  NUMERIC(10,2),
@@ -42,7 +44,8 @@ CREATE TABLE movimientos_caja (
   tipo              tipo_movimiento_caja NOT NULL,
   monto             NUMERIC(10,2) NOT NULL,
   concepto          TEXT NOT NULL, -- Ej: "Compra de jabón", "Pago de internet"
-  fecha             TIMESTAMPTZ DEFAULT NOW()
+  fecha             DATE NOT NULL,
+  hora              TIME NOT NULL
 );
 
 -- ─── RLS (Row Level Security) ─────────────────────────────────

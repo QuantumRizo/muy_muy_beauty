@@ -12,6 +12,8 @@ import EstadisticasPage from "./pages/EstadisticasPage"
 import InicioPage from "./pages/InicioPage"
 import ValidacionPage from './pages/ValidacionPage'
 import TicketPage from './pages/TicketPage'
+import ReportesPage from './pages/ReportesPage'
+import FacturacionPage from './pages/FacturacionPage'
 import CajaPage from './pages/CajaPage'
 import type { Cita } from './types/database'
 
@@ -78,6 +80,8 @@ export default function App() {
           {section === 'caja'          && <CajaPage />}
           {section === 'documentos'    && <DocumentosPage />}
           {section === 'estadisticas'  && <EstadisticasPage />}
+          {section === 'reportes'      && <ReportesPage />}
+          {section === 'facturacion'   && <FacturacionPage />}
           {section === 'configuracion' && <ProfesionalesPage />}
         </div>
       </div>

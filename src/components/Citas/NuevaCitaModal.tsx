@@ -84,22 +84,26 @@ export default function NuevaCitaModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selected.length || !sucursalId || !localEmpleadaId) return
-    await crearCita.mutateAsync({
-      cita: {
-        cliente_id: cliente.id,
-        empleada_id: localEmpleadaId,
-        sucursal_id: sucursalId,
-        fecha,
-        bloque_inicio: horaInicio,
-        estado: 'Programada',
-        duracion_manual_slots: manualSlots,
-        comentarios: comentarios || null,
-        ticket_id: null,
-      },
-      servicioIds: selected,
-    })
-    onCreated()
-    onClose()
+    try {
+      await crearCita.mutateAsync({
+        cita: {
+          cliente_id: cliente.id,
+          empleada_id: localEmpleadaId,
+          sucursal_id: sucursalId,
+          fecha,
+          bloque_inicio: horaInicio,
+          estado: 'Programada',
+          duracion_manual_slots: effectiveSlots,
+          comentarios: comentarios || null,
+          ticket_id: null,
+        },
+        servicioIds: selected,
+      })
+      onCreated()
+      onClose()
+    } catch (e: any) {
+      alert(e.message || 'Error al agendar la cita. Es posible que el horario ya esté ocupado.')
+    }
   }
 
   return (

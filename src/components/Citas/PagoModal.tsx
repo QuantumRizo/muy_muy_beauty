@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { MetodoPago, Pago } from '../../types/database'
+import { format } from 'date-fns'
 
 interface Props {
   pendiente: number
@@ -31,7 +32,8 @@ export default function PagoModal({ pendiente, onClose, onAddPago }: Props) {
       metodo_pago: metodo,
       importe,
       detalles: { entregado, cambio },
-      fecha: new Date().toISOString()
+      fecha: format(new Date(), 'yyyy-MM-dd'),
+      hora: format(new Date(), 'HH:mm:ss')
     })
     onClose() // Cerrar tras confirmar
   }
@@ -61,6 +63,8 @@ export default function PagoModal({ pendiente, onClose, onAddPago }: Props) {
               <option value="Bono">Bono / Sesión</option>
               <option value="Puntos">Puntos</option>
               <option value="Anticipo">Anticipo</option>
+              <option value="Aplazado">Aplazado (Fiar / Deuda)</option>
+              <option value="Otros">Otros</option>
             </select>
           </div>
           

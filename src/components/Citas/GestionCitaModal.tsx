@@ -96,12 +96,13 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
       const isTimeChanged = (newHora + ':00') !== cita.bloque_inicio
       const isRescheduled = isReagendar && (isDateChanged || isTimeChanged)
 
+    try {
       await actualizar.mutateAsync({
         id: cita.id,
         updates: {
           empleada_id: empleadaId,
           comentarios: comentarios || null,
-          duracion_manual_slots: manualSlots,
+          duracion_manual_slots: effectiveSlots,
           fecha: isReagendar ? newFecha : cita.fecha,
           bloque_inicio: isReagendar ? newHora + ':00' : cita.bloque_inicio,
           ...(isRescheduled ? {
@@ -112,8 +113,12 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
         },
         servicioIds: selected
       })
-    setSaving(false)
-    onClose()
+      onClose()
+    } catch (e: any) {
+      alert(e.message || 'Error al actualizar la cita. Es posible que el horario ya esté ocupado.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleStatus = (estado: CitaStatus) => {

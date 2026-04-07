@@ -671,7 +671,7 @@ async function q_tratamientos_unidades(desglose: string, sort: string, fi: strin
 async function q_facturacion_por_hora(sort: string, fi: string, ff: string, suc: string): Promise<ReportResult> {
   let query = supabase
     .from('tickets')
-    .select('total, created_at')
+    .select('total, hora')
     .gte('fecha', fi).lte('fecha', ff)
     .eq('estado', 'Pagado')
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
@@ -679,7 +679,7 @@ async function q_facturacion_por_hora(sort: string, fi: string, ff: string, suc:
   if (error) throw error
 
   const keyFn = (t: any) => {
-    const h = new Date(t.created_at).getHours()
+    const h = parseInt(t.hora.substring(0, 2), 10)
     return `${String(h).padStart(2, '0')}:00 – ${String(h + 1).padStart(2, '0')}:00`
   }
 

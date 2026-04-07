@@ -87,16 +87,21 @@ export function useCajaActiva(sucursalId: string) {
   })
 }
 
+import { format } from 'date-fns'
+
 export function useAbrirCaja() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ sucursalId, montoEfectivo }: { sucursalId: string, montoEfectivo: number }) => {
       
+      const now = new Date()
       const { data, error } = await supabase
         .from('turnos_caja')
         .insert({
           sucursal_id: sucursalId,
           monto_apertura_efectivo: montoEfectivo,
+          fecha_apertura: format(now, 'yyyy-MM-dd'),
+          hora_apertura: format(now, 'HH:mm:ss'),
           estado: 'Abierta'
         })
         .select()
@@ -114,12 +119,14 @@ export function useCerrarCaja() {
   return useMutation({
     mutationFn: async ({ turnoId, resumen, montoReal, notas }: { turnoId: string, resumen: any, montoReal: number, notas: string }) => {
       const diferencia = montoReal - resumen.efectivoEsperado
+      const now = new Date()
 
       const { data, error } = await supabase
         .from('turnos_caja')
         .update({
           estado: 'Cerrada',
-          fecha_cierre: new Date().toISOString(),
+          fecha_cierre: format(now, 'yyyy-MM-dd'),
+          hora_cierre: format(now, 'HH:mm:ss'),
           monto_cierre_efectivo_real: montoReal,
           total_ventas_efectivo: resumen.ventasEfectivo,
           total_ventas_tarjeta: resumen.ventasTarjeta,
@@ -141,10 +148,15 @@ export function useCerrarCaja() {
 export function useCrearMovimientoCaja() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (movimiento: Omit<MovimientoCaja, 'id' | 'fecha' | 'empleada'>) => {
+    mutationFn: async (movimiento: Omit<MovimientoCaja, 'id' | 'empleada' | 'fecha' | 'hora'>) => {
+      const now = new Date()
       const { data, error } = await supabase
         .from('movimientos_caja')
-        .insert(movimiento)
+        .insert({
+          ...movimiento,
+          fecha: format(now, 'yyyy-MM-dd'),
+          hora: format(now, 'HH:mm:ss')
+        })
         .select()
         .single()
       
