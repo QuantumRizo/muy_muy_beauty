@@ -6,6 +6,7 @@ import { useServicios } from '../../hooks/useServicios'
 import { useTodasEmpleadas } from '../../hooks/useEmpleadas'
 import type { Cita, CitaStatus, Servicio } from '../../types/database'
 import { timeToSlots, haySolapamiento } from '../../utils/agenda'
+import { useToast } from '../Common/Toast'
 
 import DatePicker from '../Common/DatePicker'
 
@@ -19,6 +20,7 @@ interface Props {
 export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
 
   const actualizar = useActualizarCita()
+  const toast = useToast()
   const { data: servicios = [] } = useServicios()
   const { data: empleadas = [] } = useTodasEmpleadas()
   
@@ -115,7 +117,7 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
       })
       onClose()
     } catch (e: any) {
-      alert(e.message || 'Error al actualizar la cita. Es posible que el horario ya esté ocupado.')
+      toast(e.message || 'Error al actualizar la cita. Es posible que el horario ya esté ocupado.', 'error')
     } finally {
       setSaving(false)
     }

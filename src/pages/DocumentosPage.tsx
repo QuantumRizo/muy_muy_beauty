@@ -3,11 +3,13 @@ import { FileText, UploadCloud, Trash2, Download, File } from 'lucide-react'
 import { useDocumentos, useSubirDocumento, useEliminarDocumento } from '../hooks/useDocumentos'
 import { supabase } from '../lib/supabase'
 import type { Documento } from '../types/database'
+import { useToast } from '../components/Common/Toast'
 
 export default function DocumentosPage() {
   const { data: documentos = [], isLoading } = useDocumentos()
   const { mutateAsync: subirDoc, isPending: subiendo } = useSubirDocumento()
   const { mutateAsync: eliminarDoc, isPending: eliminando } = useEliminarDocumento()
+  const toast = useToast()
   
   const [showForm, setShowForm] = useState(false)
   const [file, setFile] = useState<File | null>(null)
@@ -44,7 +46,7 @@ export default function DocumentosPage() {
       setNombre('')
       setDescripcion('')
     } catch (err: any) {
-      alert(`Error subiendo documento: ${err.message}`)
+      toast(`Error subiendo documento: ${err.message}`, 'error')
     }
   }
   
@@ -66,7 +68,7 @@ export default function DocumentosPage() {
       try {
         await eliminarDoc(doc)
       } catch (err: any) {
-        alert(`Error eliminando documento: ${err.message}`)
+        toast(`Error eliminando documento: ${err.message}`, 'error')
       }
     }
   }

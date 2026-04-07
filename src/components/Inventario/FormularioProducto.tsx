@@ -3,6 +3,7 @@ import { Plus, Check, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Producto } from '../../types/database'
+import { useToast } from '../Common/Toast'
 
 interface Props {
   productoBase?: Producto | null
@@ -12,6 +13,7 @@ interface Props {
 export default function FormularioProducto({ productoBase, onClose }: Props) {
   const qc = useQueryClient()
   const [saving, setSaving] = useState(false)
+  const toast = useToast()
   
   const [form, setForm] = useState({
     nombre: productoBase?.nombre || '',
@@ -53,7 +55,7 @@ export default function FormularioProducto({ productoBase, onClose }: Props) {
       qc.invalidateQueries({ queryKey: ['productos'] })
       onClose()
     } catch (err: any) {
-      alert(`Error al guardar: ${err.message}`)
+      toast(`Error al guardar: ${err.message}`, 'error')
     } finally {
       setSaving(false)
     }

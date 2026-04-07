@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { MetodoPago, Pago } from '../../types/database'
 import { format } from 'date-fns'
+import { useToast } from '../Common/Toast'
 
 interface Props {
   pendiente: number
@@ -14,16 +15,17 @@ export default function PagoModal({ pendiente, onClose, onAddPago }: Props) {
   const [metodo, setMetodo] = useState<MetodoPago>('Efectivo')
   const [importe, setImporte] = useState(pendiente)
   const [entregado, setEntregado] = useState(pendiente)
+  const toast = useToast()
 
   const cambio = Math.max(0, entregado - importe)
 
   const handleConfirm = () => {
     if (importe <= 0) {
-      alert('El importe debe ser mayor a 0')
+      toast('El importe debe ser mayor a 0', 'warning')
       return
     }
-    if (importe > pendiente + 0.01) { // small epsilon for float precision
-      alert(`El importe no puede ser mayor al saldo pendiente ($${pendiente.toFixed(2)})`)
+    if (importe > pendiente + 0.01) {
+      toast(`El importe no puede ser mayor al saldo pendiente ($${pendiente.toFixed(2)})`, 'warning')
       return
     }
     onAddPago({

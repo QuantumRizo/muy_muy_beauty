@@ -3,6 +3,7 @@ import { FileDown, Calendar } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import type { Sucursal } from '../types/database'
 import { downloadComisionesCSV, downloadResumenVentasCSV } from '../lib/exportReports'
+import { useToast } from '../components/Common/Toast'
 
 export default function ReportesPage() {
   const [reportType, setReportType] = useState('comisiones')
@@ -15,6 +16,7 @@ export default function ReportesPage() {
   const [sucursalId, setSucursalId] = useState('all')
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [exporting, setExporting] = useState(false)
+  const toast = useToast()
 
   useEffect(() => {
     supabase.from('sucursales').select('*').order('nombre').then(({ data }) => {
@@ -31,7 +33,7 @@ export default function ReportesPage() {
         await downloadResumenVentasCSV(fechaInicio, fechaFin, sucursalId === 'all' ? sucursales.map(s => s.id) : [sucursalId])
       }
     } catch (err: any) {
-      alert('Error al generar el reporte: ' + err.message)
+      toast('Error al generar el reporte: ' + err.message, 'error')
       console.error(err)
     } finally {
       setExporting(false)

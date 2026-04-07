@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ToastProvider } from './components/Common/Toast'
 import Sidebar, { type Section } from './components/Layout/Sidebar'
 import AgendaPage from './pages/AgendaPage'
 import ClientesPage from './pages/ClientesPage'
@@ -31,6 +32,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <ToastProvider>
       <div className="app-shell">
         <Sidebar current={section} onChange={setSection} />
         <div className="main-area">
@@ -85,6 +87,7 @@ export default function App() {
           {section === 'configuracion' && <ProfesionalesPage />}
         </div>
       </div>
+      </ToastProvider>
     </QueryClientProvider>
   )
 }

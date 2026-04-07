@@ -3,10 +3,12 @@ import { Wallet, DollarSign, CreditCard, CheckCircle, TrendingDown, Clock } from
 import { useCajaActiva, useAbrirCaja, useCerrarCaja, useCrearMovimientoCaja } from '../hooks/useCaja'
 import { useTodasEmpleadas } from '../hooks/useEmpleadas'
 import { useSucursales } from '../hooks/useSucursales'
+import { useToast } from '../components/Common/Toast'
 
 export default function CajaPage() {
   const { data: sucursales = [] } = useSucursales()
   const [activeSucursal, setActiveSucursal] = useState<string>('')
+  const toast = useToast()
   
   if (!activeSucursal && sucursales.length > 0) {
     setActiveSucursal(sucursales[0].id)
@@ -30,19 +32,19 @@ export default function CajaPage() {
   const { data: empleadas = [] } = useTodasEmpleadas()
 
   const handleAbrirCaja = async () => {
-    if (montoApertura < 0) return alert('Monto inválido')
+    if (montoApertura < 0) { toast('Monto inválido', 'warning'); return }
     try {
-      if (!activeSucursal) return alert('Selecciona una sucursal')
+      if (!activeSucursal) { toast('Selecciona una sucursal', 'warning'); return }
       await abrirCaja.mutateAsync({ sucursalId: activeSucursal, montoEfectivo: montoApertura })
       setMontoApertura(0)
     } catch (e) {
       console.error(e)
-      alert("Error abriendo caja")
+      toast('Error abriendo caja', 'error')
     }
   }
 
   const handleGuardarGasto = async () => {
-    if (!gastoConcepto || gastoMonto <= 0) return alert('Faltan datos en el gasto')
+    if (!gastoConcepto || gastoMonto <= 0) { toast('Faltan datos en el gasto', 'warning'); return }
     try {
       if (!cajaInfo?.turno.id) return
       await crearMovimiento.mutateAsync({
@@ -57,12 +59,12 @@ export default function CajaPage() {
       setGastoConcepto('')
     } catch (e) {
       console.error(e)
-      alert("Error al registrar movimiento")
+      toast('Error al registrar movimiento', 'error')
     }
   }
 
   const handleCerrarCaja = async () => {
-    if (montoReal < 0) return alert('Por favor ingresa un monto válido')
+    if (montoReal < 0) { toast('Por favor ingresa un monto válido', 'warning'); return }
     try {
       if (!cajaInfo?.turno.id) return
       
@@ -81,7 +83,7 @@ export default function CajaPage() {
       setShowCierreModal(false)
     } catch (e) {
       console.error(e)
-      alert("Error al cerrar caja")
+      toast('Error al cerrar caja', 'error')
     }
   }
 

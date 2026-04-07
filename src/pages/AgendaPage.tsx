@@ -13,6 +13,7 @@ import { useSucursales } from '../hooks/useSucursales'
 import { useEmpleadas } from '../hooks/useEmpleadas'
 import { useCitasSemana, useBloqueosSemana, useEliminarBloqueo } from '../hooks/useCitas'
 import type { Cliente, Cita, SlotInfo, BloqueoAgenda } from '../types/database'
+import { useToast } from '../components/Common/Toast'
 
 type Modal =
   | { type: 'none' }
@@ -41,6 +42,7 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
   )
   const [sucursalId, setSucursalId] = useState<string>('')
   const [modal, setModal] = useState<Modal>({ type: 'none' })
+  const toast = useToast()
 
   const { data: sucursales = [] } = useSucursales()
   const eliminarBloqueo = useEliminarBloqueo()
@@ -95,7 +97,7 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
     try {
       await eliminarBloqueo.mutateAsync(id)
     } catch (err) {
-      alert('Error al eliminar bloqueo')
+      toast('Error al eliminar bloqueo', 'error')
     }
   }
 

@@ -6,6 +6,7 @@ import { useCrearCita, useCheckDisponibilidad } from '../../hooks/useCitas'
 import { useTodasEmpleadas } from '../../hooks/useEmpleadas'
 import type { Cliente, Servicio } from '../../types/database'
 import { timeToSlots, haySolapamiento } from '../../utils/agenda'
+import { useToast } from '../Common/Toast'
 
 interface Props {
   cliente: Cliente
@@ -30,6 +31,7 @@ export default function NuevaCitaModal({
   const { data: sucursales = [] } = useSucursales()
   const { data: empleadas = [] } = useTodasEmpleadas()
   const crearCita = useCrearCita()
+  const toast = useToast()
   
   const [selected, setSelected] = useState<string[]>([])
   const [search, setSearch] = useState('')
@@ -102,7 +104,7 @@ export default function NuevaCitaModal({
       onCreated()
       onClose()
     } catch (e: any) {
-      alert(e.message || 'Error al agendar la cita. Es posible que el horario ya esté ocupado.')
+      toast(e.message || 'Error al agendar la cita. Es posible que el horario ya esté ocupado.', 'error')
     }
   }
 

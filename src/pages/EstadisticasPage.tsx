@@ -4,8 +4,11 @@ import { supabase } from '../lib/supabase'
 import { CATEGORIAS, INDICATOR_CONFIG, formatCell } from '../lib/reportConfig'
 import { runQuery } from '../lib/reportQueries'
 import type { Sucursal } from '../types/database'
+import { useToast } from '../components/Common/Toast'
 
 export default function EstadisticasPage() {
+  const toast = useToast()
+
   // ─── Selector state ───────────────────────────────────────
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -13,8 +16,11 @@ export default function EstadisticasPage() {
   const [openCats, setOpenCats] = useState<string[]>([])
 
   // ─── Filters state ────────────────────────────────────────
-  const [fechaInicio, setFechaInicio] = useState('2026-03-01')
-  const [fechaFin, setFechaFin] = useState('2026-03-25')
+  const [fechaInicio, setFechaInicio] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+  })
+  const [fechaFin, setFechaFin] = useState(() => new Date().toISOString().split('T')[0])
   const [sucursalId, setSucursalId] = useState<string>('all')
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [desglose, setDesglose] = useState<string>('sucursal')
@@ -23,6 +29,10 @@ export default function EstadisticasPage() {
   // ─── Result state ─────────────────────────────────────────
   const [calculating, setCalculating] = useState(false)
   const [resultado, setResultado] = useState<any>(null)
+
+  // ─── Pagination state ─────────────────────────────────────
+  const [page, setPage] = useState(1)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
 
   // ─── Current indicator config ─────────────────────────────
   const config = selectedId ? INDICATOR_CONFIG[selectedId] : null
@@ -33,6 +43,7 @@ export default function EstadisticasPage() {
       setDesglose(config.defaultDesglose)
       setSort(config.defaultSort)
       setResultado(null)
+      setPage(1)
     }
   }, [selectedId])
 
@@ -62,12 +73,13 @@ export default function EstadisticasPage() {
     if (!selectedId) return
     setCalculating(true)
     setResultado(null)
+    setPage(1)
     try {
       const result = await runQuery(selectedId, desglose, sort, fechaInicio, fechaFin, sucursalId)
       setResultado(result)
     } catch (err: any) {
       console.error(err)
-      alert(`Error al calcular: ${err.message}`)
+      toast(`Error al calcular: ${err.message}`, 'error')
     } finally {
       setCalculating(false)
     }
@@ -287,7 +299,10 @@ export default function EstadisticasPage() {
         </div>
 
         {/* Results */}
-        {resultado && config && (
+        {resultado && config && (() => {
+          const totalPages = Math.max(1, Math.ceil(resultado.rows.length / rowsPerPage))
+          const paginatedRows = resultado.rows.slice((page - 1) * rowsPerPage, page * rowsPerPage)
+          return (
           <div className="stats-results-area">
             <div className="result-table-wrap">
               <div className="result-table-header-title">Resultado del cálculo estadístico</div>
@@ -302,7 +317,7 @@ export default function EstadisticasPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {resultado.rows.map((row: any, idx: number) => (
+                  {paginatedRows.map((row: any, idx: number) => (
                     <tr key={idx}>
                       {config.columns.map(col => (
                         <td key={col.key} align={col.align ?? 'left'}>
@@ -328,23 +343,44 @@ export default function EstadisticasPage() {
 
               {/* Pagination */}
               <div className="result-pagination">
+                <div style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                  {resultado.rows.length} resultados · mostrando {(page - 1) * rowsPerPage + 1}–{Math.min(page * rowsPerPage, resultado.rows.length)}
+                </div>
                 <div className="pagination-controls">
-                  <ChevronLeft size={16} className="pagination-arrow" />
-                  <span>Página 1 de 1</span>
-                  <ChevronRight size={16} className="pagination-arrow" />
+                  <button
+                    className="pagination-arrow"
+                    style={{ background: 'none', border: 'none', cursor: page <= 1 ? 'default' : 'pointer', opacity: page <= 1 ? 0.3 : 1 }}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span style={{ fontSize: 13 }}>Página {page} de {totalPages}</span>
+                  <button
+                    className="pagination-arrow"
+                    style={{ background: 'none', border: 'none', cursor: page >= totalPages ? 'default' : 'pointer', opacity: page >= totalPages ? 0.3 : 1 }}
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
                 </div>
                 <div className="rows-per-page">
-                  <span>Filas a mostrar:</span>
-                  <select defaultValue="10">
-                    <option>10</option>
-                    <option>25</option>
-                    <option>50</option>
+                  <span>Filas:</span>
+                  <select
+                    value={rowsPerPage}
+                    onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1) }}
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
                   </select>
                 </div>
               </div>
             </div>
           </div>
-        )}
+          )
+        })()}
       </div>
       </div>
     </div>

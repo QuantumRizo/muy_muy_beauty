@@ -9,6 +9,7 @@ import { useProductos } from '../hooks/useProductos'
 import type { Cita, TicketItem, Pago, Producto } from '../types/database'
 import PagoModal from '../components/Citas/PagoModal'
 import TicketPrintView from '../components/Citas/TicketPrintView'
+import { useToast } from '../components/Common/Toast'
 
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
 export default function TicketPage({ cita, onBack, onFinish }: Props) {
   const { data: empleadas = [] } = useTodasEmpleadas()
   const crearTicket = useCrearTicket()
+  const toast = useToast()
 
   const [vendedorId, setVendedorId] = useState(cita.empleada_id || '')
   const [showClientData, setShowClientData] = useState(false)
@@ -168,7 +170,7 @@ export default function TicketPage({ cita, onBack, onFinish }: Props) {
 
     } catch (err) {
       console.error(err)
-      alert('Error al guardar el ticket')
+      toast('Error al guardar el ticket', 'error')
     } finally {
       setSaving(false)
     }

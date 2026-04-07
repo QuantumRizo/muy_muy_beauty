@@ -1,4 +1,5 @@
-import { Home, Calendar, Users, Briefcase, BarChart2, Package, FileText, Wallet, FileDown } from 'lucide-react'
+import { Home, Calendar, Users, Briefcase, BarChart2, Package, Wallet, FileDown, FolderOpen, Receipt } from 'lucide-react'
+import { useSucursales } from '../../hooks/useSucursales'
 
 export type Section = 'inicio' | 'agenda' | 'clientes' | 'inventario' | 'documentos' | 'configuracion' | 'validacion' | 'cobro' | 'estadisticas' | 'reportes' | 'facturacion' | 'caja'
 
@@ -15,15 +16,15 @@ const items: { id: Section; label: string; Icon: any }[] = [
   { id: 'reportes',     label: 'Reportes',     Icon: FileDown   },
   { id: 'configuracion',label: 'Profesionales', Icon: Briefcase  },
   { id: 'inventario',   label: 'Inventario',   Icon: Package    },
-  { id: 'facturacion',  label: 'Facturación',  Icon: FileText   },
+  { id: 'facturacion',  label: 'Facturación',  Icon: Receipt    },
   { id: 'caja',         label: 'Caja',         Icon: Wallet     },
-  { id: 'documentos',   label: 'Documentos',   Icon: FileText   },
-
+  { id: 'documentos',   label: 'Documentos',   Icon: FolderOpen },
 ]
 
 
 
 export default function Sidebar({ current, onChange }: Props) {
+  const { data: sucursales = [] } = useSucursales()
   return (
     <nav className="sidebar">
       <div className="sidebar-logo">
@@ -45,7 +46,9 @@ export default function Sidebar({ current, onChange }: Props) {
       </div>
 
       <div className="sidebar-footer">
-        4 sucursales activas
+        {sucursales.length > 0
+          ? `${sucursales.length} sucursal${sucursales.length !== 1 ? 'es' : ''} activa${sucursales.length !== 1 ? 's' : ''}`
+          : 'Cargando...'}
       </div>
     </nav>
   )

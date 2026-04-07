@@ -4,6 +4,7 @@ import { format, addDays, getDay } from 'date-fns'
 import { useCrearBloqueos } from '../../hooks/useCitas'
 import type { Empleada } from '../../types/database'
 import DatePicker from '../Common/DatePicker'
+import { useToast } from '../Common/Toast'
 
 interface Props {
   empleadas: Empleada[]
@@ -31,6 +32,7 @@ export default function BloqueoModal({ empleadas, onClose }: Props) {
   const [motivo, setMotivo] = useState('')
 
   const crearBloqueos = useCrearBloqueos()
+  const toast = useToast()
 
   const handleToggleEmpleada = (id: string) => {
     setSelectedEmpleadas((prev) =>
@@ -62,7 +64,7 @@ export default function BloqueoModal({ empleadas, onClose }: Props) {
 
   const handleSave = async () => {
     if (selectedEmpleadas.length === 0) {
-      alert('Por favor selecciona al menos un profesional')
+      toast('Por favor selecciona al menos un profesional', 'warning')
       return
     }
 
@@ -92,7 +94,7 @@ export default function BloqueoModal({ empleadas, onClose }: Props) {
     }
 
     if (bloqueos.length === 0) {
-      alert('No se generaron bloqueos. Verifica los días seleccionados.')
+      toast('No se generaron bloqueos. Verifica los días seleccionados.', 'warning')
       return
     }
 
@@ -101,7 +103,7 @@ export default function BloqueoModal({ empleadas, onClose }: Props) {
       onClose()
     } catch (err) {
       console.error(err)
-      alert('Error al crear bloqueos')
+      toast('Error al crear bloqueos', 'error')
     }
   }
 
