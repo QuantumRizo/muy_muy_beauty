@@ -6,9 +6,10 @@ interface Props {
   subtitle?: string
   Icon: LucideIcon
   variant?: 'white' | 'accent' | 'success' | 'danger'
+  isMini?: boolean
 }
 
-export default function KPICard({ title, value, subtitle, Icon, variant = 'white' }: Props) {
+export default function KPICard({ title, value, subtitle, Icon, variant = 'white', isMini = false }: Props) {
   const isWhite = variant === 'white'
   
   // Style configurations
@@ -55,22 +56,22 @@ export default function KPICard({ title, value, subtitle, Icon, variant = 'white
     <div 
       className={`card ${!isWhite ? 'premium-card' : ''}`} 
       style={{ 
-        padding: '20px 22px', 
+        padding: isMini ? '12px 14px' : '20px 22px', 
         display: 'flex', 
         flexDirection: 'column', 
         justifyContent: 'space-between', 
-        minHeight: '135px', 
+        minHeight: isMini ? '85px' : '135px', 
         position: 'relative',
         background: config.bg,
         color: config.text,
         border: isWhite ? '1px solid var(--border)' : 'none',
-        boxShadow: config.shadow,
+        boxShadow: isMini ? 'var(--shadow-xs)' : config.shadow,
         overflow: 'hidden',
         transition: 'all 0.2s ease'
       }}
     >
       {/* Decorative background shape */}
-      {!isWhite && (
+      {!isWhite && !isMini && (
         <div style={{
           position: 'absolute', right: -25, top: -25,
           width: 100, height: 100, borderRadius: '50%',
@@ -78,9 +79,9 @@ export default function KPICard({ title, value, subtitle, Icon, variant = 'white
         }} />
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', position: 'relative', zIndex: 1 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: isMini ? '4px' : '12px', position: 'relative', zIndex: 1 }}>
         <h3 style={{ 
-          fontSize: '11px', 
+          fontSize: isMini ? '9px' : '11px', 
           fontWeight: 700, 
           color: isWhite ? 'var(--text-3)' : 'rgba(255,255,255,0.85)', 
           textTransform: 'uppercase', 
@@ -90,38 +91,38 @@ export default function KPICard({ title, value, subtitle, Icon, variant = 'white
           {title}
         </h3>
         <div style={{ 
-          padding: '9px', 
-          borderRadius: '12px', 
+          padding: isMini ? '6px' : '9px', 
+          borderRadius: isMini ? '8px' : '12px', 
           background: config.iconBg, 
           color: config.iconColor, 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center' 
         }}>
-          <Icon size={18} strokeWidth={2.5} />
+          <Icon size={isMini ? 13 : 18} strokeWidth={isMini ? 2 : 2.5} />
         </div>
       </div>
 
       <div style={{ marginTop: 'auto', position: 'relative', zIndex: 1 }}>
         <p style={{ 
-          fontSize: '24px', 
+          fontSize: isMini ? '17px' : '24px', 
           fontWeight: 800, 
           color: config.text, 
-          margin: '0 0 4px 0', 
-          letterSpacing: '-0.5px', 
+          margin: '0 0 2px 0', 
+          letterSpacing: '-0.3px', 
           lineHeight: 1 
         }}>
           {value}
         </p>
         {subtitle && (
           <p style={{ 
-            fontSize: '11px', 
+            fontSize: isMini ? '9px' : '11px', 
             fontWeight: 500, 
             color: config.subText, 
             margin: 0,
             display: 'flex',
             alignItems: 'center',
-            gap: '4px'
+            gap: '3px'
           }}>
             {subtitle}
           </p>

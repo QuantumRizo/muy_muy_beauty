@@ -94,16 +94,16 @@ export default function InicioPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-            {/* ══ KPI ROW 1: Core ══ */}
+            {/* ══ KPI ROW 1: CORE METRICS (Large) ══ */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
               <KPICard title="Ingresos Totales" value={fmt(data?.revenue || 0)} Icon={DollarSign} subtitle="Ventas del periodo" variant="accent" />
-              <KPICard title="Citas" value={data?.appointments || 0} Icon={Calendar} subtitle="Agendadas" variant="accent" />
-              <KPICard title="Clientes Nuevos" value={data?.newClients || 0} Icon={Users} subtitle="Registro en periodo" variant="accent" />
-              <KPICard title="Asistencia" value={`${(data?.attendanceRate || 0).toFixed(1)}%`} Icon={CheckCircle} subtitle="Tasa de asistencia" variant="success" />
-            </div>
-
-            {/* ══ KPI ROW 2: Business Intelligence ══ */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+              <KPICard 
+                title="Recurrencia" 
+                value={`${data?.retentionRate || 0}%`} 
+                Icon={RefreshCw} 
+                subtitle="Clientes que regresan (30d)" 
+                variant={data?.retentionRate >= 50 ? 'success' : 'accent'} 
+              />
               <KPICard 
                 title="Ticket Promedio" 
                 value={fmt(data?.ticketPromedio || 0)} 
@@ -112,40 +112,28 @@ export default function InicioPage() {
                 variant="accent" 
               />
               <KPICard 
-                title="Tasa de Ocupación" 
-                value={`${data?.ocupacion || 0}%`} 
-                Icon={BarChart2} 
-                subtitle="Citas atendidas/agendadas" 
-                variant={data?.ocupacion >= 75 ? 'success' : 'accent'} 
-              />
-              <KPICard 
-                title="Retención" 
-                value={`${data?.retentionRate || 0}%`} 
-                Icon={RefreshCw} 
-                subtitle="Clientes que regresan (30d)" 
-                variant={data?.retentionRate >= 50 ? 'success' : 'accent'} 
-              />
-              <KPICard 
-                title="Nuevos vs Recurrentes" 
-                value={`${data?.nuevosVsRecurrentes?.nuevos || 0} / ${data?.nuevosVsRecurrentes?.recurrentes || 0}`} 
-                Icon={Users} 
-                subtitle="Nuevos / Recurrentes" 
-                variant="accent" 
-              />
-            </div>
-
-            {/* ══ KPI ROW 3: Financial ══ */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-              <KPICard title="Venta Prods." value={fmt(data?.inventoryMetrics?.ingreso || 0)} Icon={Package} subtitle="Ingreso inventario" variant="accent" />
-              <KPICard title="Costo Prods." value={fmt(data?.inventoryMetrics?.costo || 0)} Icon={Package} subtitle="Costo de lo vendido" variant="accent" />
-              <KPICard title="Sueldos Est." value={fmt(data?.salaryExpense || 0)} Icon={Users} subtitle={`${range === 'today' ? '1 día' : range === 'week' ? '7 días' : '30 días'}`} variant="accent" />
-              <KPICard 
                 title="Dif. Caja" 
                 value={fmt(data?.cashDifference || 0)} 
                 Icon={DollarSign} 
                 subtitle="Arqueo de cierres" 
                 variant={(data?.cashDifference || 0) < 0 ? 'danger' : 'success'} 
               />
+            </div>
+
+            {/* ══ KPI ROW 2: MINI METRICS (Compact) ══ */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+              <KPICard isMini title="Citas" value={data?.appointments || 0} Icon={Calendar} subtitle="Agendadas" variant="white" />
+              <KPICard isMini title="Clientes Nuevos" value={data?.newClients || 0} Icon={Users} subtitle="Registro en periodo" variant="white" />
+              <KPICard isMini title="Asistencia" value={`${(data?.attendanceRate || 0).toFixed(1)}%`} Icon={CheckCircle} subtitle="Tasa de asistencia" variant="white" />
+              <KPICard isMini title="Tasa de Ocupación" value={`${data?.ocupacion || 0}%`} Icon={BarChart2} subtitle="Citas atendidas/totales" variant="white" />
+            </div>
+
+            {/* ══ KPI ROW 3: MINI FINANCIAL (Compact) ══ */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+              <KPICard isMini title="Venta Prods." value={fmt(data?.inventoryMetrics?.ingreso || 0)} Icon={Package} variant="white" />
+              <KPICard isMini title="Costo Prods." value={fmt(data?.inventoryMetrics?.costo || 0)} Icon={Package} variant="white" />
+              <KPICard isMini title="Nuevos vs Recurr." value={`${data?.nuevosVsRecurrentes?.nuevos || 0}/${data?.nuevosVsRecurrentes?.recurrentes || 0}`} Icon={Users} variant="white" />
+              <KPICard isMini title="Sueldos Est." value={fmt(data?.salaryExpense || 0)} Icon={Users} subtitle={`${range === 'today' ? 'Hoy' : 'Periodo'}`} variant="white" />
             </div>
 
             {/* ══ CHART ROW 1: Revenue by Branch + Service Mix ══ */}
