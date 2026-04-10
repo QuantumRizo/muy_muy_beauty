@@ -1,17 +1,22 @@
 import { useState, useEffect } from 'react'
 import { 
   DollarSign, Calendar, Users, CheckCircle, 
-  MapPin 
+  MapPin, TrendingUp, RefreshCw, BarChart2, Package
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import KPICard from '../components/Dashboard/KPICard'
 import { 
-  DashboardBarChart, 
-  DashboardAreaChart, 
-  DashboardPieChart 
+  DashboardBarChart,
+  DashboardPieChart,
+  DashboardLineChart,
+  DashboardHeatmap,
+  DashboardSemaforo,
 } from '../components/Dashboard/Charts'
 import { useDashboardData, type TimeRange } from '../hooks/useDashboardData'
 import type { Sucursal } from '../types/database'
+
+const fmt = (v: number) =>
+  new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(v)
 
 export default function InicioPage() {
   const [sucursalId, setSucursalId] = useState<string>('all')
@@ -36,7 +41,7 @@ export default function InicioPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      {/* Page Header (Compact) */}
+      {/* Page Header */}
       <div className="page-header" style={{ padding: '18px 24px 0', marginBottom: 15 }}>
         <div className="page-header-content">
           <h1 className="page-title" style={{ fontSize: '24px', margin: 0 }}>Inicio</h1>
@@ -44,7 +49,6 @@ export default function InicioPage() {
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Sucursal Selector (Compact) */}
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <MapPin size={12} style={{ position: 'absolute', left: '10px', color: 'var(--text-3)' }} />
             <select 
@@ -60,20 +64,14 @@ export default function InicioPage() {
             </select>
           </div>
 
-          {/* Time Range Selector (Compact) */}
           <div style={{ display: 'flex', background: 'var(--surface-2)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border)' }}>
             {(['today', 'week', 'month'] as const).map((r) => (
               <button
                 key={r}
                 onClick={() => setRange(r)}
                 style={{
-                  padding: '4px 12px',
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  borderRadius: '6px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
+                  padding: '4px 12px', fontSize: '10px', fontWeight: 600, borderRadius: '6px',
+                  border: 'none', cursor: 'pointer', transition: 'all 0.2s',
                   background: range === r ? 'var(--surface)' : 'transparent',
                   color: range === r ? 'var(--accent)' : 'var(--text-3)',
                   boxShadow: range === r ? 'var(--shadow-sm)' : 'none',
@@ -87,89 +85,130 @@ export default function InicioPage() {
         </div>
       </div>
 
-      {/* Main Content Area (Compact) */}
-      <div className="page-content" style={{ padding: '0 24px 18px', overflowY: 'auto' }}>
+      {/* Scrollable Content */}
+      <div className="page-content" style={{ padding: '0 24px 24px', overflowY: 'auto' }}>
         {loading && !data ? (
           <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-3)', fontSize: '13px' }}>
-            Actualizando indicadores...
+            Cargando indicadores...
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* KPI Row (Compact) */}
+
+            {/* ══ KPI ROW 1: Core ══ */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+              <KPICard title="Ingresos Totales" value={fmt(data?.revenue || 0)} Icon={DollarSign} subtitle="Ventas del periodo" variant="accent" />
+              <KPICard title="Citas" value={data?.appointments || 0} Icon={Calendar} subtitle="Agendadas" variant="accent" />
+              <KPICard title="Clientes Nuevos" value={data?.newClients || 0} Icon={Users} subtitle="Registro en periodo" variant="accent" />
+              <KPICard title="Asistencia" value={`${(data?.attendanceRate || 0).toFixed(1)}%`} Icon={CheckCircle} subtitle="Tasa de asistencia" variant="success" />
+            </div>
+
+            {/* ══ KPI ROW 2: Business Intelligence ══ */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
               <KPICard 
-                title="Ingresos" 
-                value={new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(data?.revenue)}
-                Icon={DollarSign}
-                subtitle="Respecto anterior"
+                title="Ticket Promedio" 
+                value={fmt(data?.ticketPromedio || 0)} 
+                Icon={TrendingUp} 
+                subtitle="Por visita de cliente" 
+                variant="accent" 
               />
               <KPICard 
-                title="Citas" 
-                value={data?.appointments}
-                Icon={Calendar}
-                subtitle="Programadas"
+                title="Tasa de Ocupación" 
+                value={`${data?.ocupacion || 0}%`} 
+                Icon={BarChart2} 
+                subtitle="Citas atendidas/agendadas" 
+                variant={data?.ocupacion >= 75 ? 'success' : 'accent'} 
               />
               <KPICard 
-                title="C. Nuevos" 
-                value={data?.newClients}
-                Icon={Users}
-                subtitle="Nuevos registros"
+                title="Retención" 
+                value={`${data?.retentionRate || 0}%`} 
+                Icon={RefreshCw} 
+                subtitle="Clientes que regresan (30d)" 
+                variant={data?.retentionRate >= 50 ? 'success' : 'accent'} 
               />
               <KPICard 
-                title="Asistencia" 
-                value={`${data?.attendanceRate?.toFixed(1)}%`}
-                Icon={CheckCircle}
-                subtitle="Finalizadas"
+                title="Nuevos vs Recurrentes" 
+                value={`${data?.nuevosVsRecurrentes?.nuevos || 0} / ${data?.nuevosVsRecurrentes?.recurrentes || 0}`} 
+                Icon={Users} 
+                subtitle="Nuevos / Recurrentes" 
+                variant="accent" 
               />
             </div>
 
-            {/* Second Row: Main Activity Charts (Compact) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px' }}>
-              <div className="card" style={{ padding: '18px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
-                  <span className="card-title" style={{ fontSize: '13px' }}>Top Tratamientos / Actividad</span>
-                  <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-light)', padding: '3px 8px', borderRadius: '15px' }}>
-                    POR INGRESO
+            {/* ══ KPI ROW 3: Financial ══ */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+              <KPICard title="Venta Prods." value={fmt(data?.inventoryMetrics?.ingreso || 0)} Icon={Package} subtitle="Ingreso inventario" variant="accent" />
+              <KPICard title="Costo Prods." value={fmt(data?.inventoryMetrics?.costo || 0)} Icon={Package} subtitle="Costo de lo vendido" variant="accent" />
+              <KPICard title="Sueldos Est." value={fmt(data?.salaryExpense || 0)} Icon={Users} subtitle={`${range === 'today' ? '1 día' : range === 'week' ? '7 días' : '30 días'}`} variant="accent" />
+              <KPICard 
+                title="Dif. Caja" 
+                value={fmt(data?.cashDifference || 0)} 
+                Icon={DollarSign} 
+                subtitle="Arqueo de cierres" 
+                variant={(data?.cashDifference || 0) < 0 ? 'danger' : 'success'} 
+              />
+            </div>
+
+            {/* ══ CHART ROW 1: Revenue by Branch + Service Mix ══ */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '16px' }}>
+              <div className="card" style={{ padding: '20px', borderTop: '4px solid var(--accent)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <span className="card-title" style={{ fontSize: '13px' }}>Ingresos por Sucursal</span>
+                  <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-light)', padding: '3px 8px', borderRadius: '15px' }}>COMPARATIVA</span>
+                </div>
+                <DashboardBarChart data={data?.ingresosSucursal || []} height={220} />
+              </div>
+
+              <div className="card" style={{ padding: '20px', borderTop: '4px solid var(--accent)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <span className="card-title" style={{ fontSize: '13px' }}>Mix de Servicios</span>
+                  <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-light)', padding: '3px 8px', borderRadius: '15px' }}>POR FAMILIA</span>
+                </div>
+                <DashboardPieChart data={data?.serviceMix || []} height={220} />
+              </div>
+            </div>
+
+            {/* ══ CHART ROW 2: Tendencia + Stock Semáforo ══ */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '16px' }}>
+              <div className="card" style={{ padding: '20px', borderTop: '4px solid var(--accent)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <span className="card-title" style={{ fontSize: '13px' }}>Tendencia de Citas</span>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <div style={{ width: 10, height: 2, background: 'var(--accent)', borderRadius: 2 }} />
+                      <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Agendadas</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <div style={{ width: 10, height: 2, background: '#10b981', borderRadius: 2, borderTop: '1px dashed #10b981' }} />
+                      <span style={{ fontSize: 10, color: 'var(--text-3)' }}>Asistidas</span>
+                    </div>
+                  </div>
+                </div>
+                <DashboardLineChart data={data?.citasTrend || []} height={220} />
+              </div>
+
+              <div className="card" style={{ padding: '20px', borderTop: '4px solid var(--accent)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <span className="card-title" style={{ fontSize: '13px' }}>Alerta de Stock</span>
+                  <span style={{ fontSize: '9px', fontWeight: 700, color: '#ef4444', background: '#fef2f2', padding: '3px 8px', borderRadius: '15px', border: '1px solid #fca5a5' }}>
+                    INVENTARIO
                   </span>
                 </div>
-                <DashboardAreaChart data={data?.treatments || []} height={220} colors={['var(--accent)']} />
-              </div>
-              
-              <div className="card" style={{ padding: '18px' }}>
-                <span className="card-title" style={{ display: 'block', marginBottom: '16px', fontSize: '13px' }}>Asistencia</span>
-                <DashboardPieChart 
-                  data={data?.attendanceSummary?.map((r: any) => ({ ...r, cantidad: r.total_citas - r.no_asistidas })) || []} 
-                  height={220} 
-                  colors={['var(--accent)', '#e2e8f0', '#94a3b8']} 
-                />
+                <DashboardSemaforo data={data?.stockSemaforo || []} />
               </div>
             </div>
 
-            {/* Third Row (Compact) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div className="card" style={{ padding: '18px' }}>
-                <span className="card-title" style={{ display: 'block', marginBottom: '16px', fontSize: '13px' }}>Horas de Demanda</span>
-                <DashboardBarChart data={data?.peakHours || []} height={200} colors={['var(--accent)']} />
+            {/* ══ CHART ROW 3: Heatmap full width ══ */}
+            <div className="card" style={{ padding: '20px', borderTop: '4px solid var(--accent)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div>
+                  <span className="card-title" style={{ fontSize: '13px' }}>Mapa de Calor — Afluencia</span>
+                  <p style={{ fontSize: '11px', color: 'var(--text-3)', margin: '2px 0 0 0' }}>Citas por hora y día de la semana</p>
+                </div>
+                <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-light)', padding: '3px 8px', borderRadius: '15px' }}>OPTIMIZACIÓN DE TURNOS</span>
               </div>
-              
-              <div className="card" style={{ padding: '18px' }}>
-                <span className="card-title" style={{ display: 'block', marginBottom: '16px', fontSize: '13px' }}>Ventas por Producto</span>
-                <DashboardBarChart data={data?.salesProduct || []} height={200} colors={['var(--accent)']} />
-              </div>
+              <DashboardHeatmap data={data?.heatmapData || []} height={280} />
             </div>
 
-            {/* Bottom Row (Compact) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', paddingBottom: '16px' }}>
-              <div className="card" style={{ padding: '18px' }}>
-                <span className="card-title" style={{ display: 'block', marginBottom: '16px', fontSize: '13px' }}>Origen de Clientes</span>
-                <DashboardBarChart data={data?.clientOrigin || []} height={200} colors={['var(--accent)']} />
-              </div>
-              
-              <div className="card" style={{ padding: '18px' }}>
-                <span className="card-title" style={{ display: 'block', marginBottom: '16px', fontSize: '13px' }}>Métodos de Pago</span>
-                <DashboardBarChart data={data?.paymentMethods || []} height={200} colors={['var(--accent)']} />
-              </div>
-            </div>
           </div>
         )}
       </div>

@@ -31,45 +31,66 @@ export function useDashboardData(sucursalId: string, range: TimeRange) {
         const sFi = format(fi, 'yyyy-MM-dd')
         const sFf = format(ff, 'yyyy-MM-dd')
 
-        // Fetch multiple metrics in parallel
+        // Fetch all metrics in parallel
         const [
-          revenue,
-          appointments,
-          newClients,
-          attendance,
-          treatments,
-          peakHours,
-          salesProduct,
-          clientOrigin,
-          paymentMethods
+          revenue, appointments, newClients, attendance,
+          inventoryMetrics, salaryBase, cashDifference,
+          ticketPromedio, retentionData,
+          ingresosSucursal, serviceMix,
+          citasTrend, heatmapData, stockSemaforo
         ] = await Promise.all([
-          runQuery('4.1.1', 'total', 'total_desc', sFi, sFf, sucursalId), // Revenue
-          runQuery('3.7', 'total', 'cantidad_desc', sFi, sFf, sucursalId), // Appointments
-          runQuery('1.1.1', 'total', 'cantidad_desc', sFi, sFf, sucursalId), // New Clients
-          runQuery('3.1', 'sucursal', 'porcentaje_desc', sFi, sFf, sucursalId), // Attendance Rate
-          runQuery('4.4.1', 'tratamiento', 'total_desc', sFi, sFf, sucursalId), // Top Treatments
-          runQuery('4.17.1', 'hora', 'cantidad_desc', sFi, sFf, sucursalId), // Peak Hours
-          runQuery('4.9.1', 'producto', 'total_desc', sFi, sFf, sucursalId), // Sales by Product
-          runQuery('1.2', 'procedencia', 'cantidad_desc', sFi, sFf, ''), // Client Origin (Global)
-          runQuery('4.12.1', 'metodo', 'total_desc', sFi, sFf, sucursalId)  // Payment Methods
+          runQuery('4.1.1', 'total', 'total_desc', sFi, sFf, sucursalId),
+          runQuery('3.7',   'total', 'cantidad_desc', sFi, sFf, sucursalId),
+          runQuery('1.1.1', 'total', 'cantidad_desc', sFi, sFf, sucursalId),
+          runQuery('3.1',   'sucursal', 'porcentaje_desc', sFi, sFf, sucursalId),
+          runQuery('5.1',   'total', 'total_desc', sFi, sFf, sucursalId),
+          runQuery('5.2',   'total', 'total_desc', sFi, sFf, sucursalId),
+          runQuery('5.3',   'total', 'total_desc', sFi, sFf, sucursalId),
+          runQuery('A.1',   'total', 'total_desc', sFi, sFf, sucursalId),
+          runQuery('A.2',   'total', 'total_desc', sFi, sFf, sucursalId),
+          runQuery('A.3',   'total', 'total_desc', sFi, sFf, ''),
+          runQuery('A.4',   'total', 'total_desc', sFi, sFf, sucursalId),
+          runQuery('A.5',   'total', 'total_desc', sFi, sFf, sucursalId),
+          runQuery('A.6',   'total', 'total_desc', sFi, sFf, sucursalId),
+          runQuery('A.7',   'total', 'total_desc', sFi, sFf, sucursalId),
         ])
 
-        // Tasa de asistencia: promedio ponderado global (no solo primera fila)
+        // Attendance rate
         const totalCitas = attendance.rows.reduce((s: number, r: any) => s + (r.total_citas ?? 0), 0)
         const totalNoAsistidas = attendance.rows.reduce((s: number, r: any) => s + (r.no_asistidas ?? 0), 0)
         const globalAbsencePct = totalCitas > 0 ? (totalNoAsistidas / totalCitas) * 100 : 0
 
+        // Occupancy: (attended / total scheduled) × 100
+        const finalizadas = totalCitas - totalNoAsistidas
+        const ocupacion = totalCitas > 0 ? parseFloat(((finalizadas / totalCitas) * 100).toFixed(1)) : 0
+
+        // Salary scaling
+        const days = range === 'today' ? 1 : range === 'week' ? 7 : 30
+
         setData({
+          // Core KPIs
           revenue: revenue.totals.total || 0,
           appointments: appointments.totals.cantidad || 0,
           newClients: newClients.totals.cantidad || 0,
           attendanceRate: 100 - globalAbsencePct,
-          treatments: treatments.rows.slice(0, 5),
-          attendanceSummary: attendance.rows,
-          peakHours: peakHours.rows,
-          salesProduct: salesProduct.rows.slice(0, 5),
-          clientOrigin: clientOrigin.rows,
-          paymentMethods: paymentMethods.rows
+          // Financial KPIs
+          inventoryMetrics: inventoryMetrics.totals,
+          salaryExpense: (salaryBase.totals.total_diario || 0) * days,
+          cashDifference: cashDifference.totals.total || 0,
+          // New business KPIs
+          ticketPromedio: ticketPromedio.totals.total || 0,
+          ocupacion,
+          retentionRate: retentionData.totals.tasa || 0,
+          nuevosVsRecurrentes: {
+            nuevos: retentionData.totals.nuevos || 0,
+            recurrentes: retentionData.totals.recurrentes || 0,
+          },
+          // Chart data
+          ingresosSucursal: ingresosSucursal.rows,
+          serviceMix: serviceMix.rows,
+          citasTrend: citasTrend.rows,
+          heatmapData: heatmapData.rows,
+          stockSemaforo: stockSemaforo.rows,
         })
       } catch (err: any) {
         console.error('Error fetching dashboard data:', err)

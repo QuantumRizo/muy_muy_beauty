@@ -10,6 +10,7 @@ import DocumentosPage from './pages/DocumentosPage'
 import type { Cliente } from './types/database'
 
 import { AuthProvider, useAuthContext } from './context/AuthContext'
+import { SucursalProvider } from './context/SucursalContext'
 import LoginPage from './pages/LoginPage'
 import { RefreshCw } from 'lucide-react'
 
@@ -24,6 +25,7 @@ import VentaDirectaPage from './pages/VentaDirectaPage'
 import HojaPage from './pages/HojaPage'
 import MarketingPage from './pages/MarketingPage'
 import SeguridadPage from './pages/SeguridadPage'
+import AsistenciaPage from './pages/AsistenciaPage'
 import type { Cita } from './types/database'
 
 const queryClient = new QueryClient({
@@ -91,6 +93,8 @@ function AppContent() {
             </>
           )}
 
+          {section === 'asistencia'    && <AsistenciaPage />}
+
           {section === 'clientes'      && (
             <ClientesPage onGoToAgenda={(c: Cliente) => {
               setPendingClient(c)
@@ -118,7 +122,9 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider queryClient={queryClient}>
-        <AppContent />
+        <SucursalProvider>
+          <AppContent />
+        </SucursalProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

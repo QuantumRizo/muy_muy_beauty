@@ -75,6 +75,16 @@ export async function runQuery(
     case '4.16.1':return q_tratamientos_unidades(desglose, sort, fechaInicio, fechaFin, sucursalId)
     case '4.17.1':return q_facturacion_por_hora(sort, fechaInicio, fechaFin, sucursalId)
     case '4.18':  return q_ingresos_servicios(desglose, sort, fechaInicio, fechaFin, sucursalId)
+    case '5.1':   return q_inventory_metrics(fechaInicio, fechaFin, sucursalId)
+    case '5.2':   return q_salary_metrics()
+    case '5.3':   return q_cash_metrics(fechaInicio, fechaFin, sucursalId)
+    case 'A.1':   return q_ticket_promedio(fechaInicio, fechaFin, sucursalId)
+    case 'A.2':   return q_retention_rate(fechaInicio, fechaFin)
+    case 'A.3':   return q_ingresos_sucursal(fechaInicio, fechaFin)
+    case 'A.4':   return q_service_mix(fechaInicio, fechaFin, sucursalId)
+    case 'A.5':   return q_citas_tendencia(fechaInicio, fechaFin, sucursalId)
+    case 'A.6':   return q_heatmap_afluencia(fechaInicio, fechaFin, sucursalId)
+    case 'A.7':   return q_stock_semaforo()
     default: throw new Error(`Indicador ${id} no implementado`)
   }
 }
@@ -468,6 +478,7 @@ async function q_citas_agenda(desglose: string, sort: string, fi: string, ff: st
     .from('citas')
     .select('estado, fecha, sucursal_id, empleada:perfiles_empleadas(nombre), sucursal:sucursales(nombre)')
     .gte('fecha', fi).lte('fecha', ff)
+    .not('estado', 'in', '("Cancelada","No asistió")')
   if (suc !== 'all') query = query.eq('sucursal_id', suc)
   const { data, error } = await query
   if (error) throw error
@@ -691,4 +702,320 @@ async function q_facturacion_por_hora(sort: string, fi: string, ff: string, suc:
 
 async function q_ingresos_servicios(desglose: string, sort: string, fi: string, ff: string, suc: string): Promise<ReportResult> {
   return q_facturacion_tratamiento(desglose, sort, fi, ff, suc)
+}
+
+// ─── 5.1 Métricas de Inventario (Ingreso vs Costo) ─────────────
+
+async function q_inventory_metrics(fi: string, ff: string, suc: string): Promise<ReportResult> {
+  let query = supabase
+    .from('ticket_items')
+    .select('total, cantidad, referencia_id, ticket:tickets!inner(fecha, estado, sucursal_id)')
+    .eq('tipo', 'Producto')
+    .eq('ticket.estado', 'Pagado')
+    .gte('ticket.fecha', fi).lte('ticket.fecha', ff)
+
+  if (suc !== 'all') query = query.eq('ticket.sucursal_id', suc)
+  
+  const { data, error } = await query
+  if (error) throw error
+
+  // Get product cost prices
+  const productIds = Array.from(new Set(data?.map(i => i.referencia_id)))
+  const { data: products } = await supabase
+    .from('productos')
+    .select('id, precio_costo')
+    .in('id', productIds)
+  
+  const costMap: Record<string, number> = {}
+  products?.forEach(p => { costMap[p.id] = p.precio_costo || 0 })
+
+  let totalIngreso = 0
+  let totalCosto = 0
+  
+  data?.forEach(i => {
+    totalIngreso += i.total || 0
+    totalCosto += (i.cantidad || 0) * (costMap[i.referencia_id] || 0)
+  })
+
+  return { 
+    rows: [], 
+    totals: { 
+      ingreso: totalIngreso, 
+      costo: totalCosto 
+    } 
+  }
+}
+
+// ─── 5.2 Métricas de Sueldos (Suma diaria base) ────────────────
+
+async function q_salary_metrics(): Promise<ReportResult> {
+  const { data, error } = await supabase
+    .from('perfiles_empleadas')
+    .select('sueldo_diario')
+    .eq('activo', true)
+  
+  if (error) throw error
+
+  const totalDiario = (data || []).reduce((sum, emp) => sum + (emp.sueldo_diario || 0), 0)
+
+  return { 
+    rows: [], 
+    totals: { 
+      total_diario: totalDiario 
+    } 
+  }
+}
+
+// ─── 5.3 Diferencia de Cajas (Arqueo) ─────────────────────────
+
+async function q_cash_metrics(fi: string, ff: string, suc: string): Promise<ReportResult> {
+  let query = supabase
+    .from('turnos_caja')
+    .select('diferencia_efectivo')
+    .eq('estado', 'Cerrada')
+    .gte('fecha_cierre', fi)
+    .lte('fecha_cierre', ff)
+  
+  if (suc !== 'all') query = query.eq('sucursal_id', suc)
+
+  const { data, error } = await query
+  if (error) throw error
+
+  const totalDiferencia = (data || []).reduce((sum, t) => sum + (t.diferencia_efectivo || 0), 0)
+
+  return { 
+    rows: [], 
+    totals: { 
+      total: totalDiferencia 
+    } 
+  }
+}
+// ─── A.1 Ticket Promedio por Sucursal ────────────────────────
+
+async function q_ticket_promedio(fi: string, ff: string, suc: string): Promise<ReportResult> {
+  let query = supabase
+    .from('tickets')
+    .select('total, sucursal_id, sucursal:sucursales(nombre)')
+    .eq('estado', 'Pagado')
+    .gte('fecha', fi).lte('fecha', ff)
+  if (suc !== 'all') query = query.eq('sucursal_id', suc)
+  const { data, error } = await query
+  if (error) throw error
+
+  const groups: Record<string, { total: number; count: number }> = {}
+  data?.forEach((t: any) => {
+    const key = (t.sucursal as any)?.nombre || 'Sin sucursal'
+    if (!groups[key]) groups[key] = { total: 0, count: 0 }
+    groups[key].total += t.total || 0
+    groups[key].count++
+  })
+
+  const globalTotal = data?.reduce((s, t: any) => s + (t.total || 0), 0) || 0
+  const globalCount = data?.length || 0
+
+  const rows: ReportRow[] = Object.entries(groups).map(([nombre, g]) => ({
+    nombre,
+    total: g.count > 0 ? parseFloat((g.total / g.count).toFixed(2)) : 0,
+    cantidad: g.count,
+  }))
+
+  return { 
+    rows: applySort(rows, 'total_desc'), 
+    totals: { 
+      total: globalCount > 0 ? parseFloat((globalTotal / globalCount).toFixed(2)) : 0,
+      cantidad: globalCount
+    } 
+  }
+}
+
+// ─── A.2 Retención de Clientes (30 días) ─────────────────────
+
+async function q_retention_rate(fi: string, ff: string): Promise<ReportResult> {
+  // Clients that visited in the period
+  const { data: periodVisits, error: e1 } = await supabase
+    .from('citas')
+    .select('cliente_id, fecha')
+    .gte('fecha', fi).lte('fecha', ff)
+    .eq('estado', 'Finalizada')
+  if (e1) throw e1
+
+  if (!periodVisits || periodVisits.length === 0) {
+    return { rows: [], totals: { tasa: 0, nuevos: 0, recurrentes: 0 } }
+  }
+
+  const uniqueClients = Array.from(new Set(periodVisits.map(v => v.cliente_id).filter(Boolean)))
+
+  // Check which of those clients had a prior visit in the 30 days before fi
+  const prior30 = new Date(fi)
+  prior30.setDate(prior30.getDate() - 30)
+  const prior30Str = prior30.toISOString().split('T')[0]
+
+  const BATCH = 100
+  const returningSet = new Set<string>()
+  for (let i = 0; i < uniqueClients.length; i += BATCH) {
+    const batch = uniqueClients.slice(i, i + BATCH)
+    const { data: prior } = await supabase
+      .from('citas')
+      .select('cliente_id')
+      .in('cliente_id', batch)
+      .gte('fecha', prior30Str)
+      .lt('fecha', fi)
+      .eq('estado', 'Finalizada')
+    prior?.forEach(p => returningSet.add(p.cliente_id))
+  }
+
+  const recurrentes = returningSet.size
+  const nuevos = uniqueClients.length - recurrentes
+  const tasa = uniqueClients.length > 0 ? parseFloat(((recurrentes / uniqueClients.length) * 100).toFixed(1)) : 0
+
+  return {
+    rows: [
+      { nombre: 'Recurrentes', cantidad: recurrentes, porcentaje: tasa },
+      { nombre: 'Nuevos', cantidad: nuevos, porcentaje: parseFloat((100 - tasa).toFixed(1)) }
+    ],
+    totals: { tasa, nuevos, recurrentes, total_clientes: uniqueClients.length }
+  }
+}
+
+// ─── A.3 Ingresos por Sucursal ────────────────────────────────
+
+async function q_ingresos_sucursal(fi: string, ff: string): Promise<ReportResult> {
+  const { data, error } = await supabase
+    .from('tickets')
+    .select('total, sucursal:sucursales(nombre)')
+    .eq('estado', 'Pagado')
+    .gte('fecha', fi).lte('fecha', ff)
+  if (error) throw error
+
+  const groups: Record<string, number> = {}
+  data?.forEach((t: any) => {
+    const key = (t.sucursal as any)?.nombre || 'Sin sucursal'
+    groups[key] = (groups[key] || 0) + (t.total || 0)
+  })
+
+  const rows: ReportRow[] = Object.entries(groups).map(([nombre, total]) => ({
+    nombre, total: parseFloat(total.toFixed(2))
+  })).sort((a, b) => (b.total || 0) - (a.total || 0))
+
+  return { rows, totals: buildTotals(rows) }
+}
+
+// ─── A.4 Mix de Servicios ─────────────────────────────────────
+
+async function q_service_mix(fi: string, ff: string, suc: string): Promise<ReportResult> {
+  let query = supabase
+    .from('ticket_items')
+    .select('nombre, total, ticket:tickets!inner(fecha, estado, sucursal_id)')
+    .eq('tipo', 'Servicio')
+    .eq('ticket.estado', 'Pagado')
+    .gte('ticket.fecha', fi).lte('ticket.fecha', ff)
+  if (suc !== 'all') query = query.eq('ticket.sucursal_id', suc)
+  const { data, error } = await query
+  if (error) throw error
+
+  const { data: servicios } = await supabase.from('servicios').select('nombre, familia')
+  const familiaMap: Record<string, string> = {}
+  servicios?.forEach(s => { familiaMap[s.nombre] = s.familia || 'Otros' })
+
+  const groups: Record<string, number> = {}
+  data?.forEach((i: any) => {
+    const familia = familiaMap[i.nombre] || 'Otros'
+    groups[familia] = (groups[familia] || 0) + (i.total || 0)
+  })
+
+  const total = Object.values(groups).reduce((s, v) => s + v, 0)
+  const rows: ReportRow[] = Object.entries(groups).map(([nombre, val]) => ({
+    nombre,
+    total: parseFloat(val.toFixed(2)),
+    cantidad: parseFloat(val.toFixed(2)),
+    porcentaje: total > 0 ? parseFloat(((val / total) * 100).toFixed(1)) : 0
+  })).sort((a, b) => (b.total || 0) - (a.total || 0))
+
+  return { rows, totals: buildTotals(rows) }
+}
+
+// ─── A.5 Tendencia Citas Agendadas vs Asistidas ───────────────
+
+async function q_citas_tendencia(fi: string, ff: string, suc: string): Promise<ReportResult> {
+  let query = supabase
+    .from('citas')
+    .select('fecha, estado, sucursal_id')
+    .gte('fecha', fi).lte('fecha', ff)
+  if (suc !== 'all') query = query.eq('sucursal_id', suc)
+  const { data, error } = await query
+  if (error) throw error
+
+  const groups: Record<string, { agendadas: number; asistidas: number }> = {}
+  data?.forEach((c: any) => {
+    const key = c.fecha
+    if (!groups[key]) groups[key] = { agendadas: 0, asistidas: 0 }
+    groups[key].agendadas++
+    if (c.estado === 'Finalizada') groups[key].asistidas++
+  })
+
+  const rows = Object.entries(groups)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([fecha, g]) => ({
+      nombre: fecha.substring(5), // MM-DD
+      cantidad: g.agendadas,      // line 1
+      total: g.asistidas,         // line 2
+    }))
+
+  return { rows, totals: buildTotals(rows) }
+}
+
+// ─── A.6 Heatmap Afluencia (hora × día semana) ────────────────
+
+async function q_heatmap_afluencia(fi: string, ff: string, suc: string): Promise<ReportResult> {
+  let query = supabase
+    .from('citas')
+    .select('fecha, bloque_inicio, sucursal_id')
+    .gte('fecha', fi).lte('fecha', ff)
+    .in('estado', ['Programada', 'En curso', 'Finalizada'])
+  if (suc !== 'all') query = query.eq('sucursal_id', suc)
+  const { data, error } = await query
+  if (error) throw error
+
+  const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+  const grid: Record<string, Record<string, number>> = {}
+  
+  data?.forEach((c: any) => {
+    const d = new Date(c.fecha + 'T12:00:00')
+    const dayName = DAYS[d.getDay()]
+    const hour = c.bloque_inicio ? parseInt(c.bloque_inicio.substring(0, 2), 10) : 10
+    const hourKey = `${String(hour).padStart(2, '0')}:00`
+    if (!grid[hourKey]) grid[hourKey] = {}
+    grid[hourKey][dayName] = (grid[hourKey][dayName] || 0) + 1
+  })
+
+  // Flatten to rows with day columns
+  const rows = Object.entries(grid)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([hour, days]) => ({
+      nombre: hour,
+      ...days
+    })) as any[]
+
+  return { rows, totals: {} }
+}
+
+// ─── A.7 Stock Semáforo ───────────────────────────────────────
+
+async function q_stock_semaforo(): Promise<ReportResult> {
+  const { data, error } = await supabase
+    .from('productos')
+    .select('id, nombre, stock')
+    .eq('activo', true)
+    .order('stock', { ascending: true })
+  if (error) throw error
+
+  const rows: ReportRow[] = (data || []).map(p => ({
+    nombre: p.nombre,
+    cantidad: p.stock,
+    // porcentaje encodes the semaforo level: 0=red, 1=yellow, 2=green
+    porcentaje: p.stock <= 3 ? 0 : p.stock <= 9 ? 1 : 2,
+    total: undefined
+  }))
+
+  return { rows, totals: {} }
 }

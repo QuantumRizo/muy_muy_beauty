@@ -108,8 +108,8 @@ function VentasTab({ sucursales }: { sucursales: Sucursal[] }) {
         <div>
           <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 5, display: 'block' }}>Rango de Fechas</label>
           <div style={{ display: 'flex', gap: 10 }}>
-            <input className="form-input" type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
-            <input className="form-input" type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
+            <input className="form-input" type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} onClick={e => (e.target as HTMLInputElement).showPicker?.()} style={{ cursor: 'pointer' }} />
+            <input className="form-input" type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} onClick={e => (e.target as HTMLInputElement).showPicker?.()} style={{ cursor: 'pointer' }} />
           </div>
         </div>
         <div>
@@ -273,8 +273,8 @@ function CortesCajaTab() {
         <div>
           <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 5, display: 'block' }}>Rango de Fechas</label>
           <div style={{ display: 'flex', gap: 10 }}>
-            <input className="form-input" type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
-            <input className="form-input" type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
+            <input className="form-input" type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} onClick={e => (e.target as HTMLInputElement).showPicker?.()} style={{ cursor: 'pointer' }} />
+            <input className="form-input" type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} onClick={e => (e.target as HTMLInputElement).showPicker?.()} style={{ cursor: 'pointer' }} />
           </div>
         </div>
         <button className="btn-primary" onClick={fetchCortes} style={{ height: 40 }}><Search size={16} /> Buscar</button>

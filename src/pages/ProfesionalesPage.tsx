@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus, Trash2, Check, X, Calendar, CircleDollarSign, Coffee } from 'lucide-react'
+import { Plus, Trash2, Check, X, Calendar, CircleDollarSign } from 'lucide-react'
 import { useTodasEmpleadas } from '../hooks/useEmpleadas'
 import { supabase } from '../lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
@@ -11,10 +11,8 @@ interface EmpleadaForm {
   nombre: string;
   fecha_contratacion: string;
   sueldo_diario: string; // Changed to string for UI flexibility
-  dias_descanso: string[];
 }
 
-const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
 export default function ProfesionalesPage() {
   const qc = useQueryClient()
@@ -24,7 +22,6 @@ export default function ProfesionalesPage() {
     nombre: '',
     fecha_contratacion: new Date().toISOString().split('T')[0],
     sueldo_diario: '',
-    dias_descanso: []
   })
 
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -39,7 +36,6 @@ export default function ProfesionalesPage() {
       nombre: form.nombre.trim(),
       fecha_contratacion: form.fecha_contratacion,
       sueldo_diario: parseFloat(form.sueldo_diario) || 0,
-      dias_descanso: form.dias_descanso
     }
 
     if (editingId) {
@@ -66,7 +62,6 @@ export default function ProfesionalesPage() {
       nombre: emp.nombre,
       fecha_contratacion: emp.fecha_contratacion || new Date().toISOString().split('T')[0],
       sueldo_diario: emp.sueldo_diario ? emp.sueldo_diario.toString() : '',
-      dias_descanso: emp.dias_descanso || []
     })
     setEditingId(emp.id)
     setShowForm(true)
@@ -77,7 +72,6 @@ export default function ProfesionalesPage() {
       nombre: '',
       fecha_contratacion: new Date().toISOString().split('T')[0],
       sueldo_diario: '',
-      dias_descanso: []
     })
     setEditingId(null)
   }
@@ -87,16 +81,6 @@ export default function ProfesionalesPage() {
     resetForm()
   }
 
-  const toggleDay = (day: string) => {
-    setForm(prev => {
-      const current = prev.dias_descanso
-      if (current.includes(day)) {
-        return { ...prev, dias_descanso: current.filter(d => d !== day) }
-      } else {
-        return { ...prev, dias_descanso: [...current, day] }
-      }
-    })
-  }
 
   const toggleActivo = async (emp: Empleada) => {
     await supabase
@@ -189,32 +173,6 @@ export default function ProfesionalesPage() {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label style={{ marginBottom: 8, display: 'block' }}>Días de descanso (Semanales)</label>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {DIAS.map(day => (
-                    <button
-                      key={day}
-                      type="button"
-                      onClick={() => toggleDay(day)}
-                      className={form.dias_descanso.includes(day) ? 'day-btn active' : 'day-btn'}
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        backgroundColor: form.dias_descanso.includes(day) ? 'var(--accent)' : 'var(--surface-2)',
-                        color: form.dias_descanso.includes(day) ? 'white' : 'var(--text-3)',
-                        border: '1px solid ' + (form.dias_descanso.includes(day) ? 'var(--accent)' : 'var(--border)'),
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      {day.substring(0, 3)}
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
                 <button type="button" onClick={cancelForm} className="btn-ghost">Cancelar</button>
@@ -262,11 +220,6 @@ export default function ProfesionalesPage() {
                     }}>
                       <CircleDollarSign size={13} style={{ opacity: emp.sueldo_diario ? 1 : 0.7 }} />
                       <span style={{ fontWeight: 500 }}>Sueldo diario:</span> {emp.sueldo_diario ? `$${emp.sueldo_diario}` : '---'}
-                    </span>
-
-                    <span style={{ fontSize: 11, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Coffee size={13} style={{ opacity: 0.7 }} />
-                      <span style={{ fontWeight: 500 }}>Descanso:</span> {emp.dias_descanso && emp.dias_descanso.length > 0 ? emp.dias_descanso.map(d => d.substring(0,2)).join(', ') : '---'}
                     </span>
                   </div>
                 </div>

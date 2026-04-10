@@ -7,6 +7,8 @@ export type ItemTipo = 'Servicio' | 'Producto'
 export type MetodoPago = 'Efectivo' | 'Tarjeta' | 'Transferencia' | 'Puntos' | 'Bono' | 'Anticipo' | 'Aplazado' | 'Otros'
 export type EstadoCaja = 'Abierta' | 'Cerrada'
 export type TipoMovimientoCaja = 'Ingreso Extra' | 'Gasto / Salida'
+export type MarketingPlatform = 'meta' | 'google'
+export type EstadoCampana = 'activa' | 'pausada' | 'finalizada'
 
 
 export interface Sucursal {
@@ -24,7 +26,6 @@ export interface Empleada {
   activo: boolean
   fecha_contratacion?: string
   sueldo_diario?: number
-  dias_descanso?: string[]
 }
 
 
@@ -208,6 +209,36 @@ export interface MovimientoCaja {
   empleada?: Empleada
 }
 
+export interface MarketingConfig {
+  id: string
+  sucursal_id: string | null
+  platform: MarketingPlatform
+  api_key: string
+  account_id: string | null
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface MarketingCampana {
+  id: string
+  config_id: string | null
+  sucursal_id: string | null
+  nombre: string
+  platform: MarketingPlatform | 'otro'
+  estado: EstadoCampana
+  fecha_inicio: string | null
+  fecha_fin: string | null
+  presupuesto: number
+  gasto: number
+  impresiones: number
+  clics: number
+  leads: number
+  platform_id: string | null
+  created_at: string
+  updated_at: string
+}
+
 // ─── UI / App Types ────────────────────────────────────────────
 
 export interface SlotInfo {
@@ -234,6 +265,8 @@ export interface Database {
       pagos: { Row: Pago; Insert: Omit<Pago, 'id'>; Update: Partial<Pago> }
       turnos_caja: { Row: TurnoCaja; Insert: Omit<TurnoCaja, 'id' | 'created_at' | 'empleada_abre' | 'empleada_cierra'>; Update: Partial<TurnoCaja> }
       movimientos_caja: { Row: MovimientoCaja; Insert: Omit<MovimientoCaja, 'id' | 'empleada'>; Update: Partial<MovimientoCaja> }
+      marketing_configs: { Row: MarketingConfig; Insert: Omit<MarketingConfig, 'id' | 'created_at' | 'updated_at'>; Update: Partial<MarketingConfig> }
+      marketing_campanas: { Row: MarketingCampana; Insert: Omit<MarketingCampana, 'id' | 'created_at' | 'updated_at'>; Update: Partial<MarketingCampana> }
     }
   }
 }

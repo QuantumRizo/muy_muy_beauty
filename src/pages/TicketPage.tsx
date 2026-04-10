@@ -39,7 +39,8 @@ export default function TicketPage({ cita, onBack, onFinish }: Props) {
       iva_porcentaje: 16,
       descuento: 0,
       total: s.precio,
-      vendedor_id: cita.empleada_id || ''
+      // Read the per-service professional set in ValidacionPage
+      vendedor_id: (s as any).profesional_id || cita.empleada_id || ''
     }))
   )
 
@@ -61,6 +62,8 @@ export default function TicketPage({ cita, onBack, onFinish }: Props) {
   const [ticketGuardado, setTicketGuardado] = useState(false)
   const [numTicketFinal, setNumTicketFinal] = useState('')
   const [fechaTicket, setFechaTicket] = useState('')
+  const [showPerServicePrint, setShowPerServicePrint] = useState(false)
+  const [selectedServicePrintIdx, setSelectedServicePrintIdx] = useState(0)
 
   const { data: allProducts = [] } = useProductos()
 
@@ -143,7 +146,8 @@ export default function TicketPage({ cita, onBack, onFinish }: Props) {
           estado: pendiente <= 0 ? 'Pagado' : 'Pendiente'
         },
         items: items.map((item: TicketItem) => {
-          const emp = empleadas.find(e => e.id === (item.vendedor_id || vendedorId))
+          // Use the per-item vendedor_id (set per service in ValidacionPage)
+          const emp = empleadas.find(e => e.id === item.vendedor_id)
           return {
             tipo: item.tipo,
             referencia_id: item.referencia_id,
@@ -153,7 +157,7 @@ export default function TicketPage({ cita, onBack, onFinish }: Props) {
             iva_porcentaje: item.iva_porcentaje,
             descuento: item.descuento,
             total: item.total,
-            vendedor_id: item.vendedor_id || vendedorId,
+            vendedor_id: item.vendedor_id || null,
             vendedor_nombre: emp?.nombre || null
           }
         }),
@@ -179,11 +183,10 @@ export default function TicketPage({ cita, onBack, onFinish }: Props) {
   }
 
   if (ticketGuardado) {
-    const vendedorObj = empleadas.find(e => e.id === vendedorId)
     const ticketData = {
       numTicket: numTicketFinal,
       fechaStr: fechaTicket,
-      vendedor: vendedorObj?.nombre || '',
+      vendedor: '',  // no global vendor; each item has vendedor_nombre
       items,
       subtotal,
       iva: total - (subtotal / 1.16),
@@ -193,15 +196,64 @@ export default function TicketPage({ cita, onBack, onFinish }: Props) {
       pendiente
     }
 
+    // Service items only (no products) for per-service print
+    const serviceItems = items.filter(i => i.tipo === 'Servicio')
+
     return (
       <div className="validacion-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', background: 'var(--bg)' }}>
-        <TicketPrintView cita={cita} ticketData={ticketData} />
-        
-        <div style={{ padding: 20, display: 'flex', gap: 15, justifyContent: 'center' }}>
+        {!showPerServicePrint ? (
+          <TicketPrintView cita={cita} ticketData={ticketData} />
+        ) : (
+          <TicketPrintView
+            cita={cita}
+            ticketData={{
+              ...ticketData,
+              items: [serviceItems[selectedServicePrintIdx]],
+              subtotal: serviceItems[selectedServicePrintIdx]?.total ?? 0,
+              total: serviceItems[selectedServicePrintIdx]?.total ?? 0,
+              descuento: 0,
+              pagos: [],
+              pendiente: 0
+            }}
+          />
+        )}
+
+        <div style={{ padding: '16px 24px', display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
           <button className="btn-secondary" onClick={onFinish}>Volver a la Agenda</button>
-          <button className="btn-primary" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Printer size={18} /> Imprimir Ticket
+
+          {/* Imprimir ticket completo */}
+          <button
+            className="btn-primary"
+            onClick={() => { setShowPerServicePrint(false); setTimeout(() => window.print(), 80) }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <Printer size={16} /> Ticket completo
           </button>
+
+          {/* Imprimir por servicio */}
+          {serviceItems.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-3)', fontWeight: 600 }}>Por servicio:</span>
+              {serviceItems.map((item, idx) => {
+                const prof = empleadas.find(e => e.id === item.vendedor_id)
+                return (
+                  <button
+                    key={item.id}
+                    className="btn-secondary"
+                    style={{ fontSize: 12, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 6 }}
+                    onClick={() => {
+                      setSelectedServicePrintIdx(idx)
+                      setShowPerServicePrint(true)
+                      setTimeout(() => window.print(), 80)
+                    }}
+                  >
+                    <Printer size={13} />
+                    {item.nombre}{prof ? ` · ${prof.nombre.split(' ')[0]}` : ''}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
     )

@@ -12,6 +12,7 @@ import type { TicketItem, Pago, Producto, Servicio, Sucursal } from '../types/da
 import PagoModal from '../components/Citas/PagoModal'
 import TicketPrintView from '../components/Citas/TicketPrintView'
 import { useToast } from '../components/Common/Toast'
+import { useSucursalContext } from '../context/SucursalContext'
 
 interface Props {
   onFinish?: () => void
@@ -23,8 +24,8 @@ export default function VentaDirectaPage({ onFinish: _onFinish }: Props) {
   const crearTicket = useCrearTicketDirecto()
   const toast = useToast()
 
+  const { selectedSucursalId: sucursalId } = useSucursalContext()
   const [vendedorId, setVendedorId] = useState('')
-  const [sucursalId, setSucursalId] = useState(() => '')
   const [saving, setSaving] = useState(false)
   const [clienteNombre, setClienteNombre] = useState('')
 
@@ -75,8 +76,6 @@ export default function VentaDirectaPage({ onFinish: _onFinish }: Props) {
   const totalPagado = pagos.reduce((sum, p) => sum + p.importe, 0)
   const pendiente = Math.max(0, total - totalPagado)
 
-  // Sucursal inicial cuando carguen
-  if (!sucursalId && sucursales.length > 0) setSucursalId(sucursales[0].id)
 
   const addServicio = (s: Servicio) => {
     setItems(prev => [...prev, {
@@ -253,12 +252,6 @@ export default function VentaDirectaPage({ onFinish: _onFinish }: Props) {
         </div>
         {/* Selector de sucursal y vendedor */}
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 10 }}>
-          <div>
-            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 3 }}>Sucursal</label>
-            <select className="form-input" value={sucursalId} onChange={e => setSucursalId(e.target.value)} style={{ height: 34, fontSize: 13, minWidth: 160 }}>
-              {sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-            </select>
-          </div>
           <div>
             <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 3 }}>Profesional / Vendedora</label>
             <select className="form-input" value={vendedorId} onChange={e => setVendedorId(e.target.value)} style={{ height: 34, fontSize: 13, minWidth: 160 }}>

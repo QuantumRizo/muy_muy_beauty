@@ -2,17 +2,14 @@ import { useState } from 'react'
 import { Wallet, DollarSign, CreditCard, CheckCircle, TrendingDown, TrendingUp, Clock, AlertTriangle } from 'lucide-react'
 import { useCajaActiva, useAbrirCaja, useCerrarCaja, useCrearMovimientoCaja } from '../hooks/useCaja'
 import { useTodasEmpleadas } from '../hooks/useEmpleadas'
-import { useSucursales } from '../hooks/useSucursales'
+import { useSucursalContext } from '../context/SucursalContext'
 import { useToast } from '../components/Common/Toast'
+import KPICard from '../components/Dashboard/KPICard'
+
 
 export default function CajaPage() {
-  const { data: sucursales = [] } = useSucursales()
-  const [activeSucursal, setActiveSucursal] = useState<string>('')
+  const { selectedSucursalId: activeSucursal } = useSucursalContext()
   const toast = useToast()
-  
-  if (!activeSucursal && sucursales.length > 0) {
-    setActiveSucursal(sucursales[0].id)
-  }
 
   const { data: cajaInfo, isLoading } = useCajaActiva(activeSucursal)
   const [montoApertura, setMontoApertura] = useState(0)
@@ -126,72 +123,71 @@ export default function CajaPage() {
   // --- VISTA CAJA CERRADA ---
   if (!cajaInfo || !cajaInfo.turno) {
     return (
-      <div className="page-container p-6 bg-gray-50 flex items-center justify-center">
-        <div className="dash-placeholder" style={{ maxWidth: 450, width: '100%', marginTop: '10vh' }}>
-          <div className="dash-icon-box" style={{ width: 64, height: 64, margin: '0 auto 20px', borderRadius: '50%' }}>
-            <Wallet size={32} />
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        <div className="page-header" style={{ padding: '18px 24px 0', marginBottom: 15 }}>
+          <div className="page-header-content">
+            <h1 className="page-title" style={{ fontSize: '24px', margin: 0 }}>Caja</h1>
+            <p className="page-subtitle" style={{ fontSize: '12px', marginTop: '2px' }}>Gestión de caja y turnos</p>
           </div>
+        </div>
 
-          <div style={{ marginBottom: 20 }}>
-             <select
-               value={activeSucursal}
-               onChange={(e) => setActiveSucursal(e.target.value)}
-               className="form-input"
-               style={{ textAlign: 'center', fontSize: 16, fontWeight: 600 }}
-             >
-               {sucursales.map((s) => (
-                 <option key={s.id} value={s.id}>{s.nombre}</option>
-               ))}
-             </select>
-          </div>
+        <div className="page-content" style={{ padding: '0 24px 24px', overflowY: 'auto', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="dash-placeholder" style={{ maxWidth: 450, width: '100%', margin: '0 auto' }}>
+            <div className="dash-icon-box" style={{ width: 64, height: 64, margin: '0 auto 20px', borderRadius: '50%', background: 'var(--accent-light)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Wallet size={32} />
+            </div>
 
-          <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Caja Cerrada</h2>
-          <p style={{ color: 'var(--text-3)', fontSize: 13, marginBottom: 30, lineHeight: 1.6 }}>
-            El turno está cerrado en esta sucursal. Abre la caja para declarar el efectivo base (fondo fijo) 
-            con el que arrancan operaciones en mostrador el día de hoy.
-          </p>
+            <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>Caja Cerrada</h2>
+            <p style={{ color: 'var(--text-3)', fontSize: 13, marginBottom: 30, lineHeight: 1.6, textAlign: 'center' }}>
+              El turno está cerrado en esta sucursal. Abre la caja para declarar el efectivo base (fondo fijo) 
+              con el que arrancan operaciones en mostrador el día de hoy.
+            </p>
 
-          <div style={{ padding: 20, background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border-2)', width: '100%' }}>
-            
-            {/* Empleada que abre */}
-            <div className="form-group" style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 6 }}>
-                ¿Quién abre la caja?
-              </label>
-              <select 
-                className="form-input" 
-                value={empleadaAperturaId}
-                onChange={e => setEmpleadaAperturaId(e.target.value)}
+            <div style={{ padding: 24, background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)', width: '100%' }}>
+              
+              {/* Empleada que abre */}
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-1)', marginBottom: 6 }}>
+                  ¿Quién abre la caja?
+                </label>
+                <select 
+                  className="form-input" 
+                  value={empleadaAperturaId}
+                  onChange={e => setEmpleadaAperturaId(e.target.value)}
+                  style={{ height: '40px' }}
+                >
+                  <option value="">— Seleccionar empleada —</option>
+                  {empleadas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                </select>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-1)', marginBottom: 6 }}>
+                  Fondo inicial (Efectivo)
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: 15, top: 11, color: 'var(--text-3)', fontSize: '16px', fontWeight: 600 }}>$</span>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    style={{ paddingLeft: 32, height: 44, fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}
+                    value={montoApertura}
+                    onChange={e => setMontoApertura(Number(e.target.value))}
+                    min="0" step="10"
+                  />
+                </div>
+              </div>
+              
+              <button 
+                className="btn-primary" 
+                style={{ width: '100%', padding: '14px', borderRadius: '12px', fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                onClick={handleAbrirCaja}
+                disabled={abrirCaja.isPending}
               >
-                <option value="">— Seleccionar empleada —</option>
-                {empleadas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-              </select>
+                <CheckCircle size={18} /> 
+                {abrirCaja.isPending ? 'Abriendo...' : 'Abrir Turno de Caja'}
+              </button>
             </div>
-
-            <label style={{ display: 'block', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 6 }}>
-              Fondo inicial (Efectivo)
-            </label>
-            <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 15, top: 12, color: 'var(--text-3)' }}>$</span>
-              <input 
-                type="number" 
-                className="form-input" 
-                style={{ paddingLeft: 30, height: 44, fontSize: 18, fontWeight: 600 }}
-                value={montoApertura}
-                onChange={e => setMontoApertura(Number(e.target.value))}
-                min="0" step="10"
-              />
-            </div>
-            
-            <button 
-              className="btn-primary" 
-              style={{ width: '100%', padding: '12px', marginTop: 15, fontSize: 14 }}
-              onClick={handleAbrirCaja}
-              disabled={abrirCaja.isPending}
-            >
-              <CheckCircle size={18} /> 
-              {abrirCaja.isPending ? 'Abriendo...' : 'Abrir Turno'}
-            </button>
           </div>
         </div>
       </div>
@@ -202,163 +198,162 @@ export default function CajaPage() {
   const t = cajaInfo.resumen
 
   return (
-    <div className="page-container p-6" style={{ overflowY: 'auto', background: 'var(--bg)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 10 }}>
-            <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-1)', letterSpacing: '-0.5px', margin: 0 }}>Turno de Caja</h1>
-            <select
-               value={activeSucursal}
-               onChange={(e) => setActiveSucursal(e.target.value)}
-               className="form-input"
-               style={{ padding: '4px 30px 4px 10px', height: 32, fontSize: 13, minWidth: 150 }}
-            >
-               {sucursales.map((s) => (
-                 <option key={s.id} value={s.id}>{s.nombre}</option>
-               ))}
-            </select>
-          </div>
-          <p style={{ fontSize: 13, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Clock size={14} /> Abierto desde {new Date(`${cajaInfo.turno.fecha_apertura}T${cajaInfo.turno.hora_apertura}`).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })}
-            {cajaInfo.turno.empleada_abre && (
-              <span style={{ marginLeft: 8, background: 'var(--surface-2)', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>
-                Apertura: {(cajaInfo.turno.empleada_abre as any).nombre}
-              </span>
-            )}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      {/* Header (Standardized) */}
+      <div className="page-header" style={{ padding: '18px 24px 0', marginBottom: 15 }}>
+        <div className="page-header-content">
+          <h1 className="page-title" style={{ fontSize: '24px', margin: 0 }}>Turno de Caja</h1>
+          <p className="page-subtitle" style={{ fontSize: '11px', marginTop: '2px', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Clock size={12} /> Abierto desde {new Date(`${cajaInfo.turno.fecha_apertura}T${cajaInfo.turno.hora_apertura}`).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })} 
+            {cajaInfo.turno.empleada_abre && ` — Abierto por: ${(cajaInfo.turno.empleada_abre as any).nombre}`}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn-secondary" onClick={() => setShowIngresoModal(true)}>
-            <TrendingUp size={16} /> Ingreso Extra
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+
+          <button className="btn-secondary" style={{ height: '34px', fontSize: '11px', padding: '0 12px' }} onClick={() => setShowIngresoModal(true)}>
+            <TrendingUp size={14} /> Ingreso
           </button>
-          <button className="btn-secondary" onClick={() => setShowGastoModal(true)}>
-            <TrendingDown size={16} /> Registrar Gasto
+          <button className="btn-secondary" style={{ height: '34px', fontSize: '11px', padding: '0 12px' }} onClick={() => setShowGastoModal(true)}>
+            <TrendingDown size={14} /> Gasto
           </button>
-          <button className="btn-primary" onClick={() => {
+          <button className="btn-primary" style={{ height: '34px', fontSize: '11px', padding: '0 12px', background: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={() => {
             setMontoReal(t.efectivoEsperado)
             setShowCierreModal(true)
           }}>
-            <Wallet size={16} /> Cerrar Caja (Corte)
+            <Wallet size={14} /> Cerrar Caja
           </button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, marginBottom: 30 }}>
-        {/* Métrica 1 */}
-        <div className="dash-card">
-          <div className="dash-card-header">
-            <span className="dash-card-title">Ventas Efectivo</span>
-            <div className="dash-icon-box"><DollarSign size={18} /></div>
+      <div className="page-content" style={{ padding: '0 24px 24px', overflowY: 'auto', flex: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          {/* Dashboard Metrics Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+            <KPICard 
+              title="Ventas Efectivo" 
+              value={new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(t.ventasEfectivo)}
+              Icon={DollarSign}
+              subtitle={`+ Fondo: $${t.fondoInicial.toFixed(0)}`}
+              variant="accent"
+            />
+            <KPICard 
+              title="Tarjeta / Otros" 
+              value={new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(t.ventasTarjeta + t.ventasOtros)}
+              Icon={CreditCard}
+              subtitle={`T: $${t.ventasTarjeta.toFixed(0)} | O: $${t.ventasOtros.toFixed(0)}`}
+              variant="accent"
+            />
+            <KPICard 
+              title="Ingresos Extra" 
+              value={new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(t.ingresosExtra)}
+              Icon={TrendingUp}
+              subtitle="Entradas de ayer/hoy"
+              variant={t.ingresosExtra > 0 ? "success" : "white"}
+            />
+            <KPICard 
+              title="Gastos del Turno" 
+              value={new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(t.gastos)}
+              Icon={TrendingDown}
+              subtitle="Salidas registradas"
+              variant={t.gastos > 0 ? "white" : "white"}
+            />
           </div>
-          <div>
-            <div className="dash-card-value">${t.ventasEfectivo.toFixed(2)}</div>
-            <div className="dash-card-subvalue" style={{ marginTop: 4 }}>
-              + Fondo Fijo de ${t.fondoInicial.toFixed(2)}
-            </div>
-          </div>
-        </div>
-        
-        {/* Métrica 2 */}
-        <div className="dash-card">
-          <div className="dash-card-header">
-            <span className="dash-card-title">Ventas Tarjeta / Otros</span>
-            <div className="dash-icon-box"><CreditCard size={18} /></div>
-          </div>
-          <div>
-            <div className="dash-card-value">${(t.ventasTarjeta + t.ventasOtros).toFixed(2)}</div>
-            <div className="dash-card-subvalue" style={{ marginTop: 4 }}>
-              Tarjetas: ${t.ventasTarjeta.toFixed(2)} | Otros: ${t.ventasOtros.toFixed(2)}
-            </div>
-          </div>
-        </div>
 
-        {/* Métrica 3 */}
-        {t.ingresosExtra > 0 && (
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <span className="dash-card-title">Ingresos Extra</span>
-              <div className="dash-icon-box" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>
-                <TrendingUp size={18} />
+          {/* EFECTIVO ESPERADO (CAJÓN) PREMIUM CARD */}
+          <div className="card" style={{ 
+            background: 'var(--surface)', 
+            borderRadius: 20, 
+            padding: '30px 40px', 
+            border: 'none', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            boxShadow: 'var(--shadow-lg)', 
+            borderTop: '4px solid var(--accent)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)' }} />
+                 <h2 style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--text-3)', fontWeight: 800, margin: 0 }}>
+                  Efectivo Esperado en Cajón
+                </h2>
+              </div>
+              <div style={{ fontSize: 48, fontWeight: 800, color: 'var(--text-1)', letterSpacing: '-2px', lineHeight: 1.1 }}>
+                {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(t.efectivoEsperado)}
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 12, fontWeight: 500, opacity: 0.8 }}>
+                Fondo Inicial + Ventas Efectivo + Entradas Extra - Gastos
+              </p>
+            </div>
+            
+            <div style={{ 
+              background: 'var(--accent-light)', 
+              color: 'var(--accent)', 
+              width: 80, height: 80, 
+              borderRadius: '24px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              transform: 'rotate(10deg)'
+            }}>
+              <Wallet size={40} />
+            </div>
+
+            {/* Background Decoration */}
+            <div style={{ position: 'absolute', right: -50, bottom: -50, width: 200, height: 200, borderRadius: '50%', background: 'var(--accent-light)', opacity: 0.3, pointerEvents: 'none' }} />
+          </div>
+
+        {/* Movimientos del turno */}
+        {(cajaInfo.movimientos || []).length > 0 && (
+          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '24px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Movimientos del turno
+              </h3>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>
+                ÚLTIMOS REGISTROS
               </div>
             </div>
-            <div>
-              <div className="dash-card-value" style={{ color: 'var(--success)' }}>+${t.ingresosExtra.toFixed(2)}</div>
-              <div className="dash-card-subvalue" style={{ marginTop: 4 }}>Entradas adicionales de efectivo</div>
-            </div>
+            <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                  <th style={{ padding: '12px 10px', textAlign: 'left', fontSize: 11, color: 'var(--text-2)', textTransform: 'uppercase' }}>Hora</th>
+                  <th style={{ padding: '12px 10px', textAlign: 'left', fontSize: 11, color: 'var(--text-2)', textTransform: 'uppercase' }}>Tipo</th>
+                  <th style={{ padding: '12px 10px', textAlign: 'left', fontSize: 11, color: 'var(--text-2)', textTransform: 'uppercase' }}>Concepto</th>
+                  <th style={{ padding: '12px 10px', textAlign: 'left', fontSize: 11, color: 'var(--text-2)', textTransform: 'uppercase' }}>Profesional</th>
+                  <th style={{ padding: '12px 10px', textAlign: 'right', fontSize: 11, color: 'var(--text-2)', textTransform: 'uppercase' }}>Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cajaInfo.movimientos.map((m: any) => (
+                  <tr key={m.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }} className="table-hover-row">
+                    <td style={{ padding: '12px 10px', fontSize: 12, color: 'var(--text-2)', fontWeight: 500 }}>{m.hora?.substring(0, 5)}</td>
+                    <td style={{ padding: '12px 10px' }}>
+                      <span style={{ 
+                        fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20,
+                        background: m.tipo === 'Gasto / Salida' ? 'var(--danger-bg)' : 'var(--success-bg)',
+                        color: m.tipo === 'Gasto / Salida' ? 'var(--danger)' : 'var(--success)',
+                        textTransform: 'uppercase'
+                      }}>
+                        {m.tipo === 'Gasto / Salida' ? 'Egreso' : 'Ingreso'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 10px', fontSize: 13, color: 'var(--text-1)' }}>{m.concepto}</td>
+                    <td style={{ padding: '12px 10px', fontSize: 12, color: 'var(--text-2)' }}>{m.empleada?.nombre || '—'}</td>
+                    <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: m.tipo === 'Gasto / Salida' ? 'var(--danger)' : 'var(--success)' }}>
+                      {m.tipo === 'Gasto / Salida' ? '-' : '+'}${Number(m.monto).toFixed(0)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-
-        {/* Métrica Gastos */}
-        <div className="dash-card" style={{ borderColor: 'var(--danger)', background: 'var(--bg)' }}>
-          <div className="dash-card-header">
-            <span className="dash-card-title">Gastos del Turno</span>
-            <div className="dash-icon-box" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>
-              <TrendingDown size={18} />
-            </div>
-          </div>
-          <div>
-            <div className="dash-card-value" style={{ color: 'var(--danger)' }}>-${t.gastos.toFixed(2)}</div>
-            <div className="dash-card-subvalue" style={{ marginTop: 4, color: 'var(--text-3)' }}>
-              Salidas en efectivo registradas
-            </div>
-          </div>
-        </div>
       </div>
-
-      {/* EFECTIVO ESPERADO (CAJÓN) */}
-      <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 30, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', marginBottom: 30 }}>
-        <div>
-          <h2 style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-3)', fontWeight: 700, marginBottom: 5 }}>
-            Total Esperado en Cajón (Efectivo)
-          </h2>
-          <div style={{ fontSize: 42, fontWeight: 300, color: 'var(--accent)', letterSpacing: '-1px' }}>
-            ${t.efectivoEsperado.toFixed(2)}
-          </div>
-          <p style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 8 }}>
-            (Fondo Inicial + Ventas Efectivo + Entradas Extra - Gastos)
-          </p>
-        </div>
-        <div style={{ opacity: 0.1 }}><Wallet size={100} /></div>
-      </div>
-
-      {/* Movimientos del turno */}
-      {(cajaInfo.movimientos || []).length > 0 && (
-        <div style={{ background: 'var(--surface)', borderRadius: 12, padding: 20, border: '1px solid var(--border)', marginBottom: 30 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 15, color: 'var(--text-1)' }}>Movimientos del turno</h3>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Hora</th>
-                <th>Tipo</th>
-                <th>Concepto</th>
-                <th>Empleada</th>
-                <th style={{ textAlign: 'right' }}>Monto</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cajaInfo.movimientos.map((m: any) => (
-                <tr key={m.id}>
-                  <td style={{ fontSize: 12, color: 'var(--text-3)' }}>{m.hora?.substring(0, 5)}</td>
-                  <td>
-                    <span style={{ 
-                      fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20,
-                      background: m.tipo === 'Gasto / Salida' ? 'var(--danger-bg)' : 'var(--success-bg)',
-                      color: m.tipo === 'Gasto / Salida' ? 'var(--danger)' : 'var(--success)'
-                    }}>
-                      {m.tipo}
-                    </span>
-                  </td>
-                  <td>{m.concepto}</td>
-                  <td style={{ fontSize: 12 }}>{m.empleada?.nombre || '—'}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 600, color: m.tipo === 'Gasto / Salida' ? 'var(--danger)' : 'var(--success)' }}>
-                    {m.tipo === 'Gasto / Salida' ? '-' : '+'}${Number(m.monto).toFixed(2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+    </div>
 
 
       {/* ─── MODALES ─────────────────────────────────────────────── */}

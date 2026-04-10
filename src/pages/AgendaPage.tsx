@@ -11,6 +11,7 @@ import BloqueoModal from '../components/Agenda/BloqueoModal'
 import BloqueoInfoModal from '../components/Agenda/BloqueoInfoModal'
 import DesbloqueoModal from '../components/Agenda/DesbloqueoModal'
 import { useSucursales } from '../hooks/useSucursales'
+import { useSucursalContext } from '../context/SucursalContext'
 import { useEmpleadas } from '../hooks/useEmpleadas'
 import { useCitasSemana, useBloqueosSemana, useEliminarBloqueo } from '../hooks/useCitas'
 import type { Cliente, Cita, SlotInfo, BloqueoAgenda } from '../types/database'
@@ -42,17 +43,10 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   )
-  const [sucursalId, setSucursalId] = useState<string>('')
+  const { selectedSucursalId: sucursalId } = useSucursalContext()
   const [modal, setModal] = useState<Modal>({ type: 'none' })
   const toast = useToast()
-
-  const { data: sucursales = [] } = useSucursales()
   const eliminarBloqueo = useEliminarBloqueo()
-
-  // Default to first sucursal when they load
-  if (!sucursalId && sucursales.length > 0) {
-    setSucursalId(sucursales[0].id)
-  }
 
   const weekDates   = getWeekDates(weekStart)
   const inicioStr   = format(weekDates[0], 'yyyy-MM-dd')
@@ -160,17 +154,7 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
               Bloquear Horario
             </button>
           </div>
-
-          {/* Sucursal */}
-          <select
-            value={activeSucursal}
-            onChange={(e) => setSucursalId(e.target.value)}
-            className="sucursal-select"
-          >
-            {sucursales.map((s) => (
-              <option key={s.id} value={s.id}>{s.nombre}</option>
-            ))}
-          </select>
+          </div>
 
           {/* Week nav */}
           <div className="date-nav">
@@ -182,7 +166,6 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
             <button onClick={nextWeek}  className="date-nav-btn"><ChevronRight size={16} /></button>
           </div>
         </div>
-      </div>
 
       {/* ── Grid ─────────────────────────────────────────────── */}
       <AgendaGrid

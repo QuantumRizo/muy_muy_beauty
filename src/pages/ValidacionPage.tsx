@@ -1,10 +1,15 @@
 import { useState, useMemo, useEffect } from 'react'
 import { X, Check, Search, User, ArrowLeft, Plus, Trash2 } from 'lucide-react'
 
-import { useTodasEmpleadas } from '../hooks/useEmpleadas'
+import { useEmpleadas } from '../hooks/useEmpleadas'
 import { useServicios } from '../hooks/useServicios'
 import { useCitasCliente } from '../hooks/useCitas'
-import type { Cita, Servicio } from '../types/database'
+import type { Cita, Servicio, Empleada } from '../types/database'
+
+// Extend Servicio locally to carry the assigned professional
+interface ServicioConProfesional extends Servicio {
+  profesional_id?: string
+}
 
 interface Props {
   cita: Cita
@@ -13,13 +18,19 @@ interface Props {
 }
 
 export default function ValidacionPage({ cita, onBack, onNext }: Props) {
-  const { data: empleadas = [] } = useTodasEmpleadas()
+  const { data: empleadas = [] } = useEmpleadas()
   const { data: servicios = [] } = useServicios()
   const { data: historial = [] } = useCitasCliente(cita.cliente_id)
 
   const [activeTab, setActiveTab] = useState<'actual' | 'historial'>('actual')
-  const [empleadaId, setEmpleadaId] = useState(cita.empleada_id || '')
-  const [selectedServicios, setSelectedServicios] = useState<Servicio[]>(cita.servicios || [])
+
+  // Init services with default professional = cita's professional
+  const [selectedServicios, setSelectedServicios] = useState<ServicioConProfesional[]>(() =>
+    (cita.servicios || []).map(s => ({
+      ...s,
+      profesional_id: cita.empleada_id || (empleadas[0]?.id ?? '')
+    }))
+  )
   const [comentarios, setComentarios] = useState(cita.comentarios || '')
   const [showAddService, setShowAddService] = useState(false)
   const [search, setSearch] = useState('')
@@ -39,7 +50,7 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
     }
     return '10:00'
   })
-  
+
   // Auto-recalculate horaFin when services or horaInicio change
   useEffect(() => {
     const totalSlots = selectedServicios.reduce((sum, s) => sum + (s.duracion_slots || 0), 0) || 4
@@ -50,8 +61,17 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
     setHoraFin(`${hh}:${mm}`)
   }, [selectedServicios, horaInicio])
 
+  // When empleadas load, fill empty profesional_id
+  useEffect(() => {
+    if (empleadas.length > 0) {
+      setSelectedServicios(prev => prev.map(s => ({
+        ...s,
+        profesional_id: s.profesional_id || cita.empleada_id || empleadas[0]?.id || ''
+      })))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empleadas])
 
-  // Helper to generate time options every 15 mins (reused from BloqueoModal)
   const timeOptions = useMemo(() => {
     const times = []
     for (let h = 8; h <= 21; h++) {
@@ -64,18 +84,18 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
     return times
   }, [])
 
-
   const filteredServices = useMemo(() => {
     const s = search.toLowerCase().trim()
     if (!s) return servicios
-    return servicios.filter(item => 
-      item.nombre.toLowerCase().includes(s) || 
+    return servicios.filter(item =>
+      item.nombre.toLowerCase().includes(s) ||
       item.familia?.toLowerCase().includes(s)
     )
   }, [servicios, search])
 
   const handleAddService = (s: Servicio) => {
-    setSelectedServicios([...selectedServicios, s])
+    const defaultProf = cita.empleada_id || empleadas[0]?.id || ''
+    setSelectedServicios([...selectedServicios, { ...s, profesional_id: defaultProf }])
     setShowAddService(false)
     setSearch('')
   }
@@ -84,14 +104,23 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
     setSelectedServicios(prev => prev.filter((_, i) => i !== index))
   }
 
+  const setProfesional = (index: number, profesionalId: string) => {
+    setSelectedServicios(prev => prev.map((s, i) =>
+      i === index ? { ...s, profesional_id: profesionalId } : s
+    ))
+  }
+
   const handleSave = () => {
+    // Determine the "main" professional: use whichever was assigned to first service
+    const mainEmpleadaId = selectedServicios[0]?.profesional_id || cita.empleada_id || ''
+
     const updatedCita: Cita = {
       ...cita,
-      empleada_id: empleadaId,
+      empleada_id: mainEmpleadaId,
       comentarios,
-      servicios: selectedServicios,
+      // Attach profesional_id info to servicios for later use in TicketPage
+      servicios: selectedServicios.map(s => ({ ...s })) as Servicio[],
       bloque_inicio: horaInicio + ':00',
-      // bloque_fin isn't in Cita type, but we could use duracion_manual_slots to persist it
       duracion_manual_slots: calculateSlots(horaInicio, horaFin)
     }
     onNext(updatedCita)
@@ -103,7 +132,6 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
     const diff = (h2 * 60 + m2) - (h1 * 60 + m1)
     return Math.max(1, Math.floor(diff / 15))
   }
-
 
   return (
     <div className="validacion-container">
@@ -124,19 +152,18 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
         <div className="header-title">
           <h1>Validación de Sesión</h1>
         </div>
-
       </div>
 
       {/* Tabs */}
       <div className="validacion-tabs">
-        <button 
-          className={activeTab === 'actual' ? 'active' : ''} 
+        <button
+          className={activeTab === 'actual' ? 'active' : ''}
           onClick={() => setActiveTab('actual')}
         >
           SESIÓN ACTUAL
         </button>
-        <button 
-          className={activeTab === 'historial' ? 'active' : ''} 
+        <button
+          className={activeTab === 'historial' ? 'active' : ''}
           onClick={() => setActiveTab('historial')}
         >
           SESIONES ANTERIORES
@@ -146,22 +173,11 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
       <div className="validacion-body">
         {activeTab === 'actual' ? (
           <div className="sesion-actual">
-            <div className="form-row-compact">
-              <div className="form-group prof-group">
-                <label>Profesional</label>
-                <select 
-                  value={empleadaId} 
-                  onChange={e => setEmpleadaId(e.target.value)}
-                  className="form-input"
-                >
-                  <option value="">Seleccionar...</option>
-                  {empleadas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-                </select>
-              </div>
-              
+            {/* Hora inicio/fin row — sin selector de profesional global */}
+            <div className="form-row-compact" style={{ maxWidth: 340 }}>
               <div className="form-group time-group">
                 <label>Inicio</label>
-                <select 
+                <select
                   className="form-input"
                   value={horaInicio}
                   onChange={e => setHoraInicio(e.target.value)}
@@ -172,7 +188,7 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
 
               <div className="form-group time-group">
                 <label>Fin</label>
-                <select 
+                <select
                   className="form-input"
                   value={horaFin}
                   onChange={e => setHoraFin(e.target.value)}
@@ -180,25 +196,15 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
                   {timeOptions.map((t: string) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-
-              <div className="form-group delay-group">
-                <label>&nbsp;</label>
-                <div className="checkbox-wrap">
-                  <input type="checkbox" id="retraso" />
-                  <label htmlFor="retraso">Retraso</label>
-                </div>
-              </div>
             </div>
-
 
             <div className="services-table-wrap">
               <table className="services-table">
                 <thead>
                   <tr>
                     <th>Fecha</th>
-                    <th>Srvc.</th>
-                    <th>Sesión</th>
-                    <th>Equipo</th>
+                    <th>Servicio</th>
+                    <th>Atendió</th>
                     <th style={{ width: 40 }}></th>
                   </tr>
                 </thead>
@@ -208,13 +214,15 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
                       <td>{cita.fecha}</td>
                       <td>{s.nombre}</td>
                       <td>
-                        <select className="table-select">
-                          <option>1</option>
-                        </select>
-                      </td>
-                      <td>
-                        <select className="table-select" value={empleadaId} onChange={e => setEmpleadaId(e.target.value)}>
-                          {empleadas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                        <select
+                          className="table-select"
+                          value={s.profesional_id || ''}
+                          onChange={e => setProfesional(idx, e.target.value)}
+                        >
+                          <option value="">Sin asignar</option>
+                          {empleadas.map((e: Empleada) => (
+                            <option key={e.id} value={e.id}>{e.nombre}</option>
+                          ))}
                         </select>
                       </td>
                       <td>
@@ -226,16 +234,16 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
                   ))}
                 </tbody>
               </table>
-              
+
               <button className="btn-add-service-inline" onClick={() => setShowAddService(true)}>
                 <Plus size={14} /> Añadir servicio
               </button>
             </div>
 
             <div className="observations-wrap">
-              <label>Observaciones Servicio</label>
-              <textarea 
-                value={comentarios} 
+              <label>Observaciones</label>
+              <textarea
+                value={comentarios}
                 onChange={e => setComentarios(e.target.value)}
                 placeholder="Añadir notas..."
               />
@@ -269,7 +277,7 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
         )}
       </div>
 
-      {/* Selector de servicios modal-ish */}
+      {/* Selector de servicios modal */}
       {showAddService && (
         <div className="inline-modal-overlay">
           <div className="inline-modal">
@@ -279,9 +287,9 @@ export default function ValidacionPage({ cita, onBack, onNext }: Props) {
             </div>
             <div className="inline-modal-search">
               <Search size={16} />
-              <input 
-                type="text" 
-                placeholder="Buscar servicio..." 
+              <input
+                type="text"
+                placeholder="Buscar servicio..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 autoFocus
