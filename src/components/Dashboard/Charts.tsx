@@ -44,7 +44,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export const DashboardBarChart = ({ data, height = 300, colors = DEFAULT_COLORS }: ChartProps) => {
   return (
     <div style={{ width: '100%', height }}>
-      <ResponsiveContainer>
+      <ResponsiveContainer minWidth={0}>
         <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
           <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border)" />
           <XAxis 
@@ -76,7 +76,7 @@ export const DashboardBarChart = ({ data, height = 300, colors = DEFAULT_COLORS 
 export const DashboardAreaChart = ({ data, height = 300, colors = DEFAULT_COLORS }: ChartProps) => {
   return (
     <div style={{ width: '100%', height }}>
-      <ResponsiveContainer>
+      <ResponsiveContainer minWidth={0}>
         <AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
           <defs>
             <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
@@ -111,7 +111,7 @@ export const DashboardAreaChart = ({ data, height = 300, colors = DEFAULT_COLORS
 export const DashboardPieChart = ({ data, height = 300, colors = MULTI_COLORS }: ChartProps) => {
   return (
     <div style={{ width: '100%', height }}>
-      <ResponsiveContainer>
+      <ResponsiveContainer minWidth={0}>
         <PieChart>
           <Pie
             data={data} cx="50%" cy="45%"
@@ -140,7 +140,7 @@ export const DashboardPieChart = ({ data, height = 300, colors = MULTI_COLORS }:
 export const DashboardLineChart = ({ data, height = 300, colors = DEFAULT_COLORS }: ChartProps) => {
   return (
     <div style={{ width: '100%', height }}>
-      <ResponsiveContainer>
+      <ResponsiveContainer minWidth={0}>
         <LineChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
           <defs>
             <linearGradient id="lineGrad1" x1="0" y1="0" x2="0" y2="1">
