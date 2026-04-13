@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Clock, MapPin, ChevronRight, CheckCircle, ArrowLeft, RefreshCw, User, Sparkles } from 'lucide-react'
+import { Clock, MapPin, ChevronRight, ChevronLeft, CheckCircle, ArrowLeft, RefreshCw, User, Sparkles } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { format, addDays, isSameDay } from 'date-fns'
+import { 
+  format, isSameDay, isToday, isBefore, 
+  startOfMonth, endOfMonth, startOfWeek, endOfWeek, 
+  eachDayOfInterval, addMonths, subMonths, startOfDay
+} from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Sucursal, Servicio, Empleada } from '../types/database'
 import { useToast } from '../components/Common/Toast'
 
 // ─── HELPERS ──────────────────────────────────────────────────
-const DAYS_TO_SHOW = 14
 const START_HOUR = 9
 const END_HOUR = 20
 
@@ -25,6 +28,7 @@ export default function BookingPage() {
   const [selectedSucursal, setSelectedSucursal] = useState<Sucursal | null>(null)
   const [selectedServicios, setSelectedServicios] = useState<Servicio[]>([])
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
   
   const [loading, setLoading] = useState(true)
@@ -289,7 +293,20 @@ export default function BookingPage() {
         {/* STEP: SERVICIO */}
         {step === 'servicio' && (
           <div className="animate-in" style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 40, alignItems: 'flex-start' }}>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, width: '100%' }}>
+              {isMobile && selectedServicios.length > 0 && (
+                <div style={{ 
+                  position: 'sticky', top: 60, zIndex: 50, background: 'rgba(255,255,255,0.95)', 
+                  backdropFilter: 'blur(12px)', padding: '12px 0', borderBottom: '1px solid #f2f2f2',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 
+                }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>
+                    {selectedServicios.length} servicios 
+                    <span style={{ fontSize: 11, color: '#86868b', fontWeight: 500, marginLeft: 8 }}>{totalTime} min</span>
+                  </div>
+                  <button onClick={() => setStep('fecha')} style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: '14px', fontSize: 15, fontWeight: 700, boxShadow: '0 4px 12px rgba(22, 163, 74, 0.2)' }}>Siguiente</button>
+                </div>
+              )}
               <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8, letterSpacing: '-0.5px' }}>Selecciona tus servicios</h1>
               <p style={{ color: '#6e6e73', marginBottom: 32 }}>Puedes elegir más de uno para tu sesión.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -311,28 +328,18 @@ export default function BookingPage() {
                 ))}
               </div>
             </div>
-            {selectedServicios.length > 0 && (
-              isMobile ? (
-                <div style={{ marginTop: 32, background: '#1d1d1f', color: '#fff', padding: '24px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div><div style={{ fontSize: 13, fontWeight: 600, opacity: 0.7 }}>{selectedServicios.length} {selectedServicios.length === 1 ? 'servicio seleccionada' : 'servicios seleccionados'}</div><div style={{ fontSize: 24, fontWeight: 700 }}>${totalPrice}</div></div>
-                    <div style={{ fontSize: 14, fontWeight: 400, opacity: 0.6 }}>{totalTime} min total</div>
-                  </div>
-                  <button onClick={() => setStep('fecha')} style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '16px', borderRadius: '16px', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>Continuar a la fecha</button>
+            {!isMobile && selectedServicios.length > 0 && (
+              <div style={{ width: 320, position: 'sticky', top: 120, background: '#fff', borderRadius: 24, padding: 24, border: '1px solid #efefef', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>Tu reservación</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+                  {selectedServicios.map(s => (<div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 14, color: '#424245' }}>{s.nombre}</span><span style={{ fontSize: 14, fontWeight: 600 }}>${s.precio}</span></div>))}
                 </div>
-              ) : (
-                <div style={{ width: 320, position: 'sticky', top: 120, background: '#fff', borderRadius: 24, padding: 24, border: '1px solid #efefef', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>Tu reservación</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-                    {selectedServicios.map(s => (<div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: 14, color: '#424245' }}>{s.nombre}</span><span style={{ fontSize: 14, fontWeight: 600 }}>${s.precio}</span></div>))}
-                  </div>
-                  <div style={{ borderTop: '1px solid #f2f2f2', paddingTop: 20, marginBottom: 24 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span style={{ fontSize: 13, color: '#86868b' }}>Tiempo estimado</span><span style={{ fontSize: 13, fontWeight: 600 }}>{totalTime} min</span></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 20, fontWeight: 800 }}>Total</span><span style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)' }}>${totalPrice}</span></div>
-                  </div>
-                  <button onClick={() => setStep('fecha')} style={{ width: '100%', background: '#1d1d1f', color: '#fff', border: 'none', padding: '16px', borderRadius: '16px', fontSize: 16, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>Continuar</button>
+                <div style={{ borderTop: '1px solid #f2f2f2', paddingTop: 20, marginBottom: 24 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span style={{ fontSize: 13, color: '#86868b' }}>Tiempo estimado</span><span style={{ fontSize: 13, fontWeight: 600 }}>{totalTime} min</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 20, fontWeight: 800 }}>Total</span><span style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)' }}>${totalPrice}</span></div>
                 </div>
-              )
+                <button onClick={() => setStep('fecha')} style={{ width: '100%', background: '#1d1d1f', color: '#fff', border: 'none', padding: '16px', borderRadius: '16px', fontSize: 16, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>Continuar</button>
+              </div>
             )}
           </div>
         )}
@@ -341,18 +348,57 @@ export default function BookingPage() {
         {step === 'fecha' && (
           <div className="animate-in" style={{ maxWidth: 600, margin: '0 auto' }}>
             <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8, letterSpacing: '-0.5px' }}>¿Cuándo vienes?</h1>
-            <p style={{ color: '#6e6e73', marginBottom: 32 }}>Total: {totalTime} min en MUYMUY {selectedSucursal?.nombre}</p>
-            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 16, marginBottom: 32 }} className="hide-scrollbar">
-              {Array.from({ length: DAYS_TO_SHOW }).map((_, i) => {
-                const date = addDays(new Date(), i)
-                const isSelected = selectedDate && isSameDay(selectedDate, date)
-                return (
-                  <button key={i} onClick={() => { setSelectedDate(date); setSelectedTime(null); }} style={{ minWidth: 70, height: 90, borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: isSelected ? '#1d1d1f' : '#fff', color: isSelected ? '#fff' : '#1d1d1f', border: isSelected ? 'none' : '1px solid #efefef', cursor: 'pointer' }}>
-                    <span style={{ fontSize: 11, textTransform: 'uppercase', fontWeight: 600, opacity: 0.8, marginBottom: 4 }}>{format(date, 'eee', { locale: es })}</span>
-                    <span style={{ fontSize: 20, fontWeight: 800 }}>{format(date, 'd')}</span>
-                  </button>
-                )
-              })}
+            <p style={{ color: '#6e6e73', marginBottom: 24 }}>Total: {totalTime} min en MUYMUY {selectedSucursal?.nombre}</p>
+
+            {/* FULL CALENDAR */}
+            <div style={{ background: '#fff', borderRadius: 24, padding: 20, border: '1px solid #f2f2f2', marginBottom: 32, boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, textTransform: 'capitalize' }}>
+                  {format(currentMonth, 'MMMM yyyy', { locale: es })}
+                </span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} disabled={isBefore(startOfMonth(subMonths(currentMonth, 0)), startOfMonth(new Date()))} style={{ background: '#f5f5f7', border: 'none', width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: isBefore(startOfMonth(subMonths(currentMonth, 0)), startOfMonth(new Date())) ? 0.3 : 1 }}><ChevronLeft size={18} /></button>
+                  <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} style={{ background: '#f5f5f7', border: 'none', width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ChevronRight size={18} /></button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 8 }}>
+                {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map(d => (
+                  <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#86868b', padding: '8px 0' }}>{d}</div>
+                ))}
+                {(() => {
+                  const mStart = startOfMonth(currentMonth)
+                  const mEnd = endOfMonth(mStart)
+                  const sDate = startOfWeek(mStart)
+                  const eDate = endOfWeek(mEnd)
+                  const days = eachDayOfInterval({ start: sDate, end: eDate })
+                  
+                  return days.map((day, i) => {
+                    const isSelected = selectedDate && isSameDay(day, selectedDate)
+                    const isOutside = !isSameDay(startOfMonth(day), mStart)
+                    const isPast = isBefore(startOfDay(day), startOfDay(new Date()))
+                    
+                    return (
+                      <button
+                        key={i}
+                        disabled={isPast}
+                        onClick={() => { setSelectedDate(day); setSelectedTime(null); }}
+                        style={{
+                          aspectRatio: '1/1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                          borderRadius: 12, border: 'none', cursor: isPast ? 'default' : 'pointer',
+                          background: isSelected ? 'var(--primary)' : 'transparent',
+                          color: isSelected ? '#fff' : (isOutside ? '#d2d2d7' : (isPast ? '#e5e5e5' : '#1d1d1f')),
+                          fontWeight: (isSelected || isToday(day)) ? 700 : 400,
+                          position: 'relative', transition: 'all 0.2s'
+                        }}
+                      >
+                        <span style={{ fontSize: 14 }}>{format(day, 'd')}</span>
+                        {isToday(day) && !isSelected && <div style={{ position: 'absolute', bottom: 6, width: 4, height: 4, borderRadius: '50%', background: 'var(--primary)' }} />}
+                      </button>
+                    )
+                  })
+                })()}
+              </div>
             </div>
             {selectedDate && (
               <div className="animate-in">
