@@ -1,8 +1,5 @@
 import { 
   MapPin, 
-  User, 
-  ShieldCheck, 
-  Heart,
   Menu,
   X 
 } from 'lucide-react'
