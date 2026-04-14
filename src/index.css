@@ -1,5 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-@import "tailwindcss";
 
 /* ─── Design Tokens — Light Mode ──────────────────────────── */
 :root {
@@ -10,10 +9,10 @@
   --border-2: #d1d5db;
   /* Colores de Marca */
   --kpi: #16a34a;
-  --primary: #88B04B;
-  /* Verde Esmeralda */
   --accent: #88B04B;
-  /* Verde Hoja - Acentuación */
+  /* Verde Esmeralda — color principal de la marca */
+  --primary: var(--accent);
+  /* Alias de --accent para compatibilidad con Landing y BookingPage */
   --accent-light: rgba(136, 176, 75, 0.08);
   --accent-mid: rgba(136, 176, 75, 0.18);
   --primary-light: rgba(136, 176, 75, 0.1);
@@ -2027,7 +2026,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .btn-primary {
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 2px 8px rgba(136, 176, 75, 0.3);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "MUYMUY Beauty",
+    "slug": "muymuy-beauty",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "muymuy",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.muymuy.beauty",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#88B04B"
+      },
+      "package": "com.muymuy.beauty"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "extra": {
+      "supabaseUrl": "process.env.EXPO_PUBLIC_SUPABASE_URL",
+      "supabaseAnonKey": "process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY"
+    }
+  }
+}

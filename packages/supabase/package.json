@@ -1,0 +1,11 @@
+{
+  "name": "@muymuy/supabase",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "description": "Cliente Supabase compartido entre web y mobile",
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.0.0"
+  }
+}
