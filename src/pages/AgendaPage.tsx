@@ -12,6 +12,7 @@ import BloqueoInfoModal from '../components/Agenda/BloqueoInfoModal'
 import DesbloqueoModal from '../components/Agenda/DesbloqueoModal'
 import { useSucursalContext } from '../context/SucursalContext'
 import { useEmpleadas } from '../hooks/useEmpleadas'
+import { useSucursales } from '../hooks/useSucursales'
 import { useCitasSemana, useBloqueosSemana, useEliminarBloqueo } from '../hooks/useCitas'
 import type { Cliente, Cita, SlotInfo, BloqueoAgenda } from '../types/database'
 import { useToast } from '../components/Common/Toast'
@@ -53,7 +54,9 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
   const weekLabel   = `${format(weekDates[0], 'd MMM', { locale: es })} – ${format(weekDates[6], 'd MMM yyyy', { locale: es })}`
 
   const activeSucursal            = sucursalId
-  const { data: empleadas = [] }  = useEmpleadas()
+  const { data: sucursales = [] }  = useSucursales()
+  const activeSucursalObj          = sucursales.find(s => s.id === activeSucursal) ?? null
+  const { data: empleadas = [] }  = useEmpleadas(activeSucursal || undefined)
   const { data: citas = [] }      = useCitasSemana(inicioStr, finStr, activeSucursal)
   const { data: bloqueos = [] }   = useBloqueosSemana(inicioStr, finStr)
 
@@ -168,8 +171,10 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
 
       {/* ── Grid ─────────────────────────────────────────────── */}
       <AgendaGrid
+        key={activeSucursal ?? 'none'}
         weekDates={weekDates}
         empleadas={empleadas}
+        sucursal={activeSucursalObj}
         citas={citas}
         bloqueos={bloqueos}
         onSlotClick={handleSlotClick}

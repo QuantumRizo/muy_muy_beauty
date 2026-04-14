@@ -3,7 +3,7 @@ import {
   X, Plus, Trash2, Calculator, 
   Package, Percent, Search, Printer, Store
 } from 'lucide-react'
-import { useTodasEmpleadas } from '../hooks/useEmpleadas'
+import { useEmpleadas } from '../hooks/useEmpleadas'
 import { useCrearTicketDirecto } from '../hooks/useTickets'
 import { useProductos } from '../hooks/useProductos'
 import { useServicios } from '../hooks/useServicios'
@@ -19,12 +19,12 @@ interface Props {
 }
 
 export default function VentaDirectaPage({ onFinish: _onFinish }: Props) {
-  const { data: empleadas = [] } = useTodasEmpleadas()
   const { data: sucursales = [] } = useSucursales()
   const crearTicket = useCrearTicketDirecto()
   const toast = useToast()
 
   const { selectedSucursalId: sucursalId } = useSucursalContext()
+  const { data: empleadas = [] } = useEmpleadas(sucursalId || undefined)
   const [vendedorId, setVendedorId] = useState('')
   const [saving, setSaving] = useState(false)
   const [clienteNombre, setClienteNombre] = useState('')

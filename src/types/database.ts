@@ -17,6 +17,7 @@ export interface Sucursal {
   direccion: string | null
   telefono: string | null
   rfc: string | null
+  num_cabinas: number   // Cabinas/slots extra configurables por sucursal
 }
 
 export interface Empleada {
@@ -24,6 +25,7 @@ export interface Empleada {
   nombre: string
   nombre_corto?: string // Deprecated
   activo: boolean
+  sucursal_id: string | null  // Sucursal a la que pertenece
   fecha_contratacion?: string
   sueldo_diario?: number
 }

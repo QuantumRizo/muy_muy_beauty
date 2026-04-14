@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Clock, UserCheck, Search, Users, MapPin, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useSucursalContext } from '../context/SucursalContext'
-import { useTodasEmpleadas } from '../hooks/useEmpleadas'
+import { useEmpleadas } from '../hooks/useEmpleadas'
 import { useSucursales } from '../hooks/useSucursales'
 import { useToast } from '../components/Common/Toast'
 import { format } from 'date-fns'
@@ -11,7 +11,7 @@ import { es } from 'date-fns/locale'
 export default function AsistenciaPage() {
   const { selectedSucursalId } = useSucursalContext()
   const { data: sucursales = [] } = useSucursales()
-  const { data: empleadas = [] } = useTodasEmpleadas()
+  const { data: empleadas = [] } = useEmpleadas(selectedSucursalId || undefined)
   const toast = useToast()
 
   const [selectedEmpleadaId, setSelectedEmpleadaId] = useState('')

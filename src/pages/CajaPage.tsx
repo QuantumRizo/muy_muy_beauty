@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Wallet, DollarSign, CreditCard, CheckCircle, TrendingDown, TrendingUp, Clock, AlertTriangle } from 'lucide-react'
 import { useCajaActiva, useAbrirCaja, useCerrarCaja, useCrearMovimientoCaja } from '../hooks/useCaja'
-import { useTodasEmpleadas } from '../hooks/useEmpleadas'
+import { useEmpleadas } from '../hooks/useEmpleadas'
 import { useSucursalContext } from '../context/SucursalContext'
 import { useToast } from '../components/Common/Toast'
 import KPICard from '../components/Dashboard/KPICard'
@@ -37,7 +37,7 @@ export default function CajaPage() {
   const [notasCierre, setNotasCierre] = useState('')
   const cerrarCaja = useCerrarCaja()
 
-  const { data: empleadas = [] } = useTodasEmpleadas()
+  const { data: empleadas = [] } = useEmpleadas(activeSucursal || undefined)
 
   const handleAbrirCaja = async () => {
     if (montoApertura < 0) { toast('Monto inválido', 'warning'); return }

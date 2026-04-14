@@ -3,7 +3,7 @@ import { format, isToday, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { CheckCircle2, User, Phone, ClipboardList, CalendarX, Move } from 'lucide-react'
 
-import type { Cita, BloqueoAgenda, Empleada } from '../../types/database'
+import type { Cita, BloqueoAgenda, Empleada, Sucursal } from '../../types/database'
 
 // ─── Constants (Base) ──────────────────────────────────────────
 const HORA_INICIO  = 8        // 08:00
@@ -39,9 +39,23 @@ const SLOTS = generateSlots()
 // Single color for all citas
 // (Removing unused constants)
 
+// Virtual "Disponible" column type — acts like an Empleada in the grid
+interface DisponibleCol {
+  id: string       // 'disponible-1', 'disponible-2', etc.
+  nombre: string   // 'Disponible 1'
+  isVirtual: true
+}
+
+type Column = Empleada | DisponibleCol
+
+function isVirtual(col: Column): col is DisponibleCol {
+  return (col as DisponibleCol).isVirtual === true
+}
+
 interface Props {
   weekDates: Date[]          // 7 Date objects, Mon–Sun
   empleadas: Empleada[]
+  sucursal?: Sucursal | null // Needed to read num_cabinas
   citas: Cita[]
   bloqueos: BloqueoAgenda[]
   onSlotClick: (empleadaId: string, hora: string, fecha: string) => void
@@ -50,9 +64,18 @@ interface Props {
 }
 
 export default function AgendaGrid({
-  weekDates, empleadas, citas, bloqueos,
+  weekDates, empleadas, sucursal, citas, bloqueos,
   onSlotClick, onCitaClick, onBloqueoClick,
 }: Props) {
+
+  // Build full column list: real employees + virtual "Disponible" columns
+  const numIndicator = sucursal?.num_cabinas ?? 1
+  const disponibleCols: DisponibleCol[] = Array.from({ length: numIndicator }, (_, i) => ({
+    id: `disponible-${i + 1}`,
+    nombre: `Disponible ${i + 1}`,
+    isVirtual: true as const,
+  }))
+  const columns: Column[] = [...empleadas, ...disponibleCols]
   const mainGridRef  = useRef<HTMLDivElement>(null)
   const timeColRef   = useRef<HTMLDivElement>(null)
   const daysHeaderRef = useRef<HTMLDivElement>(null)
@@ -92,13 +115,13 @@ export default function AgendaGrid({
       if (!mainGridRef.current) return
       const todayIndex = weekDates.findIndex(d => isToday(d))
       if (todayIndex > -1) {
-        const scrollPos = todayIndex * (colWidth * empleadas.length)
+        const scrollPos = todayIndex * (colWidth * columns.length)
         mainGridRef.current.scrollLeft = scrollPos
         if (daysHeaderRef.current) daysHeaderRef.current.scrollLeft = scrollPos
       }
     }, 100)
     return () => clearTimeout(timer)
-  }, [weekDates, colWidth, empleadas.length])
+  }, [weekDates, colWidth, columns.length])
 
   // Scroll sync: vertical → time col; horizontal → days header
   const handleScroll = useCallback(() => {
@@ -125,11 +148,11 @@ export default function AgendaGrid({
     return bloqueos.filter((b) => b.empleada_id === empId && b.fecha === fechaStr)
   }
 
-  if (empleadas.length === 0) {
+  if (columns.length === 0) {
     return (
       <div className="empty-state">
-        <p>No hay profesionales activas.</p>
-        <p style={{ fontSize: 11, opacity: 0.6 }}>Agrega empleadas en Configuración.</p>
+        <p>No hay profesionales activas en esta sucursal.</p>
+        <p style={{ fontSize: 11, opacity: 0.6 }}>Agrega empleadas en Profesionales y asígnales esta sucursal.</p>
       </div>
     )
   }
@@ -153,10 +176,9 @@ export default function AgendaGrid({
                   <div
                     key={dateLabel}
                     className="day-header-group"
-                    style={{ width: colWidth * empleadas.length, flex: '0 0 auto' }}
+                    style={{ width: colWidth * columns.length, flex: '0 0 auto' }}
                   >
-                  <div
-                    className="day-header-label"
+                  <div className="day-header-label"
                     style={{
                       height: HEADER_DAY_H,
                       backgroundColor: isHoy ? 'var(--accent-light)' : undefined,
@@ -166,16 +188,17 @@ export default function AgendaGrid({
                     <span className="day-header-date">{dateLabel}</span>
                   </div>
                   <div className="day-emp-labels" style={{ height: HEADER_EMP_H }}>
-                    {empleadas.map((emp) => (
+                    {columns.map((col) => (
                       <div
-                        key={emp.id}
-                        className="emp-header-cell"
+                        key={col.id}
+                        className={`emp-header-cell${isVirtual(col) ? ' emp-header-disponible' : ''}`}
                         style={{ width: colWidth }}
-                        title={emp.nombre}
+                        title={col.nombre}
                       >
-                        {emp.nombre.substring(0, 3).toUpperCase()}
-
-
+                        {isVirtual(col)
+                          ? col.nombre.replace('Disponible ', 'Disp ')
+                          : col.nombre.substring(0, 3).toUpperCase()
+                        }
                       </div>
                     ))}
                   </div>
@@ -205,15 +228,17 @@ export default function AgendaGrid({
                   <div
                     key={format(date, 'yyyy-MM-dd')}
                     className={`day-body-group ${isHoy ? 'today-col' : ''}`}
-                    style={{ width: colWidth * empleadas.length, flex: '0 0 auto' }}
+                    style={{ width: colWidth * columns.length, flex: '0 0 auto' }}
                   >
-                    {empleadas.map((emp) => {
-                      const empCitas    = getCitas(emp.id, date)
-                      const empBloqueos = getBloqueos(emp.id, date)
+                    {columns.map((col) => {
+                      const virtual = isVirtual(col)
+                      // Virtual columns: no citas/bloqueos of their own
+                      const empCitas    = virtual ? [] : getCitas(col.id, date)
+                      const empBloqueos = virtual ? [] : getBloqueos(col.id, date)
                       return (
                         <div
-                          key={emp.id}
-                          className="emp-col"
+                          key={col.id}
+                          className={`emp-col${virtual ? ' emp-col-disponible' : ''}`}
                           style={{ width: colWidth, flex: '0 0 auto' }}
                         >
                           {/* Clickable slots */}
@@ -228,7 +253,8 @@ export default function AgendaGrid({
                               }}
                               onClick={() => {
                                 if (isPastDate) return
-                                onSlotClick(emp.id, label, format(date, 'yyyy-MM-dd'))
+                                // For virtual cols, pass empty string so modal opens without preselected employee
+                                onSlotClick(virtual ? '' : col.id, label, format(date, 'yyyy-MM-dd'))
                               }}
                             />
                           ))}
