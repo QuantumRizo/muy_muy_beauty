@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
-import { X, Save } from 'lucide-react'
+import { X, Save, AlertCircle, Loader2 } from 'lucide-react'
 import { useCrearCliente } from '../../hooks/useClientes'
 import { useSucursales } from '../../hooks/useSucursales'
+import { supabase } from '../../lib/supabase'
 import type { Cliente, SexoType } from '../../types/database'
 import { useToast } from '../Common/Toast'
 
@@ -32,9 +33,59 @@ export default function FormularioCliente({ onCreated, onClose }: Props) {
     sucursal_id: '',
   })
 
-  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
+  // Estados para validación en tiempo real
+  const [checking, setChecking] = useState({ phone: false, email: false })
+  const [errors, setErrors] = useState({ phone: '', email: '' })
+
+  const set = (k: string, v: string) => {
+    setForm((f) => ({ ...f, [k]: v }))
+    // Limpiar errores cuando el usuario vuelve a escribir
+    if (k === 'telefono_cel') setErrors(prev => ({ ...prev, phone: '' }))
+    if (k === 'email') setErrors(prev => ({ ...prev, email: '' }))
+  }
 
   const sanitizePhone = (val: string) => val.replace(/\D/g, '').slice(0, 10)
+
+  // Validación de teléfono en tiempo real
+  React.useEffect(() => {
+    if (form.telefono_cel.length === 10) {
+      const checkPhone = async () => {
+        setChecking(prev => ({ ...prev, phone: true }))
+        const { data, error } = await supabase
+          .from('clientes')
+          .select('id, nombre_completo')
+          .eq('telefono_cel', form.telefono_cel)
+          .maybeSingle()
+        
+        if (data) {
+          setErrors(prev => ({ ...prev, phone: `Ya registrado a nombre de: ${data.nombre_completo}` }))
+        }
+        setChecking(prev => ({ ...prev, phone: false }))
+      }
+      checkPhone()
+    }
+  }, [form.telefono_cel])
+
+  // Validación de email en tiempo real
+  React.useEffect(() => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (form.email && emailRegex.test(form.email)) {
+      const checkEmail = async () => {
+        setChecking(prev => ({ ...prev, email: true }))
+        const { data } = await supabase
+          .from('clientes')
+          .select('id, nombre_completo')
+          .eq('email', form.email)
+          .maybeSingle()
+        
+        if (data) {
+          setErrors(prev => ({ ...prev, email: `Este correo ya pertenece a: ${data.nombre_completo}` }))
+        }
+        setChecking(prev => ({ ...prev, email: false }))
+      }
+      checkEmail()
+    }
+  }, [form.email])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,8 +110,21 @@ export default function FormularioCliente({ onCreated, onClose }: Props) {
         notas: extra.notas || undefined,
       },
     }
-    const result = await crearCliente.mutateAsync(payload)
-    onCreated(result as Cliente)
+
+    try {
+      const result = await crearCliente.mutateAsync(payload)
+      onCreated(result as Cliente)
+      toast('Cliente creado con éxito', 'success')
+    } catch (err: any) {
+      console.error('Error al crear cliente:', err)
+      // Error 23505 es "unique_violation" en PostgreSQL (Supabase)
+      if (err.code === '23505') {
+        const field = err.message?.includes('telefono_cel') ? 'teléfono' : 'email'
+        toast(`Este ${field} ya está registrado con otro cliente.`, 'error')
+      } else {
+        toast('Error al guardar el cliente. Revisa los datos.', 'error')
+      }
+    }
   }
 
   return (
@@ -81,11 +145,42 @@ export default function FormularioCliente({ onCreated, onClose }: Props) {
             </div>
             <div className="form-group">
               <label>Teléfono celular</label>
-              <input value={form.telefono_cel} onChange={(e) => set('telefono_cel', sanitizePhone(e.target.value))} className="form-input" placeholder="5512345678" />
+              <div style={{ position: 'relative' }}>
+                <input 
+                  value={form.telefono_cel} 
+                  onChange={(e) => set('telefono_cel', sanitizePhone(e.target.value))} 
+                  className={`form-input ${errors.phone ? 'input-error' : ''}`} 
+                  placeholder="5512345678" 
+                />
+                {checking.phone && (
+                  <Loader2 size={14} className="animate-spin" style={{ position: 'absolute', right: 10, top: 12, color: 'var(--text-3)' }} />
+                )}
+              </div>
+              {errors.phone && (
+                <div style={{ fontSize: 10, color: 'var(--danger)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                  <AlertCircle size={10} /> {errors.phone}
+                </div>
+              )}
             </div>
             <div className="form-group">
               <label>Email</label>
-              <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} className="form-input" placeholder="cliente@email.com" />
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="email" 
+                  value={form.email} 
+                  onChange={(e) => set('email', e.target.value)} 
+                  className={`form-input ${errors.email ? 'input-error' : ''}`} 
+                  placeholder="cliente@email.com" 
+                />
+                {checking.email && (
+                  <Loader2 size={14} className="animate-spin" style={{ position: 'absolute', right: 10, top: 12, color: 'var(--text-3)' }} />
+                )}
+              </div>
+              {errors.email && (
+                <div style={{ fontSize: 10, color: 'var(--danger)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                  <AlertCircle size={10} /> {errors.email}
+                </div>
+              )}
             </div>
             <div className="form-group">
               <label>RFC</label>
@@ -135,7 +230,11 @@ export default function FormularioCliente({ onCreated, onClose }: Props) {
 
           <div className="modal-footer">
             <button type="button" onClick={onClose} className="btn-ghost">Cancelar</button>
-            <button type="submit" disabled={crearCliente.isPending} className="btn-primary">
+            <button 
+              type="submit" 
+              disabled={crearCliente.isPending || !!errors.phone || !!errors.email || checking.phone || checking.email} 
+              className="btn-primary"
+            >
               <Save size={15} />
               {crearCliente.isPending ? 'Guardando...' : 'Guardar cliente'}
             </button>
