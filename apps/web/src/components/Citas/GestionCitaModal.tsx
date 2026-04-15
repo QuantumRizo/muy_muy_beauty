@@ -3,7 +3,7 @@ import { X, Check, Trash2, Search, Calendar, Clock, MapPin, Phone, MessageCircle
 import { startOfDay, parseISO } from 'date-fns'
 import { useActualizarCita, useCheckDisponibilidad } from '../../hooks/useCitas'
 import { useServicios } from '../../hooks/useServicios'
-import { useTodasEmpleadas } from '../../hooks/useEmpleadas'
+import { useEmpleadas } from '../../hooks/useEmpleadas'
 import type { Cita, CitaStatus, Servicio } from '../../types/database'
 import { timeToSlots, haySolapamiento } from '../../utils/agenda'
 import { useToast } from '../Common/Toast'
@@ -22,7 +22,7 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
   const actualizar = useActualizarCita()
   const toast = useToast()
   const { data: servicios = [] } = useServicios()
-  const { data: empleadas = [] } = useTodasEmpleadas()
+  const { data: empleadas = [] } = useEmpleadas(cita.sucursal_id)
   
   const [selected, setSelected] = useState<string[]>((cita.servicios ?? []).map(s => s.id))
   const [search, setSearch] = useState('')

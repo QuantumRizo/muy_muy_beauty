@@ -3,7 +3,7 @@ import {
   X, User, Plus, Trash2, Calculator, 
   ChevronDown, ChevronUp, Package, Percent, Search, Printer 
 } from 'lucide-react'
-import { useTodasEmpleadas } from '../hooks/useEmpleadas'
+import { useEmpleadas } from '../hooks/useEmpleadas'
 import { useCrearTicket } from '../hooks/useTickets'
 import { useProductos } from '../hooks/useProductos'
 import type { Cita, TicketItem, Pago, Producto } from '../types/database'
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export default function TicketPage({ cita, onBack, onFinish }: Props) {
-  const { data: empleadas = [] } = useTodasEmpleadas()
+  const { data: empleadas = [] } = useEmpleadas(cita.sucursal_id)
   const crearTicket = useCrearTicket()
   const toast = useToast()
 

@@ -3,7 +3,7 @@ import { X, Check, Trash2, Search, Calendar, Clock, MapPin, Phone, ChevronLeft, 
 import { useServicios } from '../../hooks/useServicios'
 import { useSucursales } from '../../hooks/useSucursales'
 import { useCrearCita, useCheckDisponibilidad } from '../../hooks/useCitas'
-import { useTodasEmpleadas } from '../../hooks/useEmpleadas'
+import { useEmpleadas } from '../../hooks/useEmpleadas'
 import type { Cliente, Servicio } from '../../types/database'
 import { timeToSlots, haySolapamiento } from '../../utils/agenda'
 import { useToast } from '../Common/Toast'
@@ -29,7 +29,7 @@ export default function NuevaCitaModal({
 }: Props) {
   const { data: servicios = [] } = useServicios()
   const { data: sucursales = [] } = useSucursales()
-  const { data: empleadas = [] } = useTodasEmpleadas()
+  const { data: empleadas = [] } = useEmpleadas(sucursalId)
   const crearCita = useCrearCita()
   const toast = useToast()
   
