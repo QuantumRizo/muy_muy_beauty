@@ -42,6 +42,7 @@ export default function ReservarScreen() {
   const [submitting, setSubmitting] = useState(false)
   const [clientInfo, setClientInfo] = useState({ nombre: '', telefono: '', email: '' })
   const [storedClienteId, setStoredClienteId] = useState<string | null>(null)
+  const [isExistingClient, setIsExistingClient] = useState(false)
 
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
   const [fetchingSlots, setFetchingSlots] = useState(false)
@@ -142,6 +143,23 @@ export default function ReservarScreen() {
       checkAvailability()
     }
   }, [selectedDate, selectedSucursal, selectedServicios, perfiles])
+
+  // 4. Check Existing Client
+  useEffect(() => {
+    if (clientInfo.telefono.length === 10 && !storedClienteId) {
+      supabase.from('clientes').select('nombre_completo, email').eq('telefono_cel', clientInfo.telefono).maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setClientInfo(prev => ({ ...prev, nombre: data.nombre_completo, email: data.email || prev.email }))
+            setIsExistingClient(true)
+          } else {
+            setIsExistingClient(false)
+          }
+        })
+    } else {
+      setIsExistingClient(false)
+    }
+  }, [clientInfo.telefono, storedClienteId])
 
   const toggleServicio = (s: any) => {
     setSelectedServicios(prev => {
@@ -456,26 +474,34 @@ export default function ReservarScreen() {
               <Text style={styles.subtitle}>Agenda lista, solo nos faltan tus detalles.</Text>
               
               {!storedClienteId ? (
-                <View style={styles.formCard}>
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Nombre completo *</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Escribe tu nombre"
-                      value={clientInfo.nombre}
-                      onChangeText={t => setClientInfo(prev => ({ ...prev, nombre: t }))}
-                    />
-                  </View>
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Teléfono celular *</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="10 dígitos"
-                      keyboardType="numeric"
-                      value={clientInfo.telefono}
-                      onChangeText={t => setClientInfo(prev => ({ ...prev, telefono: sanitizePhone(t) }))}
-                    />
-                  </View>
+                <>
+                  {isExistingClient && (
+                    <View style={styles.existingClientBanner}>
+                      <Ionicons name="sparkles" size={18} color={ACCENT} />
+                      <Text style={styles.existingClientText}>¡Hola de nuevo! Encontramos tu cuenta.</Text>
+                    </View>
+                  )}
+                  <View style={styles.formCard}>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Teléfono celular *</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="10 dígitos"
+                        keyboardType="numeric"
+                        value={clientInfo.telefono}
+                        onChangeText={t => setClientInfo(prev => ({ ...prev, telefono: sanitizePhone(t) }))}
+                      />
+                    </View>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Nombre completo *</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Escribe tu nombre"
+                        value={clientInfo.nombre}
+                        onChangeText={t => setClientInfo(prev => ({ ...prev, nombre: t }))}
+                        editable={!isExistingClient}
+                      />
+                    </View>
                   <View style={[styles.inputGroup, { borderBottomWidth: 0, paddingBottom: 0, marginBottom: 0 }]}>
                     <Text style={styles.inputLabel}>Email (Opcional)</Text>
                     <TextInput
@@ -485,9 +511,11 @@ export default function ReservarScreen() {
                       autoCapitalize="none"
                       value={clientInfo.email}
                       onChangeText={t => setClientInfo(prev => ({ ...prev, email: t }))}
+                      editable={!isExistingClient}
                     />
                   </View>
                 </View>
+                </>
               ) : (
                 <View style={styles.formCard}>
                   <Text style={{ fontSize: 16, fontWeight: '700', color: ACCENT, marginBottom: 4 }}>Hola, {clientInfo.nombre}</Text>
@@ -667,6 +695,8 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f2f2f2', paddingBottom: 6 },
   inputLabel: { fontSize: 11, fontWeight: '700', color: '#86868b', textTransform: 'uppercase', marginBottom: 6 },
   input: { fontSize: 16, color: '#1d1d1f', height: 40 },
+  existingClientBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0f7e6', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, marginBottom: 16 },
+  existingClientText: { color: ACCENT, fontWeight: '600', fontSize: 14, marginLeft: 8 },
   
   summaryCard: { backgroundColor: '#f9fcf5', padding: 20, borderRadius: 16 },
   summaryTitle: { fontSize: 14, fontWeight: '700', color: ACCENT, marginBottom: 16 },

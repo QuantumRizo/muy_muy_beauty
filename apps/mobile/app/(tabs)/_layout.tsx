@@ -36,9 +36,9 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="historial"
+        name="citas"
         options={{
-          title: 'Historial',
+          title: 'Citas',
           tabBarIcon: ({ color, size }) => <Ionicons name="time-outline" size={size} color={color} />,
         }}
       />

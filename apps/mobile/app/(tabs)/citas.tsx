@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store'
 import { useRouter } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 
-export default function HistorialScreen() {
+export default function CitasScreen() {
   const router = useRouter()
   const [citas, setCitas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -19,9 +19,9 @@ export default function HistorialScreen() {
         .from('citas')
         .select('*, sucursal:sucursales(nombre), servicios:cita_servicios(servicio:servicios(nombre))')
         .eq('cliente_id', clienteId)
-        .lt('fecha', hoy)
         .order('fecha', { ascending: false })
-        .limit(20)
+        .order('bloque_inicio', { ascending: false })
+        .limit(30)
 
       setCitas(data ?? [])
       setLoading(false)
@@ -30,21 +30,22 @@ export default function HistorialScreen() {
   }, [])
 
   const estadoColor: Record<string, { bg: string; text: string }> = {
-    'Finalizada':  { bg: '#e8f5e9', text: '#2e7d32' },
+    'Programada':  { bg: '#e6f4ea', text: '#1e8e3e' },
+    'Finalizada':  { bg: '#f3f2ff', text: '#5c4dff' },
     'Cancelada':   { bg: '#fdecea', text: '#c62828' },
     'No asistió':  { bg: '#fff8e1', text: '#f57f17' },
   }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.pageTitle}>Historial</Text>
-      <Text style={styles.pageSub}>Tus citas anteriores</Text>
+      <Text style={styles.pageTitle}>Mis Citas</Text>
+      <Text style={styles.pageSub}>Tus reservas vigentes y anteriores</Text>
 
       {loading ? (
         <ActivityIndicator color="#88B04B" style={{ marginTop: 40 }} />
       ) : citas.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>No tienes citas anteriores aún.</Text>
+          <Text style={styles.emptyText}>No tienes citas registradas aún.</Text>
         </View>
       ) : (
         citas.map((cita) => {
@@ -53,7 +54,7 @@ export default function HistorialScreen() {
             <View key={cita.id} style={styles.citaCard}>
               <View style={styles.citaMeta}>
                 <Text style={styles.citaFecha}>
-                  {new Date(cita.fecha + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  {new Date(cita.fecha + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })} • {cita.bloque_inicio}
                 </Text>
                 <View style={[styles.badge, { backgroundColor: styles2.bg }]}>
                   <Text style={[styles.badgeText, { color: styles2.text }]}>{cita.estado}</Text>
