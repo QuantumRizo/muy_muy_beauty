@@ -34,6 +34,7 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [clientInfo, setClientInfo] = useState({ nombre: '', telefono: '', email: '' })
+  const [isExistingClient, setIsExistingClient] = useState(false)
 
   // Real availability state
   const [availableSlots, setAvailableSlots] = useState<string[]>([])
@@ -140,6 +141,23 @@ export default function BookingPage() {
       checkAvailability()
     }
   }, [selectedDate, selectedSucursal, selectedServicios, perfiles])
+
+  // ─── CHECK EXISTING CLIENT ────────────────────────────────────
+  useEffect(() => {
+    if (clientInfo.telefono.length === 10) {
+      supabase.from('clientes').select('nombre_completo, email').eq('telefono_cel', clientInfo.telefono).maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setClientInfo(prev => ({ ...prev, nombre: data.nombre_completo, email: data.email || prev.email }))
+            setIsExistingClient(true)
+          } else {
+            setIsExistingClient(false)
+          }
+        })
+    } else {
+      setIsExistingClient(false)
+    }
+  }, [clientInfo.telefono])
 
   // ─── HANDLERS ─────────────────────────────────────────────────
   const toggleServicio = (s: Servicio) => {
@@ -427,18 +445,23 @@ export default function BookingPage() {
           <div className="animate-in" style={{ maxWidth: 600, margin: '0 auto' }}>
             <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8, letterSpacing: '-0.5px' }}>Tus datos</h1>
             <p style={{ color: '#6e6e73', marginBottom: 32 }}>Agenda lista, solo nos faltan tus detalles.</p>
+            {isExistingClient && (
+              <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '12px 16px', borderRadius: 12, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+                <Sparkles size={18} /> ¡Hola de nuevo! Encontramos tu cuenta.
+              </div>
+            )}
             <div style={{ background: '#fff', borderRadius: 20, padding: 24, border: '1px solid #efefef', marginBottom: 32 }}>
               <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 13, fontWeight: 700, color: '#86868b', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Nombre completo</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #efefef', paddingBottom: 12 }}><User size={18} color="#c7c7cc" /><input type="text" placeholder="Escribe tu nombre" value={clientInfo.nombre} onChange={e => setClientInfo(prev => ({ ...prev, nombre: e.target.value }))} style={{ border: 'none', width: '100%', fontSize: 16, outline: 'none' }} /></div>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#86868b', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>WhatsApp / Teléfono *</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #efefef', paddingBottom: 12 }}><Clock size={18} color="#c7c7cc" /><input type="tel" placeholder="Ej: 5512345678" value={clientInfo.telefono} onChange={e => setClientInfo(prev => ({ ...prev, telefono: sanitizePhone(e.target.value) }))} style={{ border: 'none', width: '100%', fontSize: 16, outline: 'none' }} /></div>
               </div>
               <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 13, fontWeight: 700, color: '#86868b', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>WhatsApp / Teléfono</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #efefef', paddingBottom: 12 }}><Clock size={18} color="#c7c7cc" /><input type="tel" placeholder="Ej: 5512345678" value={clientInfo.telefono} onChange={e => setClientInfo(prev => ({ ...prev, telefono: sanitizePhone(e.target.value) }))} style={{ border: 'none', width: '100%', fontSize: 16, outline: 'none' }} /></div>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#86868b', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Nombre completo *</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #efefef', paddingBottom: 12 }}><User size={18} color="#c7c7cc" /><input type="text" placeholder="Escribe tu nombre" value={clientInfo.nombre} onChange={e => setClientInfo(prev => ({ ...prev, nombre: e.target.value }))} style={{ border: 'none', width: '100%', fontSize: 16, outline: 'none' }} disabled={isExistingClient} /></div>
               </div>
               <div>
                 <label style={{ fontSize: 13, fontWeight: 700, color: '#86868b', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Correo electrónico (Opcional)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #efefef', paddingBottom: 12 }}><User size={18} color="#c7c7cc" /><input type="email" placeholder="Tu email" value={clientInfo.email} onChange={e => setClientInfo(prev => ({ ...prev, email: e.target.value }))} style={{ border: 'none', width: '100%', fontSize: 16, outline: 'none' }} /></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #efefef', paddingBottom: 12 }}><User size={18} color="#c7c7cc" /><input type="email" placeholder="Tu email" value={clientInfo.email} onChange={e => setClientInfo(prev => ({ ...prev, email: e.target.value }))} style={{ border: 'none', width: '100%', fontSize: 16, outline: 'none' }} disabled={isExistingClient} /></div>
               </div>
             </div>
             <div style={{ background: 'var(--primary-light)', borderRadius: 20, padding: 24, marginBottom: 32 }}>
@@ -464,7 +487,7 @@ export default function BookingPage() {
             <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: '#fff', boxShadow: '0 10px 20px var(--primary-light)' }}><CheckCircle size={40} /></div>
             <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12, letterSpacing: '-1px' }}>¡Cita agendada!</h1>
             <p style={{ color: '#6e6e73', fontSize: 17, lineHeight: 1.5, marginBottom: 40 }}>Gracias {clientInfo.nombre}. Hemos reservado tu lugar para el <strong>{selectedDate && format(selectedDate, 'd MMMM', { locale: es })}</strong> a las <strong>{selectedTime}</strong>.</p>
-            <div style={{ background: '#fff', borderRadius: 24, padding: 32, border: '1px solid #efefef', marginBottom: 40, textAlign: 'left' }}><div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}><Sparkles size={20} color="var(--accent)" /><span style={{ fontSize: 15, fontWeight: 700 }}>Recordatorio Importante</span></div><p style={{ fontSize: 14, color: '#6e6e73', lineHeight: 1.6 }}>Recibirás una confirmación por WhatsApp en unos momentos. Por favor llegar 10 minutos antes de tu cita. Si necesitas cancelar, avísanos con 24 horas de antelación.</p></div>
+            <div style={{ background: '#fff', borderRadius: 24, padding: 32, border: '1px solid #efefef', marginBottom: 40, textAlign: 'left' }}><div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}><Sparkles size={20} color="var(--accent)" /><span style={{ fontSize: 15, fontWeight: 700 }}>Recordatorio Importante</span></div><p style={{ fontSize: 14, color: '#6e6e73', lineHeight: 1.6 }}>Por favor llegar 10 minutos antes de tu cita. Si necesitas cancelar, avísanos con 24 horas de antelación.</p></div>
             <button onClick={() => window.location.href = '/'} style={{ padding: '16px 32px', borderRadius: '40px', background: '#f5f5f7', color: '#1d1d1f', border: 'none', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Volver al inicio</button>
           </div>
         )}
