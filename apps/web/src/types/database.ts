@@ -96,6 +96,7 @@ export interface Cita {
   estado: CitaStatus
   duracion_manual_slots: number | null
   comentarios: string | null
+  notas_cliente: string | null
   ticket_id: string | null
   created_at: string
 

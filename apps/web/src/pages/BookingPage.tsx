@@ -33,7 +33,7 @@ export default function BookingPage() {
 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [clientInfo, setClientInfo] = useState({ nombre: '', telefono: '', email: '' })
+  const [clientInfo, setClientInfo] = useState({ nombre: '', telefono: '', email: '', notas_cliente: '' })
   const [isExistingClient, setIsExistingClient] = useState(false)
 
   // Real availability state
@@ -230,7 +230,8 @@ export default function BookingPage() {
         fecha: dateStr,
         bloque_inicio: startTime,
         estado: 'Programada', // Changed from Pendiente to Programada
-        duracion_manual_slots: totalDuration
+        duracion_manual_slots: totalDuration,
+        notas_cliente: clientInfo.notas_cliente || null
       }).select().single()
 
       if (e2) throw e2
@@ -462,6 +463,18 @@ export default function BookingPage() {
               <div>
                 <label style={{ fontSize: 13, fontWeight: 700, color: '#86868b', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Correo electrónico (Opcional)</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #efefef', paddingBottom: 12 }}><User size={18} color="#c7c7cc" /><input type="email" placeholder="Tu email" value={clientInfo.email} onChange={e => setClientInfo(prev => ({ ...prev, email: e.target.value }))} style={{ border: 'none', width: '100%', fontSize: 16, outline: 'none' }} disabled={isExistingClient} /></div>
+              </div>
+              <div style={{ marginTop: 20 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#86868b', textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>¿Deseas agregar una nota? (Opcional)</label>
+                <textarea 
+                  placeholder="Ej: Alergias, detalles del servicio, etc." 
+                  value={clientInfo.notas_cliente} 
+                  onChange={e => setClientInfo(prev => ({ ...prev, notas_cliente: e.target.value }))} 
+                  style={{ 
+                    width: '100%', height: 100, border: '1px solid #efefef', borderRadius: 12, 
+                    padding: 12, fontSize: 15, outline: 'none', resize: 'none', background: '#f9f9f9' 
+                  }} 
+                />
               </div>
             </div>
             <div style={{ background: 'var(--primary-light)', borderRadius: 20, padding: 24, marginBottom: 32 }}>

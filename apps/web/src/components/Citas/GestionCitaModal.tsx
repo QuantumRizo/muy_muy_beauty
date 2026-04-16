@@ -428,6 +428,27 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
               <MessageSquare size={18} color="var(--accent)" /> Notas de la cita
             </h3>
+
+            {cita.notas_cliente && (
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Nota de Cliente (Inmutable)</label>
+                <div style={{
+                  width: '100%',
+                  background: 'var(--surface-3)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  padding: 12,
+                  fontSize: 13,
+                  color: 'var(--text-2)',
+                  fontStyle: 'italic',
+                  lineHeight: '1.5'
+                }}>
+                  {cita.notas_cliente}
+                </div>
+              </div>
+            )}
+
+            <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', display: 'block', marginBottom: 6, textTransform: 'uppercase' }}>Nota de Admin</label>
             <textarea
               autoFocus
               value={comentarios}

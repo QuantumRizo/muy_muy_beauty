@@ -40,7 +40,7 @@ export default function ReservarScreen() {
 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [clientInfo, setClientInfo] = useState({ nombre: '', telefono: '', email: '' })
+  const [clientInfo, setClientInfo] = useState({ nombre: '', telefono: '', email: '', notas_cliente: '' })
   const [storedClienteId, setStoredClienteId] = useState<string | null>(null)
   const [isExistingClient, setIsExistingClient] = useState(false)
 
@@ -238,7 +238,8 @@ export default function ReservarScreen() {
         fecha: dateStr,
         bloque_inicio: startTime,
         estado: 'Programada',
-        duracion_manual_slots: totalDuration
+        duracion_manual_slots: totalDuration,
+        notas_cliente: clientInfo.notas_cliente || null
       }).select().single()
 
       if (e2) throw e2
@@ -502,19 +503,29 @@ export default function ReservarScreen() {
                         editable={!isExistingClient}
                       />
                     </View>
-                  <View style={[styles.inputGroup, { borderBottomWidth: 0, paddingBottom: 0, marginBottom: 0 }]}>
-                    <Text style={styles.inputLabel}>Email (Opcional)</Text>
+                    <View style={[styles.inputGroup, { borderBottomWidth: 0, paddingBottom: 0, marginBottom: 0 }]}>
+                      <Text style={styles.inputLabel}>Email (Opcional)</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Correo electrónico"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        value={clientInfo.email}
+                        onChangeText={t => setClientInfo(prev => ({ ...prev, email: t }))}
+                        editable={!isExistingClient}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.formCard}>
+                    <Text style={styles.inputLabel}>¿Deseas agregar una nota? (Opcional)</Text>
                     <TextInput
-                      style={styles.input}
-                      placeholder="Correo electrónico"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      value={clientInfo.email}
-                      onChangeText={t => setClientInfo(prev => ({ ...prev, email: t }))}
-                      editable={!isExistingClient}
+                      style={[styles.input, { height: 80, textAlignVertical: 'top', paddingTop: 8 }]}
+                      placeholder="Ej: Alergias, detalles del servicio..."
+                      multiline
+                      value={clientInfo.notas_cliente}
+                      onChangeText={t => setClientInfo(prev => ({ ...prev, notas_cliente: t }))}
                     />
                   </View>
-                </View>
                 </>
               ) : (
                 <View style={styles.formCard}>
