@@ -35,13 +35,16 @@ const queryClient = new QueryClient({
 
 // ─── ADMIN SHELL (The Legacy System) ─────────────────────────────
 function AdminShell() {
-  const { session, loading } = useAuthContext()
+  const { session, loading, profile } = useAuthContext()
   const [section, setSection] = useState<Section>('inicio')
   const [pendingClient, setPendingClient] = useState<Cliente | null>(null)
   const [validatingCita, setValidatingCita] = useState<Cita | null>(null)
   const [ticketCita, setTicketCita] = useState<Cita | null>(null)
 
-  if (loading) return (
+  // Muestra spinner si:
+  // 1. Aún no sabemos si hay sesión (loading)
+  // 2. Hay sesión pero el perfil/rol del usuario aún no se ha cargado
+  if (loading || (session && !profile)) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
       <RefreshCw size={32} className="animate-spin" style={{ color: 'var(--accent)' }} />
     </div>
@@ -49,13 +52,17 @@ function AdminShell() {
 
   if (!session) return <Navigate to="/login" replace />
 
+  // Sección inicial según el rol (el perfil ya está garantizado aquí)
+  const isEmpleado = profile?.rol === 'empleado'
+  const effectiveSection = isEmpleado && section === 'inicio' ? 'agenda' : section
+
   return (
     <div className="app-shell">
-      <Sidebar current={section} onChange={setSection} />
+      <Sidebar current={effectiveSection} onChange={setSection} />
       <div className="main-area">
-        {section === 'inicio'        && <InicioPage />}
+        {effectiveSection === 'inicio'        && <InicioPage />}
         
-        {section === 'agenda' && (
+        {effectiveSection === 'agenda' && (
           <>
             {validatingCita ? (
               <ValidacionPage 
@@ -79,21 +86,21 @@ function AdminShell() {
           </>
         )}
 
-        {section === 'asistencia'    && <AsistenciaPage />}
-        {section === 'clientes'      && (
+        {effectiveSection === 'asistencia'    && <AsistenciaPage />}
+        {effectiveSection === 'clientes'      && (
           <ClientesPage onGoToAgenda={(c: Cliente) => { setPendingClient(c); setSection('agenda'); }} />
         )}
-        {section === 'inventario'    && <InventarioPage />}
-        {section === 'caja'          && <CajaPage />}
-        {section === 'venta-directa' && <VentaDirectaPage onFinish={() => setSection('inicio')} />}
-        {section === 'hoja'          && <HojaPage />}
-        {section === 'marketing'     && <MarketingPage />}
-        {section === 'documentos'    && <DocumentosPage />}
-        {section === 'estadisticas'  && <EstadisticasPage />}
-        {section === 'reportes'      && <ReportesPage />}
-        {section === 'facturacion'   && <FacturacionPage />}
-        {section === 'configuracion' && <ProfesionalesPage />}
-        {section === 'seguridad'     && <SeguridadPage />}
+        {effectiveSection === 'inventario'    && <InventarioPage />}
+        {effectiveSection === 'caja'          && <CajaPage />}
+        {effectiveSection === 'venta-directa' && <VentaDirectaPage onFinish={() => setSection('inicio')} />}
+        {effectiveSection === 'hoja'          && <HojaPage />}
+        {effectiveSection === 'marketing'     && <MarketingPage />}
+        {effectiveSection === 'documentos'    && <DocumentosPage />}
+        {effectiveSection === 'estadisticas'  && <EstadisticasPage />}
+        {effectiveSection === 'reportes'      && <ReportesPage />}
+        {effectiveSection === 'facturacion'   && <FacturacionPage />}
+        {effectiveSection === 'configuracion' && <ProfesionalesPage />}
+        {effectiveSection === 'seguridad'     && <SeguridadPage />}
       </div>
     </div>
   )

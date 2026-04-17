@@ -83,16 +83,22 @@ export default function Sidebar({ current, onChange }: Props) {
       </div>
 
       <div className="sidebar-nav" style={{ padding: '8px' }}>
-        {items.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            onClick={() => onChange(id)}
-            className={`nav-item ${current === id ? 'active' : ''}`}
-          >
-            <Icon size={16} />
-            {label}
-          </button>
-        ))}
+        {items
+          .filter(({ id }) => {
+            if (!profile || profile.rol === 'admin' || profile.rol === 'superadmin') return true
+            const allowedForEmpleado: Section[] = ['clientes', 'agenda', 'asistencia', 'venta-directa', 'caja']
+            return allowedForEmpleado.includes(id)
+          })
+          .map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => onChange(id)}
+              className={`nav-item ${current === id ? 'active' : ''}`}
+            >
+              <Icon size={16} />
+              {label}
+            </button>
+          ))}
         
         <div style={{ margin: '12px 0', borderTop: '1px solid var(--border)' }}></div>
         

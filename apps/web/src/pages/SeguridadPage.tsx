@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { Lock, RefreshCw, CheckCircle2, AlertCircle, Shield } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Lock, RefreshCw, CheckCircle2, AlertCircle, Shield, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import type { UserProfile } from '../context/AuthContext'
 
 export default function SeguridadPage() {
   const [password, setPassword] = useState('')
@@ -8,6 +9,40 @@ export default function SeguridadPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  // Gestión de usuarios
+  const [profiles, setProfiles] = useState<UserProfile[]>([])
+  const [loadingProfiles, setLoadingProfiles] = useState(true)
+
+  useEffect(() => {
+    fetchProfiles()
+  }, [])
+
+  const fetchProfiles = async () => {
+    setLoadingProfiles(true)
+    const { data, error } = await supabase
+      .from('perfiles_usuario')
+      .select('*')
+      .order('nombre', { ascending: true })
+    
+    if (!error && data) {
+      setProfiles(data)
+    }
+    setLoadingProfiles(false)
+  }
+
+  const handleRoleUpdate = async (userId: string, newRol: UserProfile['rol']) => {
+    const { error } = await supabase
+      .from('perfiles_usuario')
+      .update({ rol: newRol })
+      .eq('id', userId)
+
+    if (error) {
+      alert('Error al actualizar el rol')
+    } else {
+      setProfiles(prev => prev.map(p => p.id === userId ? { ...p, rol: newRol } : p))
+    }
+  }
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,102 +75,166 @@ export default function SeguridadPage() {
       <div className="page-header" style={{ padding: '24px 24px 0', marginBottom: 24 }}>
         <div className="page-header-content">
           <h1 className="page-title">Seguridad</h1>
-          <p className="page-subtitle">Gestiona tu acceso y mantén tu cuenta segura.</p>
+          <p className="page-subtitle">Gestiona accesos y roles de usuario.</p>
         </div>
       </div>
 
-      <div className="page-content" style={{ padding: '0 24px 24px', display: 'flex', justifyContent: 'center' }}>
-        <div className="stats-card" style={{ maxWidth: 460, width: '100%', margin: '0' }}>
-          <div style={{ padding: '10px 0 20px', textAlign: 'center' }}>
-            <div style={{ 
-              width: 56, height: 56, borderRadius: 16, background: 'var(--accent-light)', 
-              display: 'flex', alignItems: 'center', justifyContent: 'center', 
-              color: 'var(--accent)', margin: '0 auto 16px' 
-            }}>
-              <Shield size={28} />
+      <div className="page-content" style={{ padding: '0 24px 24px', overflowY: 'auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 24, paddingBottom: 24 }}>
+          
+          {/* Columna Izquierda: Cambio de Contraseña */}
+          <div className="stats-card" style={{ height: 'fit-content' }}>
+            <div style={{ padding: '10px 0 20px', textAlign: 'center' }}>
+              <div style={{ 
+                width: 56, height: 56, borderRadius: 16, background: 'var(--accent-light)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                color: 'var(--accent)', margin: '0 auto 16px' 
+              }}>
+                <Shield size={28} />
+              </div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-1)', marginBottom: 4 }}>Mi Contraseña</h2>
+              <p style={{ fontSize: 13, color: 'var(--text-3)' }}>Actualiza tu clave de acceso personal.</p>
             </div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-1)', marginBottom: 4 }}>Cambiar Contraseña</h2>
-            <p style={{ fontSize: 13, color: 'var(--text-3)' }}>Actualiza tu clave periódicamente para mayor protección.</p>
+
+            <div className="filter-divider" style={{ margin: '0 0 24px' }}></div>
+
+            {success && (
+              <div style={{ 
+                background: 'var(--success-bg)', color: 'var(--success)', 
+                padding: '16px', borderRadius: 12, marginBottom: 24, fontSize: 13,
+                display: 'flex', alignItems: 'center', gap: 12
+              }}>
+                <CheckCircle2 size={20} />
+                <div>
+                  <strong>¡Contraseña actualizada!</strong><br/>
+                  Tu nueva clave se ha guardado correctamente.
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div style={{ 
+                background: 'var(--danger-bg)', color: 'var(--danger)', 
+                padding: '16px', borderRadius: 12, marginBottom: 24, fontSize: 13,
+                display: 'flex', alignItems: 'center', gap: 12
+              }}>
+                <AlertCircle size={20} />
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div className="form-group">
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 8, display: 'block' }}>Nueva contraseña</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <Lock size={18} style={{ position: 'absolute', left: 14, color: 'var(--text-3)' }} />
+                  <input 
+                    type="password" 
+                    className="form-input" 
+                    style={{ padding: '12px 14px 12px 42px', fontSize: 14, borderRadius: 12 }}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 8, display: 'block' }}>Confirmar nueva contraseña</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <Lock size={18} style={{ position: 'absolute', left: 14, color: 'var(--text-3)' }} />
+                  <input 
+                    type="password" 
+                    className="form-input" 
+                    style={{ padding: '12px 14px 12px 42px', fontSize: 14, borderRadius: 12 }}
+                    placeholder="••••••••"
+                    value={confirm}
+                    onChange={e => setConfirm(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <button 
+                className="btn-primary" 
+                type="submit" 
+                disabled={loading} 
+                style={{ 
+                  justifyContent: 'center', padding: '14px', borderRadius: 12, 
+                  fontSize: 15, fontWeight: 600, marginTop: 10,
+                  boxShadow: '0 4px 12px var(--accent-mid)'
+                }}
+              >
+                {loading ? <RefreshCw size={20} className="animate-spin" /> : 'Actualizar contraseña'}
+              </button>
+            </form>
           </div>
 
-          <div className="filter-divider" style={{ margin: '0 0 24px' }}></div>
-
-          {success && (
-            <div style={{ 
-              background: 'var(--success-bg)', color: 'var(--success)', 
-              padding: '16px', borderRadius: 12, marginBottom: 24, fontSize: 13,
-              display: 'flex', alignItems: 'center', gap: 12
-            }}>
-              <CheckCircle2 size={20} />
-              <div>
-                <strong>¡Contraseña actualizada!</strong><br/>
-                Tu nueva clave se ha guardado correctamente.
+          {/* Columna Derecha: Gestión de Usuarios */}
+          <div className="stats-card" style={{ height: 'fit-content' }}>
+            <div style={{ padding: '10px 0 20px', textAlign: 'center' }}>
+              <div style={{ 
+                width: 56, height: 56, borderRadius: 16, background: 'var(--accent-light)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                color: 'var(--accent)', margin: '0 auto 16px' 
+              }}>
+                <Users size={28} />
               </div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-1)', marginBottom: 4 }}>Perfiles de Usuario</h2>
+              <p style={{ fontSize: 13, color: 'var(--text-3)' }}>Gestiona los roles y permisos del personal.</p>
             </div>
-          )}
 
-          {error && (
-            <div style={{ 
-              background: 'var(--danger-bg)', color: 'var(--danger)', 
-              padding: '16px', borderRadius: 12, marginBottom: 24, fontSize: 13,
-              display: 'flex', alignItems: 'center', gap: 12
-            }}>
-              <AlertCircle size={20} />
-              {error}
-            </div>
-          )}
+            <div className="filter-divider" style={{ margin: '0 0 12px' }}></div>
 
-          <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div className="form-group">
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 8, display: 'block' }}>Nueva contraseña</label>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <Lock size={18} style={{ position: 'absolute', left: 14, color: 'var(--text-3)' }} />
-                <input 
-                  type="password" 
-                  className="form-input" 
-                  style={{ padding: '12px 14px 12px 42px', fontSize: 14, borderRadius: 12 }}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                />
+            {loadingProfiles ? (
+              <div style={{ padding: '40px', textAlign: 'center' }}>
+                <RefreshCw size={24} className="animate-spin" style={{ color: 'var(--accent)', margin: '0 auto' }} />
               </div>
-            </div>
-
-            <div className="form-group">
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 8, display: 'block' }}>Confirmar nueva contraseña</label>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <Lock size={18} style={{ position: 'absolute', left: 14, color: 'var(--text-3)' }} />
-                <input 
-                  type="password" 
-                  className="form-input" 
-                  style={{ padding: '12px 14px 12px 42px', fontSize: 14, borderRadius: 12 }}
-                  placeholder="••••••••"
-                  value={confirm}
-                  onChange={e => setConfirm(e.target.value)}
-                  required
-                />
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                      <th style={{ textAlign: 'left', padding: '12px 8px', color: 'var(--text-3)', fontWeight: 600 }}>Nombre / Email</th>
+                      <th style={{ textAlign: 'center', padding: '12px 8px', color: 'var(--text-3)', fontWeight: 600 }}>Rol</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {profiles.map(p => (
+                      <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '12px 8px' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text-1)' }}>{p.nombre}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{p.email}</div>
+                        </td>
+                        <td style={{ padding: '12px 8px', textAlign: 'center' }}>
+                          <select 
+                            value={p.rol}
+                            onChange={(e) => handleRoleUpdate(p.id, e.target.value as UserProfile['rol'])}
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              background: p.rol === 'admin' ? 'var(--accent-light)' : 'var(--surface-2)',
+                              color: p.rol === 'admin' ? 'var(--accent)' : 'var(--text-2)',
+                              border: '1px solid var(--border)',
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value="admin">Admin</option>
+                            <option value="empleado">Empleado</option>
+                            <option value="superadmin">Superadmin</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
-
-            <button 
-              className="btn-primary" 
-              type="submit" 
-              disabled={loading} 
-              style={{ 
-                justifyContent: 'center', padding: '14px', borderRadius: 12, 
-                fontSize: 15, fontWeight: 600, marginTop: 10,
-                boxShadow: '0 4px 12px var(--accent-mid)'
-              }}
-            >
-              {loading ? <RefreshCw size={20} className="animate-spin" /> : 'Actualizar contraseña'}
-            </button>
-          </form>
-
-          <div style={{ marginTop: 32, padding: '16px', background: 'var(--surface-2)', borderRadius: 12, fontSize: 12, color: 'var(--text-3)', textAlign: 'center' }}>
-            <AlertCircle size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4, marginBottom: 2 }} />
-            Una vez actualizada, deberás usar la nueva clave la próxima vez que inicies sesión.
+            )}
           </div>
+
         </div>
       </div>
     </div>

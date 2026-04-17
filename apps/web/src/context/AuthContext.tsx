@@ -7,7 +7,7 @@ export interface UserProfile {
   id: string
   nombre: string
   email: string
-  rol: 'admin' | 'superadmin'
+  rol: 'admin' | 'superadmin' | 'empleado'
   avatar_url?: string
 }
 
@@ -39,42 +39,36 @@ export function AuthProvider({ children, queryClient }: { children: React.ReactN
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  
-  // Ref para evitar fetches de perfil duplicados
   const profileFetchedFor = useRef<string | null>(null)
 
   useEffect(() => {
-    // PASO 1: Obtener sesión inicial sincronamente (sin esperar perfil)
-    // Esto quita el loader lo antes posible.
+    // Carga inicial: obtener sesión. Loading=false en cuanto se sabe si hay sesión o no.
     supabase.auth.getSession()
-      .then(({ data: { session: initialSession } }) => {
-        setSession(initialSession)
-        setUser(initialSession?.user ?? null)
-        setLoading(false)
-
-        if (initialSession?.user && profileFetchedFor.current !== initialSession.user.id) {
-          profileFetchedFor.current = initialSession.user.id
-          fetchProfile(initialSession.user.id).then(p => setProfile(p))
+      .then(async ({ data: { session: s } }) => {
+        setSession(s)
+        setUser(s?.user ?? null)
+        if (s?.user && profileFetchedFor.current !== s.user.id) {
+          profileFetchedFor.current = s.user.id
+          const p = await fetchProfile(s.user.id)
+          setProfile(p)
         }
       })
-      .catch((err) => {
-        console.error('[Auth] getSession() falló:', err)
-        setLoading(false) // Garantizamos que el spinner siempre se quite
-      })
+      .catch(err => console.error('[Auth] getSession() falló:', err))
+      .finally(() => setLoading(false))
 
-    // PASO 2: Escuchar solo cambios POSTERIORES (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
-      // Ignorar INITIAL_SESSION porque ya lo manejamos arriba con getSession()
+    // Cambios posteriores (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, s) => {
       if (event === 'INITIAL_SESSION') return
 
-      setSession(currentSession)
-      setUser(currentSession?.user ?? null)
+      setSession(s)
+      setUser(s?.user ?? null)
       setLoading(false)
 
-      if (currentSession?.user) {
-        if (profileFetchedFor.current !== currentSession.user.id) {
-          profileFetchedFor.current = currentSession.user.id
-          fetchProfile(currentSession.user.id).then(p => setProfile(p))
+      if (s?.user) {
+        if (profileFetchedFor.current !== s.user.id) {
+          profileFetchedFor.current = s.user.id
+          const p = await fetchProfile(s.user.id)
+          setProfile(p)
         }
       } else {
         profileFetchedFor.current = null

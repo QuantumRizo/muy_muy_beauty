@@ -16,6 +16,7 @@ import { useSucursales } from '../hooks/useSucursales'
 import { useCitasSemana, useBloqueosSemana, useEliminarBloqueo } from '../hooks/useCitas'
 import type { Cliente, Cita, SlotInfo, BloqueoAgenda } from '../types/database'
 import { useToast } from '../components/Common/Toast'
+import { useAuthContext } from '../context/AuthContext'
 
 type Modal =
   | { type: 'none' }
@@ -44,6 +45,7 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
     startOfWeek(new Date(), { weekStartsOn: 1 })
   )
   const { selectedSucursalId: sucursalId } = useSucursalContext()
+  const { profile } = useAuthContext()
   const [modal, setModal] = useState<Modal>({ type: 'none' })
   const toast = useToast()
   const eliminarBloqueo = useEliminarBloqueo()
@@ -140,23 +142,25 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
         </div>
 
         <div className="page-header-actions">
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button 
-              className="btn-secondary" 
-              style={{ padding: '8px 14px', fontSize: 13, background: 'var(--surface)', border: '1px solid var(--border)' }}
-              onClick={() => setModal({ type: 'desbloquear' })}
-            >
-              Desbloqueo Horarios Masivo
-            </button>
-            <button 
-              className="btn-primary" 
-              style={{ padding: '8px 14px', fontSize: 13 }}
-              onClick={() => setModal({ type: 'bloquear' })}
-            >
-              Bloquear Horario
-            </button>
-          </div>
-          </div>
+          {(profile?.rol === 'admin' || profile?.rol === 'superadmin') && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button 
+                className="btn-secondary" 
+                style={{ padding: '8px 14px', fontSize: 13, background: 'var(--surface)', border: '1px solid var(--border)' }}
+                onClick={() => setModal({ type: 'desbloquear' })}
+              >
+                Desbloqueo Horarios Masivo
+              </button>
+              <button 
+                className="btn-primary" 
+                style={{ padding: '8px 14px', fontSize: 13 }}
+                onClick={() => setModal({ type: 'bloquear' })}
+              >
+                Bloquear Horario
+              </button>
+            </div>
+          )}
+        </div>
 
           {/* Week nav */}
           <div className="date-nav">
