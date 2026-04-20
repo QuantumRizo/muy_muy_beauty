@@ -10,6 +10,7 @@ import GestionCitaModal from '../components/Citas/GestionCitaModal'
 import BloqueoModal from '../components/Agenda/BloqueoModal'
 import BloqueoInfoModal from '../components/Agenda/BloqueoInfoModal'
 import DesbloqueoModal from '../components/Agenda/DesbloqueoModal'
+import CheckoutFlow from '../components/Citas/CheckoutFlow'
 import { useSucursalContext } from '../context/SucursalContext'
 import { useEmpleadas } from '../hooks/useEmpleadas'
 import { useSucursales } from '../hooks/useSucursales'
@@ -27,6 +28,7 @@ type Modal =
   | { type: 'bloquear' }
   | { type: 'desbloquear' }
   | { type: 'bloqueo-info'; bloqueo: BloqueoAgenda }
+  | { type: 'checkout';     cita: Cita }
 
 function getWeekDates(weekStart: Date): Date[] {
   return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -35,11 +37,9 @@ function getWeekDates(weekStart: Date): Date[] {
 interface Props {
   preselectedCliente?: Cliente | null
   onClearPreselected?: () => void
-  onValidarCita?: (cita: Cita) => void
 }
 
-
-export default function AgendaPage({ preselectedCliente, onClearPreselected, onValidarCita }: Props) {
+export default function AgendaPage({ preselectedCliente, onClearPreselected }: Props) {
 
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
@@ -218,10 +218,15 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected, onV
         <GestionCitaModal 
           cita={modal.cita} 
           onClose={closeModal} 
-          onValidar={onValidarCita ? () => {
-            closeModal()
-            onValidarCita?.(modal.cita)
-          } : undefined}
+          onValidar={() => setModal({ type: 'checkout', cita: modal.cita })}
+        />
+      )}
+
+      {modal.type === 'checkout' && (
+        <CheckoutFlow
+          cita={modal.cita}
+          onClose={closeModal}
+          onFinish={closeModal}
         />
       )}
 

@@ -844,7 +844,7 @@ body,
   width: 26px;
   height: 26px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: none;
   background: transparent;
   color: var(--text-2);
   display: flex;
@@ -1054,6 +1054,33 @@ select.form-input {
   background: var(--bg);
 }
 
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-icon:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text-1);
+}
+
+.btn-icon.danger {
+  color: var(--danger-3);
+}
+
+.btn-icon.danger:hover:not(:disabled) {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
 .btn-ghost {
   display: inline-flex;
   align-items: center;
@@ -1110,7 +1137,7 @@ select.form-input {
   color: var(--danger);
   font-size: 13px;
   font-weight: 500;
-  border: 1px solid rgba(220, 38, 38, 0.25);
+  border: none;
   cursor: pointer;
   transition: all 0.15s;
   font-family: inherit;
@@ -1423,9 +1450,14 @@ select.form-input {
 .cart-item-remove {
   color: var(--text-3);
   cursor: pointer;
-  padding: 2px;
-  border-radius: 4px;
+  padding: 4px;
+  border-radius: 6px;
   transition: all 0.1s;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cart-item-remove:hover {
@@ -2704,10 +2736,13 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .stats-section-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #f59e0b;
-  margin-bottom: 12px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+  opacity: 0.8;
 }
 
 /* Indicator Selector */

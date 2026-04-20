@@ -5,10 +5,9 @@ import { ToastProvider } from './components/Common/Toast'
 import Sidebar, { type Section } from './components/Layout/Sidebar'
 import AgendaPage from './pages/AgendaPage'
 import ClientesPage from './pages/ClientesPage'
-import ProfesionalesPage from './pages/ProfesionalesPage'
 import InventarioPage from './pages/InventarioPage'
-import DocumentosPage from './pages/DocumentosPage'
-import type { Cliente, Cita } from './types/database'
+import AdministracionPage from './pages/AdministracionPage'
+import type { Cliente } from './types/database'
 import { AuthProvider, useAuthContext } from './context/AuthContext'
 import { SucursalProvider } from './context/SucursalContext'
 import LoginPage from './pages/LoginPage'
@@ -16,17 +15,11 @@ import LandingPage from './pages/LandingPage'
 import BookingPage from './pages/BookingPage'
 import { RefreshCw } from 'lucide-react'
 
-import EstadisticasPage from "./pages/EstadisticasPage"
 import InicioPage from "./pages/InicioPage"
-import ValidacionPage from './pages/ValidacionPage'
-import TicketPage from './pages/TicketPage'
-import ReportesPage from './pages/ReportesPage'
-import FacturacionPage from './pages/FacturacionPage'
+import AnalisisPage from './pages/AnalisisPage'
 import CajaPage from './pages/CajaPage'
 import VentaDirectaPage from './pages/VentaDirectaPage'
-import HojaPage from './pages/HojaPage'
 import MarketingPage from './pages/MarketingPage'
-import SeguridadPage from './pages/SeguridadPage'
 import AsistenciaPage from './pages/AsistenciaPage'
 
 const queryClient = new QueryClient({
@@ -38,8 +31,6 @@ function AdminShell() {
   const { session, loading, profile } = useAuthContext()
   const [section, setSection] = useState<Section>('inicio')
   const [pendingClient, setPendingClient] = useState<Cliente | null>(null)
-  const [validatingCita, setValidatingCita] = useState<Cita | null>(null)
-  const [ticketCita, setTicketCita] = useState<Cita | null>(null)
 
   // 1. Aún no sabemos si hay sesión
   if (loading) return (
@@ -69,27 +60,10 @@ function AdminShell() {
         {effectiveSection === 'inicio'        && <InicioPage />}
         
         {effectiveSection === 'agenda' && (
-          <>
-            {validatingCita ? (
-              <ValidacionPage 
-                cita={validatingCita} 
-                onBack={() => setValidatingCita(null)}
-                onNext={(updated) => { setTicketCita(updated); setValidatingCita(null); }}
-              />
-            ) : ticketCita ? (
-              <TicketPage 
-                cita={ticketCita}
-                onBack={() => { setValidatingCita(ticketCita); setTicketCita(null); }}
-                onFinish={() => { setTicketCita(null); setValidatingCita(null); }}
-              />
-            ) : (
-              <AgendaPage 
-                preselectedCliente={pendingClient} 
-                onClearPreselected={() => setPendingClient(null)} 
-                onValidarCita={(cita) => setValidatingCita(cita)}
-              />
-            )}
-          </>
+          <AgendaPage 
+            preselectedCliente={pendingClient} 
+            onClearPreselected={() => setPendingClient(null)} 
+          />
         )}
 
         {effectiveSection === 'asistencia'    && <AsistenciaPage />}
@@ -99,14 +73,9 @@ function AdminShell() {
         {effectiveSection === 'inventario'    && <InventarioPage />}
         {effectiveSection === 'caja'          && <CajaPage />}
         {effectiveSection === 'venta-directa' && <VentaDirectaPage onFinish={() => setSection('inicio')} />}
-        {effectiveSection === 'hoja'          && <HojaPage />}
         {effectiveSection === 'marketing'     && <MarketingPage />}
-        {effectiveSection === 'documentos'    && <DocumentosPage />}
-        {effectiveSection === 'estadisticas'  && <EstadisticasPage />}
-        {effectiveSection === 'reportes'      && <ReportesPage />}
-        {effectiveSection === 'facturacion'   && <FacturacionPage />}
-        {effectiveSection === 'configuracion' && <ProfesionalesPage />}
-        {effectiveSection === 'seguridad'     && <SeguridadPage />}
+        {effectiveSection === 'analisis'      && <AnalisisPage />}
+        {effectiveSection === 'administracion' && <AdministracionPage />}
       </div>
     </div>
   )

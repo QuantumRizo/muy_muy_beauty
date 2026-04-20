@@ -19,7 +19,7 @@ export default function BuscadorModal({ onSelect, onNuevoCliente, onClose }: Pro
         {/* Header */}
         <div className="modal-header">
           <h2 className="modal-title">Buscar Cliente</h2>
-          <button onClick={onClose} className="modal-close-btn">
+          <button onClick={onClose} className="btn-icon">
             <X size={18} />
           </button>
         </div>

@@ -13,6 +13,8 @@ import PagoModal from '../components/Citas/PagoModal'
 import TicketPrintView from '../components/Citas/TicketPrintView'
 import { useToast } from '../components/Common/Toast'
 import { useSucursalContext } from '../context/SucursalContext'
+import ConfirmDialog from '../components/Common/ConfirmDialog'
+import AjusteImporte from '../components/Common/AjusteImporte'
 
 interface Props {
   onFinish?: () => void
@@ -56,7 +58,8 @@ export default function VentaDirectaPage({ onFinish: _onFinish }: Props) {
   const [descuentoInput, setDescuentoInput] = useState('')
   const [descuentoGlobal, setDescuentoGlobal] = useState(0)
 
-
+  // Confirm Dialog
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', action: () => {} })
 
   const { data: allProducts = [] } = useProductos()
   const { data: allServicios = [] } = useServicios()
@@ -132,12 +135,12 @@ export default function VentaDirectaPage({ onFinish: _onFinish }: Props) {
   const handleFinalizar = async () => {
     if (!sucursalId) { toast('Selecciona una sucursal', 'warning'); return }
     if (items.length === 0) { toast('Añade al menos un servicio o producto', 'warning'); return }
-    if (pendiente > 0) {
-      if (!window.confirm(`Quedan $${pendiente.toFixed(2)} pendientes. ¿Finalizar de todas formas?`)) return
-    }
-    setSaving(true)
-    try {
-      const tData = await crearTicket.mutateAsync({
+    
+    // Función real que guarda
+    const ejecutarGuardado = async () => {
+      setSaving(true)
+      try {
+        const tData = await crearTicket.mutateAsync({
         ticket: {
           sucursal_id: sucursalId,
           cliente_id: null,
@@ -186,6 +189,18 @@ export default function VentaDirectaPage({ onFinish: _onFinish }: Props) {
       setSaving(false)
     }
   }
+
+  if (pendiente > 0) {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Saldo Pendiente',
+      message: `Quedan $${pendiente.toFixed(2)} pendientes. ¿Finalizar de todas formas?`,
+      action: ejecutarGuardado
+    })
+  } else {
+    ejecutarGuardado()
+  }
+}
 
   const handleNuevaVenta = () => {
     setItems([])
@@ -480,48 +495,41 @@ export default function VentaDirectaPage({ onFinish: _onFinish }: Props) {
 
       {/* Modal Propina */}
       {showPropinaModal && (
-        <div className="modal-overlay" onClick={() => setShowPropinaModal(false)}>
-          <div className="modal-box" style={{ maxWidth: 360 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header"><h3 className="modal-title">Añadir propina</h3></div>
-            <div className="modal-body p-5">
-              <div className="form-group">
-                <label>Importe de propina (MXN)</label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 13, top: 11, color: 'var(--text-3)', fontSize: 16 }}>$</span>
-                  <input type="number" className="form-input" style={{ paddingLeft: 28, fontSize: 20, fontWeight: 700 }} value={propinaInput} onChange={e => setPropinaInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleConfirmPropina()} autoFocus min="0" step="10" />
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowPropinaModal(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={handleConfirmPropina}>Aplicar propina</button>
-            </div>
-          </div>
-        </div>
+        <AjusteImporte
+          label="Añadir propina"
+          subtitle="Importe de propina (MXN)"
+          value={propinaInput}
+          onValueChange={setPropinaInput}
+          onConfirm={handleConfirmPropina}
+          onClose={() => setShowPropinaModal(false)}
+        />
       )}
 
       {/* Modal Descuento */}
       {showDescuentoModal && (
-        <div className="modal-overlay" onClick={() => setShowDescuentoModal(false)}>
-          <div className="modal-box" style={{ maxWidth: 360 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header"><h3 className="modal-title">Aplicar descuento</h3></div>
-            <div className="modal-body p-5">
-              <div className="form-group">
-                <label>Monto del descuento (MXN)</label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 13, top: 11, color: 'var(--danger)', fontSize: 16 }}>-$</span>
-                  <input type="number" className="form-input" style={{ paddingLeft: 35, fontSize: 20, fontWeight: 700, color: 'var(--danger)' }} value={descuentoInput} onChange={e => setDescuentoInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleConfirmDescuento()} autoFocus min="0" max={subtotal} step="10" />
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 6 }}>Máximo: ${subtotal.toFixed(2)}</div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowDescuentoModal(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={handleConfirmDescuento}>Aplicar descuento</button>
-            </div>
-          </div>
-        </div>
+        <AjusteImporte
+          label="Aplicar descuento"
+          subtitle={`Monto del descuento (MXN) - Máximo local: $${subtotal.toFixed(2)}`}
+          value={descuentoInput}
+          onValueChange={setDescuentoInput}
+          isDanger
+          max={subtotal}
+          onConfirm={handleConfirmDescuento}
+          onClose={() => setShowDescuentoModal(false)}
+        />
       )}
+
+      {/* Reusable Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={() => {
+          confirmDialog.action()
+          setConfirmDialog({ ...confirmDialog, isOpen: false })
+        }}
+        onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+      />
     </div>
   )
 }

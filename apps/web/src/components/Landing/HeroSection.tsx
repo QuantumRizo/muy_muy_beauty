@@ -77,8 +77,7 @@ export default function HeroSection({ isMobile }: HeroSectionProps) {
             Atrevidas<br />
             Únicas<br />
             <span style={{
-              color: 'var(--accent)',
-              textShadow: '0 0 30px rgba(136, 176, 75, 0.3)'
+              color: 'var(--accent)'
             }}>Modernas</span>
           </h1>
 
@@ -112,7 +111,6 @@ export default function HeroSection({ isMobile }: HeroSectionProps) {
               minWidth: '220px',
               textDecoration: 'none',
               textAlign: 'center',
-              boxShadow: '0 10px 30px rgba(136, 176, 75, 0.4)',
               transition: 'all 0.3s ease'
             }}>
               Reserva tu cita

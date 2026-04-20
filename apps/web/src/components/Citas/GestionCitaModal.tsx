@@ -198,7 +198,7 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
                       onClick={() => toggleServicio(s.id)} 
                       className="cart-item-remove"
                       disabled={isLocked}
-                      style={{ cursor: isLocked ? 'default' : 'pointer' }}
+                      style={{ border: 'none', background: 'transparent' }}
                     >
                       <Trash2 size={14} />
                     </button>

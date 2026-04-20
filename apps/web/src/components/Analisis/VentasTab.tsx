@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
-import { Search, LockKeyhole } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import type { Sucursal } from '../types/database'
+import { Search, LockKeyhole, FileDown } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
+import type { Sucursal } from '../../types/database'
 import { format } from 'date-fns'
+import { downloadResumenVentasCSV } from '../../lib/exportReports'
 
-type Tab = 'ventas' | 'aplazados' | 'cajas'
+type SubTab = 'ventas' | 'aplazados' | 'cajas'
 
-export default function FacturacionPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('ventas')
+export default function VentasTab() {
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('ventas')
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   
-  // Fetch sucursales
   useEffect(() => {
     supabase.from('sucursales').select('*').order('nombre').then(({ data }) => {
       if (data) setSucursales(data)
@@ -18,65 +18,65 @@ export default function FacturacionPage() {
   }, [])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div className="page-header" style={{ padding: '24px 24px 0', marginBottom: 24 }}>
-        <div className="page-header-content">
-          <h1 className="page-title">Facturación</h1>
-          <p className="page-subtitle">Gestiona ventas, estados de cuenta y cortes de caja.</p>
-        </div>
-        <div style={{ display: 'flex', gap: 15, marginTop: 15 }}>
-          <button 
-            onClick={() => setActiveTab('ventas')}
-            style={{ 
-              background: 'transparent', border: 'none', padding: '10px 5px', fontSize: 14, 
-              fontWeight: activeTab === 'ventas' ? 600 : 400, 
-              color: activeTab === 'ventas' ? 'var(--accent)' : 'var(--text-2)',
-              borderBottom: activeTab === 'ventas' ? '2px solid var(--accent)' : '2px solid transparent',
-              cursor: 'pointer'
-            }}
-          >
-            Listado de ventas
-          </button>
-          <button 
-            onClick={() => setActiveTab('aplazados')}
-            style={{ 
-              background: 'transparent', border: 'none', padding: '10px 5px', fontSize: 14, 
-              fontWeight: activeTab === 'aplazados' ? 600 : 400, 
-              color: activeTab === 'aplazados' ? 'var(--accent)' : 'var(--text-2)',
-              borderBottom: activeTab === 'aplazados' ? '2px solid var(--accent)' : '2px solid transparent',
-              cursor: 'pointer'
-            }}
-          >
-            Pagos aplazados
-          </button>
-          <button 
-            onClick={() => setActiveTab('cajas')}
-            style={{ 
-              background: 'transparent', border: 'none', padding: '10px 5px', fontSize: 14, 
-              fontWeight: activeTab === 'cajas' ? 600 : 400, 
-              color: activeTab === 'cajas' ? 'var(--accent)' : 'var(--text-2)',
-              borderBottom: activeTab === 'cajas' ? '2px solid var(--accent)' : '2px solid transparent',
-              cursor: 'pointer'
-            }}
-          >
-            Buscador de cajas
-          </button>
-        </div>
+    <div className="animate-in">
+      <div style={{ display: 'flex', gap: 20, marginBottom: 24, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
+        <button 
+          onClick={() => setActiveSubTab('ventas')}
+          className={`tab-item-sub ${activeSubTab === 'ventas' ? 'active' : ''}`}
+        >
+          Listado de ventas
+        </button>
+        <button 
+          onClick={() => setActiveSubTab('aplazados')}
+          className={`tab-item-sub ${activeSubTab === 'aplazados' ? 'active' : ''}`}
+        >
+          Pagos aplazados
+        </button>
+        <button 
+          onClick={() => setActiveSubTab('cajas')}
+          className={`tab-item-sub ${activeSubTab === 'cajas' ? 'active' : ''}`}
+        >
+          Buscador de cajas
+        </button>
       </div>
 
-      <div className="page-content" style={{ padding: '0 24px 24px', flex: 1, overflowY: 'auto' }}>
-        {activeTab === 'ventas' && <VentasTab sucursales={sucursales} />}
-        {activeTab === 'aplazados' && <PagosAplazadosTab />}
-        {activeTab === 'cajas' && <CortesCajaTab />}
+      <div className="sub-tab-content">
+        {activeSubTab === 'ventas' && <VentasSubTab sucursales={sucursales} />}
+        {activeSubTab === 'aplazados' && <PagosAplazadosSubTab />}
+        {activeSubTab === 'cajas' && <CortesCajaSubTab />}
       </div>
+
+      <style>{`
+        .tab-item-sub {
+          background: transparent;
+          border: none;
+          padding: 10px 4px;
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-3);
+          cursor: pointer;
+          position: relative;
+          transition: all 0.2s;
+        }
+        .tab-item-sub:hover { color: var(--text-1); }
+        .tab-item-sub.active { color: var(--accent); font-weight: 700; }
+        .tab-item-sub.active::after {
+          content: '';
+          position: absolute;
+          bottom: -1px;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: var(--accent);
+        }
+      `}</style>
     </div>
   )
 }
 
-function VentasTab({ sucursales }: { sucursales: Sucursal[] }) {
+function VentasSubTab({ sucursales }: { sucursales: Sucursal[] }) {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-
   const [fechaInicio, setFechaInicio] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [fechaFin, setFechaFin] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [sucursalId, setSucursalId] = useState('all')
@@ -108,8 +108,8 @@ function VentasTab({ sucursales }: { sucursales: Sucursal[] }) {
         <div>
           <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 5, display: 'block' }}>Rango de Fechas</label>
           <div style={{ display: 'flex', gap: 10 }}>
-            <input className="form-input" type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} style={{ cursor: 'pointer' }} />
-            <input className="form-input" type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} style={{ cursor: 'pointer' }} />
+            <input className="form-input" type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
+            <input className="form-input" type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
           </div>
         </div>
         <div>
@@ -119,7 +119,17 @@ function VentasTab({ sucursales }: { sucursales: Sucursal[] }) {
             {sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
           </select>
         </div>
-        <button className="btn-primary" onClick={fetchVentas} style={{ height: 40 }}><Search size={16} /> Buscar</button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+          <button className="btn-primary" onClick={fetchVentas} style={{ height: 40 }}><Search size={16} /> Buscar</button>
+          <button 
+            className="btn-secondary-outline" 
+            onClick={() => downloadResumenVentasCSV(fechaInicio, fechaFin, sucursalId === 'all' ? sucursales.map(s => s.id) : [sucursalId])} 
+            style={{ height: 40 }}
+            title="Descargar Resumen Monetario por Sucursal"
+          >
+            <FileDown size={16} /> Resumen
+          </button>
+        </div>
       </div>
 
       {loading ? <p>Cargando ventas...</p> : (
@@ -159,13 +169,12 @@ function VentasTab({ sucursales }: { sucursales: Sucursal[] }) {
   )
 }
 
-function PagosAplazadosTab() {
+function PagosAplazadosSubTab() {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchPendientes = async () => {
     setLoading(true)
-    // Fetch tickets that are "Pendiente"
     const { data: tickets } = await supabase
       .from('tickets')
       .select('*, cliente:clientes(nombre_completo), sucursal:sucursales(nombre)')
@@ -173,11 +182,9 @@ function PagosAplazadosTab() {
       .order('fecha', { ascending: false })
 
     if (tickets) {
-      // Also fetch sum of payments for these to calculate exact "Pendiente"
       const tIds = tickets.map(t => t.id)
       if (tIds.length > 0) {
         const { data: pagos } = await supabase.from('pagos').select('ticket_id, importe').in('ticket_id', tIds)
-        
         const sumPagos = (pagos || []).reduce((acc: any, p: any) => {
           acc[p.ticket_id] = (acc[p.ticket_id] || 0) + Number(p.importe)
           return acc
@@ -243,10 +250,9 @@ function PagosAplazadosTab() {
   )
 }
 
-function CortesCajaTab() {
+function CortesCajaSubTab() {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-
   const [fechaInicio, setFechaInicio] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [fechaFin, setFechaFin] = useState(format(new Date(), 'yyyy-MM-dd'))
   
@@ -273,8 +279,8 @@ function CortesCajaTab() {
         <div>
           <label style={{ fontSize: 12, fontWeight: 600, marginBottom: 5, display: 'block' }}>Rango de Fechas</label>
           <div style={{ display: 'flex', gap: 10 }}>
-            <input className="form-input" type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} style={{ cursor: 'pointer' }} />
-            <input className="form-input" type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} style={{ cursor: 'pointer' }} />
+            <input className="form-input" type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
+            <input className="form-input" type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
           </div>
         </div>
         <button className="btn-primary" onClick={fetchCortes} style={{ height: 40 }}><Search size={16} /> Buscar</button>

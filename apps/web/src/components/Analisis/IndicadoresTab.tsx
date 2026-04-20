@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Search, ChevronDown, Calendar, ChevronRight, ChevronLeft, ChevronsUpDown } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import { CATEGORIAS, INDICATOR_CONFIG, formatCell } from '../lib/reportConfig'
-import { runQuery } from '../lib/reportQueries'
-import type { Sucursal } from '../types/database'
-import { useToast } from '../components/Common/Toast'
+import { supabase } from '../../lib/supabase'
+import { CATEGORIAS, INDICATOR_CONFIG, formatCell } from '../../lib/reportConfig'
+import { runQuery } from '../../lib/reportQueries'
+import type { Sucursal } from '../../types/database'
+import { useToast } from '../Common/Toast'
 
-export default function EstadisticasPage() {
+export default function IndicadoresTab() {
   const toast = useToast()
 
   // ─── Selector state ───────────────────────────────────────
@@ -32,7 +32,7 @@ export default function EstadisticasPage() {
 
   // ─── Pagination state ─────────────────────────────────────
   const [page, setPage] = useState(1)
-  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [rowsPerPage] = useState(10)
 
   // ─── Current indicator config ─────────────────────────────
   const config = selectedId ? INDICATOR_CONFIG[selectedId] : null
@@ -45,7 +45,7 @@ export default function EstadisticasPage() {
       setResultado(null)
       setPage(1)
     }
-  }, [selectedId])
+  }, [selectedId, config])
 
   // ─── Load branches ────────────────────────────────────────
   useEffect(() => {
@@ -68,7 +68,6 @@ export default function EstadisticasPage() {
     })).filter(cat => cat.items.length > 0)
   }, [search])
 
-  // ─── Calculate ────────────────────────────────────────────
   const handleCalculate = async () => {
     if (!selectedId) return
     setCalculating(true)
@@ -85,14 +84,10 @@ export default function EstadisticasPage() {
     }
   }
 
-  // ─── Exportar a Excel (CSV nativo UTF-8) ────────────────
   const handleExportExcel = () => {
     if (!resultado || !config) return
 
-    // 1. Cabeceras
     const headers = config.columns.map(c => `"${c.label.replace(/"/g, '""')}"`)
-    
-    // 2. Filas (limpiando comillas y usando punto para decimales)
     const rows = resultado.rows.map((row: any) => {
       return config.columns.map(c => {
         let val = row[c.key]
@@ -102,7 +97,6 @@ export default function EstadisticasPage() {
       })
     })
 
-    // 3. Totales (Footer)
     const footer = config.columns.map((col, i) => {
       if (i === 0) return '"Total:"'
       if (col.key === 'nombre' || col.key === 'tratamiento') return '""'
@@ -112,21 +106,17 @@ export default function EstadisticasPage() {
       return '"-"'
     })
 
-    // Construir CSV usando separador ';' para que Excel (Latam/España) lo auto-divida en columnas
     const csvContent = [
       headers.join(';'),
       ...rows.map((r: string[]) => r.join(';')),
       footer.join(';')
     ].join('\n')
 
-    // El BOM (Byte Order Mark) le dice a Excel que esto es nativo UTF-8 y no Windows-1252. Conserva los acentos.
     const BOM = '\uFEFF'
     const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
-    
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
-    // Nombre de archivo amigable
     const safeName = config.nombre.replace(/[/\\?%*:|"<>]/g, '-').replace(/\s+/g, '_')
     link.setAttribute('download', `Estadisticas_${safeName}_${fechaInicio}_al_${fechaFin}.csv`)
     document.body.appendChild(link)
@@ -134,20 +124,13 @@ export default function EstadisticasPage() {
     document.body.removeChild(link)
   }
 
-  // ─── Render ───────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div className="page-header" style={{ padding: '24px 24px 0', marginBottom: 24 }}>
-        <div className="page-header-content">
-          <h1 className="page-title">Estadísticas</h1>
-          <p className="page-subtitle">Genera reportes operativos y financieros detallados</p>
-        </div>
-      </div>
-
-      <div className="page-content" style={{ padding: '0 24px 24px' }}>
+    <div className="animate-in">
         <div className="stats-card">
         {/* Indicator selector */}
-        <div className="stats-section-label">Elige un indicador</div>
+        <div className="stats-section-label">
+          Configuración del Reporte
+        </div>
         <div className="indicator-selector-wrap">
           <div
             className={`indicator-selector-trigger ${isOpen ? 'open' : ''}`}
@@ -205,7 +188,6 @@ export default function EstadisticasPage() {
 
         {/* Filters */}
         <div className="stats-filters-grid">
-          {/* Visualización */}
           <div className="filter-group-box">
             <div className="filter-box-label">Visualización</div>
             <div className="filter-box-content">
@@ -213,22 +195,14 @@ export default function EstadisticasPage() {
                 <div className="filter-field">
                   <label>Fecha inicial</label>
                   <div className="input-with-icon">
-                    <input 
-                      type="date" 
-                      value={fechaInicio} 
-                      onChange={e => setFechaInicio(e.target.value)} 
-                    />
+                    <input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
                     <Calendar size={16} />
                   </div>
                 </div>
                 <div className="filter-field">
                   <label>F. final</label>
                   <div className="input-with-icon">
-                    <input 
-                      type="date" 
-                      value={fechaFin} 
-                      onChange={e => setFechaFin(e.target.value)} 
-                    />
+                    <input type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
                     <Calendar size={16} />
                   </div>
                 </div>
@@ -248,18 +222,13 @@ export default function EstadisticasPage() {
             </div>
           </div>
 
-          {/* Filtros contextuales */}
           <div className="filter-group-box">
             <div className="filter-box-label">Filtros</div>
             <div className="filter-box-content">
               <div className="filter-field w-full">
                 <label>Desglose</label>
                 <div className="input-with-icon">
-                  <select
-                    value={desglose}
-                    onChange={e => setDesglose(e.target.value)}
-                    disabled={!config}
-                  >
+                  <select value={desglose} onChange={e => setDesglose(e.target.value)} disabled={!config}>
                     {(config?.desgloseOptions ?? []).map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
@@ -271,11 +240,7 @@ export default function EstadisticasPage() {
               <div className="filter-field w-full">
                 <label>Ordenar por</label>
                 <div className="input-with-icon">
-                  <select
-                    value={sort}
-                    onChange={e => setSort(e.target.value)}
-                    disabled={!config}
-                  >
+                  <select value={sort} onChange={e => setSort(e.target.value)} disabled={!config}>
                     {(config?.sortOptions ?? []).map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
@@ -290,18 +255,10 @@ export default function EstadisticasPage() {
 
         {/* Actions */}
         <div className="stats-actions">
-          <button 
-            className="btn-secondary-outline"
-            onClick={handleExportExcel}
-            disabled={!resultado || calculating}
-          >
+          <button className="btn-secondary-outline" onClick={handleExportExcel} disabled={!resultado || calculating}>
             Exportar a Excel
           </button>
-          <button
-            className="btn-calculate"
-            onClick={handleCalculate}
-            disabled={calculating || !selectedId}
-          >
+          <button className="btn-calculate" onClick={handleCalculate} disabled={calculating || !selectedId}>
             {calculating ? 'Calculando...' : 'Calcular'}
           </button>
         </div>
@@ -313,7 +270,6 @@ export default function EstadisticasPage() {
           return (
           <div className="stats-results-area">
             <div className="result-table-wrap">
-              <div className="result-table-header-title">Resultado del cálculo estadístico</div>
               <table className="result-table">
                 <thead>
                   <tr>
@@ -352,44 +308,22 @@ export default function EstadisticasPage() {
               {/* Pagination */}
               <div className="result-pagination">
                 <div style={{ fontSize: 12, color: 'var(--text-3)' }}>
-                  {resultado.rows.length} resultados · mostrando {(page - 1) * rowsPerPage + 1}–{Math.min(page * rowsPerPage, resultado.rows.length)}
+                  {resultado.rows.length} resultados · {(page - 1) * rowsPerPage + 1}–{Math.min(page * rowsPerPage, resultado.rows.length)}
                 </div>
                 <div className="pagination-controls">
-                  <button
-                    className="pagination-arrow"
-                    style={{ background: 'none', border: 'none', cursor: page <= 1 ? 'default' : 'pointer', opacity: page <= 1 ? 0.3 : 1 }}
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page <= 1}
-                  >
+                  <button className="pagination-arrow" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>
                     <ChevronLeft size={16} />
                   </button>
                   <span style={{ fontSize: 13 }}>Página {page} de {totalPages}</span>
-                  <button
-                    className="pagination-arrow"
-                    style={{ background: 'none', border: 'none', cursor: page >= totalPages ? 'default' : 'pointer', opacity: page >= totalPages ? 0.3 : 1 }}
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page >= totalPages}
-                  >
+                  <button className="pagination-arrow" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>
                     <ChevronRight size={16} />
                   </button>
-                </div>
-                <div className="rows-per-page">
-                  <span>Filas:</span>
-                  <select
-                    value={rowsPerPage}
-                    onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1) }}
-                  >
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </select>
                 </div>
               </div>
             </div>
           </div>
           )
         })()}
-      </div>
       </div>
     </div>
   )

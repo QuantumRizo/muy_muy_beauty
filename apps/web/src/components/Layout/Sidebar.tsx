@@ -1,32 +1,53 @@
-import { Home, Calendar, Users, Briefcase, BarChart2, Package, Wallet, FileDown, FolderOpen, Receipt, ShoppingCart, ClipboardList, Megaphone, LogOut, Key, Clock } from 'lucide-react'
+import { Home, Calendar, Users, BarChart2, Package, Wallet, ShoppingCart, Megaphone, LogOut, Clock, Settings } from 'lucide-react'
 import { useEffect } from 'react'
 import { useSucursales } from '../../hooks/useSucursales'
 import { useAuthContext } from '../../context/AuthContext'
 import { useSucursalContext } from '../../context/SucursalContext'
 
-export type Section = 'inicio' | 'agenda' | 'asistencia' | 'clientes' | 'inventario' | 'documentos' | 'configuracion' | 'validacion' | 'cobro' | 'estadisticas' | 'reportes' | 'facturacion' | 'caja' | 'venta-directa' | 'hoja' | 'marketing' | 'seguridad'
+export type Section = 'inicio' | 'agenda' | 'asistencia' | 'clientes' | 'inventario' | 'documentos' | 'profesionales' | 'validacion' | 'cobro' | 'analisis' | 'caja' | 'venta-directa' | 'marketing' | 'seguridad' | 'administracion'
 
 interface Props {
   current: Section
   onChange: (s: Section) => void
 }
 
-const items: { id: Section; label: string; Icon: any }[] = [
-  { id: 'inicio',         label: 'Inicio',         Icon: Home         },
-  { id: 'clientes',       label: 'Clientes',       Icon: Users        },
-  { id: 'agenda',         label: 'Agenda',         Icon: Calendar     },
-  { id: 'asistencia',     label: 'Asistencia',     Icon: Clock        },
-  { id: 'venta-directa',  label: 'Venta Directa',  Icon: ShoppingCart },
-  { id: 'estadisticas',   label: 'Estadísticas',   Icon: BarChart2    },
-  { id: 'reportes',       label: 'Reportes',       Icon: FileDown     },
-  { id: 'hoja',           label: 'Eval. de Hoja',  Icon: ClipboardList },
-  { id: 'configuracion',  label: 'Profesionales',  Icon: Briefcase    },
-  { id: 'inventario',     label: 'Inventario',     Icon: Package      },
-  { id: 'facturacion',    label: 'Facturación',    Icon: Receipt      },
-  { id: 'caja',           label: 'Caja',           Icon: Wallet       },
-  { id: 'marketing',      label: 'Marketing',      Icon: Megaphone    },
-  { id: 'documentos',     label: 'Documentos',     Icon: FolderOpen   },
-  { id: 'seguridad',      label: 'Seguridad',      Icon: Key          },
+interface NavItem {
+  id: Section
+  label: string
+  Icon: any
+}
+
+interface NavGroup {
+  name: string
+  items: NavItem[]
+}
+
+const navGroups: NavGroup[] = [
+  {
+    name: 'Operaciones',
+    items: [
+      { id: 'inicio',         label: 'Inicio',         Icon: Home         },
+      { id: 'agenda',         label: 'Agenda',         Icon: Calendar     },
+      { id: 'clientes',       label: 'Clientes',       Icon: Users        },
+      { id: 'asistencia',     label: 'Asistencia',     Icon: Clock        },
+      { id: 'venta-directa',  label: 'Venta Directa',  Icon: ShoppingCart },
+      { id: 'caja',           label: 'Caja',           Icon: Wallet       },
+    ]
+  },
+  {
+    name: 'Análisis',
+    items: [
+      { id: 'analisis',       label: 'Análisis',       Icon: BarChart2    },
+    ]
+  },
+  {
+    name: 'Configuración',
+    items: [
+      { id: 'administracion', label: 'Administración', Icon: Settings      },
+      { id: 'inventario',     label: 'Inventario',     Icon: Package       },
+      { id: 'marketing',      label: 'Marketing',      Icon: Megaphone     },
+    ]
+  }
 ]
 
 export default function Sidebar({ current, onChange }: Props) {
@@ -83,24 +104,39 @@ export default function Sidebar({ current, onChange }: Props) {
       </div>
 
       <div className="sidebar-nav" style={{ padding: '8px' }}>
-        {items
-          .filter(({ id }) => {
+        {navGroups.map((group, groupIndex) => {
+          // Filter items based on user role
+          const allowedItems = group.items.filter(({ id }) => {
             if (!profile || profile.rol === 'admin' || profile.rol === 'superadmin') return true
             const allowedForEmpleado: Section[] = ['clientes', 'agenda', 'asistencia', 'venta-directa', 'caja']
             return allowedForEmpleado.includes(id)
           })
-          .map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              onClick={() => onChange(id)}
-              className={`nav-item ${current === id ? 'active' : ''}`}
-            >
-              <Icon size={16} />
-              {label}
-            </button>
-          ))}
+
+          // If no items in this group are allowed, don't render the group at all
+          if (allowedItems.length === 0) return null
+
+          return (
+            <div key={group.name} style={{ marginBottom: groupIndex < navGroups.length - 1 ? 16 : 0 }}>
+              {/* Minimalist Separator for groups after the first one */}
+              {groupIndex > 0 && (
+                <div style={{ margin: '0 8px 16px 8px', borderTop: '1px solid var(--border)', opacity: 0.5 }}></div>
+              )}
+              
+              {allowedItems.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => onChange(id)}
+                  className={`nav-item ${current === id ? 'active' : ''}`}
+                >
+                  <Icon size={16} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          )
+        })}
         
-        <div style={{ margin: '12px 0', borderTop: '1px solid var(--border)' }}></div>
+        <div style={{ margin: '16px 8px', borderTop: '1px solid var(--border)', opacity: 0.5 }}></div>
         
         <button className="nav-item" onClick={signOut} style={{ color: 'var(--danger)' }}>
           <LogOut size={16} />

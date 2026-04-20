@@ -45,3 +45,22 @@ export function useCrearCliente() {
     },
   })
 }
+// ─── Update cliente ───────────────────────────────────────────
+export function useActualizarCliente() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Cliente> }) => {
+      const { data, error } = await supabase
+        .from('clientes')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['clientes'] })
+    },
+  })
+}

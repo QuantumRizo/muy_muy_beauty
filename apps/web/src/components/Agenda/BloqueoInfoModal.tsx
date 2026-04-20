@@ -26,7 +26,7 @@ export default function BloqueoInfoModal({ bloqueo, empleadas, onClose, onDelete
             <Lock size={18} style={{ color: '#ef4444' }} />
             <h2 className="modal-title">Detalle de Bloqueo</h2>
           </div>
-          <button onClick={onClose} className="modal-close-btn">
+          <button onClick={onClose} className="btn-icon">
             <X size={18} />
           </button>
         </div>

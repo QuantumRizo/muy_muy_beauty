@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Search, UserPlus, CalendarPlus } from 'lucide-react'
 import { useClientes } from '../hooks/useClientes'
 import FormularioCliente from '../components/Clientes/FormularioCliente'
+import ClienteDetalleSlideOver from '../components/Clientes/ClienteDetalleSlideOver'
 import type { Cliente } from '../types/database'
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 export default function ClientesPage({ onGoToAgenda }: Props) {
   const [query, setQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null)
   const { data: clientes = [], isLoading } = useClientes(query)
 
   const initials = (name: string) =>
@@ -74,7 +76,11 @@ export default function ClientesPage({ onGoToAgenda }: Props) {
             </thead>
             <tbody>
               {clientes.map((c) => (
-                <tr key={c.id}>
+                <tr 
+                  key={c.id} 
+                  onClick={() => setSelectedCliente(c)}
+                  className="clickable-row"
+                >
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div className="cliente-avatar-sm">{initials(c.nombre_completo)}</div>
@@ -86,29 +92,47 @@ export default function ClientesPage({ onGoToAgenda }: Props) {
                   <td>{c.email || '—'}</td>
                   <td>{c.sucursal?.nombre || '—'}</td>
                   <td style={{ textAlign: 'right' }}>
-                    <button
-                      onClick={() => onGoToAgenda?.(c)}
-                      className="btn-secondary"
-                      style={{ padding: '6px 10px', fontSize: 11 }}
-                      title="Ir a la Agenda para buscar horario"
-                    >
-                      <CalendarPlus size={14} /> Agendar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onGoToAgenda?.(c) }}
+                        className="btn-secondary"
+                        style={{ padding: '6px 10px', fontSize: 11 }}
+                        title="Ir a la Agenda para buscar horario"
+                      >
+                        <CalendarPlus size={14} /> Agendar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
 
-      {/* New client modal */}
-      {showForm && (
-        <FormularioCliente
-          onCreated={() => setShowForm(false)}
-          onClose={() => setShowForm(false)}
-        />
-      )}
-    </div>
-  )
-}
+        {/* New client modal */}
+        {showForm && (
+          <FormularioCliente
+            onCreated={() => setShowForm(false)}
+            onClose={() => setShowForm(false)}
+          />
+        )}
+
+        {/* Detail slide-over */}
+        {selectedCliente && (
+          <ClienteDetalleSlideOver
+            cliente={selectedCliente}
+            onClose={() => setSelectedCliente(null)}
+          />
+        )}
+
+        <style>{`
+          .clickable-row {
+            cursor: pointer;
+            transition: background-color 0.1s ease;
+          }
+          .clickable-row:hover {
+            background-color: var(--bg);
+          }
+        `}</style>
+      </div>
+    )
+  }

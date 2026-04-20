@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { Ticket, TicketItem, Pago } from '../types/database'
 import { format } from 'date-fns'
@@ -181,5 +181,31 @@ export function useCrearTicketDirecto() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tickets'] })
     }
+  })
+}
+
+// ─── Tickets de un cliente ────────────────────────────────────
+export function useTicketsCliente(clienteId: string) {
+  return useQuery<Ticket[]>({
+    queryKey: ['tickets', 'cliente', clienteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tickets')
+        .select(`
+          *,
+          sucursal:sucursales(*),
+          vendedor:perfiles_empleadas(*),
+          items:ticket_items(*),
+          pagos:pagos(*)
+        `)
+        .eq('cliente_id', clienteId)
+        .order('fecha', { ascending: false })
+        .order('hora', { ascending: false })
+        .limit(10)
+
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!clienteId,
   })
 }

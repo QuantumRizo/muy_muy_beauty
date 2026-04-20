@@ -153,7 +153,7 @@ export default function NuevaCitaModal({
                       <div className="cart-item-name">{s.nombre}</div>
                       <div className="cart-item-meta">{s.duracion_slots * 15} min · ${s.precio}</div>
                     </div>
-                    <button type="button" onClick={() => toggleServicio(s.id)} className="cart-item-remove">
+                    <button type="button" onClick={() => toggleServicio(s.id)} className="cart-item-remove" style={{ border: 'none', background: 'transparent' }}>
                       <Trash2 size={14} />
                     </button>
                   </div>

@@ -132,7 +132,7 @@ export default function FormularioCliente({ onCreated, onClose }: Props) {
       <div className="modal-box modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">Nuevo Cliente</h2>
-          <button onClick={onClose} className="modal-close-btn"><X size={18} /></button>
+          <button onClick={onClose} className="btn-icon"><X size={18} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="form-body">

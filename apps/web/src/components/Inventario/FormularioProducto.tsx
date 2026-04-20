@@ -68,7 +68,7 @@ export default function FormularioProducto({ productoBase, onClose }: Props) {
       <div className="modal-box">
         <div className="modal-header">
           <h2 className="modal-title">{productoBase ? 'Editar producto' : 'Nuevo producto'}</h2>
-          <button onClick={onClose} className="modal-close-btn"><X size={16} /></button>
+          <button onClick={onClose} className="btn-icon"><X size={16} /></button>
         </div>
         
         <form onSubmit={handleSubmit} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>

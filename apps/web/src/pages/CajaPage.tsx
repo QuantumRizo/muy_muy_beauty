@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Wallet, DollarSign, CreditCard, CheckCircle, TrendingDown, TrendingUp, Clock, AlertTriangle } from 'lucide-react'
+import { Wallet, DollarSign, CreditCard, CheckCircle, Clock, TrendingUp, TrendingDown } from 'lucide-react'
 import { useCajaActiva, useAbrirCaja, useCerrarCaja, useCrearMovimientoCaja } from '../hooks/useCaja'
 import { useEmpleadas } from '../hooks/useEmpleadas'
 import { useSucursalContext } from '../context/SucursalContext'
 import { useToast } from '../components/Common/Toast'
 import KPICard from '../components/Dashboard/KPICard'
+import MovimientoManual from '../components/Common/MovimientoManual'
 
 
 export default function CajaPage() {
@@ -16,23 +17,14 @@ export default function CajaPage() {
   const [empleadaAperturaId, setEmpleadaAperturaId] = useState('')
   const abrirCaja = useAbrirCaja()
 
-  // ─── Modal Gasto ─────────────────────────────────────────────
-  const [showGastoModal, setShowGastoModal] = useState(false)
-  const [gastoMonto, setGastoMonto] = useState(0)
-  const [gastoConcepto, setGastoConcepto] = useState('')
-  const [gastoEmpleadaId, setGastoEmpleadaId] = useState('')
-
-  // ─── Modal Ingreso Extra ──────────────────────────────────────
-  const [showIngresoModal, setShowIngresoModal] = useState(false)
-  const [ingresoMonto, setIngresoMonto] = useState(0)
-  const [ingresoConcepto, setIngresoConcepto] = useState('')
-  const [ingresoEmpleadaId, setIngresoEmpleadaId] = useState('')
+  // ─── Modal Movimiento (Gasto/Ingreso) ─────────────────────────
+  const [showMovimientoModal, setShowMovimientoModal] = useState(false)
+  const [movimientoTipo, setMovimientoTipo] = useState<'gasto' | 'ingreso'>('gasto')
 
   const crearMovimiento = useCrearMovimientoCaja()
 
   // ─── Modal Cierre ─────────────────────────────────────────────
   const [showCierreModal, setShowCierreModal] = useState(false)
-  const [showCierreConfirmModal, setShowCierreConfirmModal] = useState(false)
   const [montoReal, setMontoReal] = useState(0)
   const [notasCierre, setNotasCierre] = useState('')
   const cerrarCaja = useCerrarCaja()
@@ -56,45 +48,20 @@ export default function CajaPage() {
     }
   }
 
-  const handleGuardarGasto = async () => {
-    if (!gastoConcepto || gastoMonto <= 0) { toast('Faltan datos en el gasto', 'warning'); return }
+  const handleGuardarMovimiento = async (data: { tipo: 'Gasto / Salida' | 'Ingreso Extra'; monto: number; concepto: string; empleadaId: string }) => {
     try {
       if (!cajaInfo?.turno.id) return
       await crearMovimiento.mutateAsync({
         turno_caja_id: cajaInfo.turno.id,
-        tipo: 'Gasto / Salida',
-        monto: gastoMonto,
-        concepto: gastoConcepto,
-        empleada_id: gastoEmpleadaId || null
+        tipo: data.tipo,
+        monto: data.monto,
+        concepto: data.concepto,
+        empleada_id: data.empleadaId || null
       })
-      setShowGastoModal(false)
-      setGastoMonto(0)
-      setGastoConcepto('')
-      setGastoEmpleadaId('')
+      setShowMovimientoModal(false)
     } catch (e) {
       console.error(e)
       toast('Error al registrar movimiento', 'error')
-    }
-  }
-
-  const handleGuardarIngreso = async () => {
-    if (!ingresoConcepto || ingresoMonto <= 0) { toast('Faltan datos del ingreso', 'warning'); return }
-    try {
-      if (!cajaInfo?.turno.id) return
-      await crearMovimiento.mutateAsync({
-        turno_caja_id: cajaInfo.turno.id,
-        tipo: 'Ingreso Extra',
-        monto: ingresoMonto,
-        concepto: ingresoConcepto,
-        empleada_id: ingresoEmpleadaId || null
-      })
-      setShowIngresoModal(false)
-      setIngresoMonto(0)
-      setIngresoConcepto('')
-      setIngresoEmpleadaId('')
-    } catch (e) {
-      console.error(e)
-      toast('Error al registrar ingreso', 'error')
     }
   }
 
@@ -107,7 +74,6 @@ export default function CajaPage() {
         montoReal: montoReal,
         notas: notasCierre
       })
-      setShowCierreConfirmModal(false)
       setShowCierreModal(false)
       toast('Caja cerrada correctamente', 'success')
     } catch (e) {
@@ -210,11 +176,11 @@ export default function CajaPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 
-          <button className="btn-secondary" style={{ height: '34px', fontSize: '11px', padding: '0 12px' }} onClick={() => setShowIngresoModal(true)}>
-            <TrendingUp size={14} /> Ingreso
+          <button className="btn-secondary" style={{ height: '34px', fontSize: '11px', padding: '0 12px' }} onClick={() => { setMovimientoTipo('ingreso'); setShowMovimientoModal(true) }}>
+            Ingreso
           </button>
-          <button className="btn-secondary" style={{ height: '34px', fontSize: '11px', padding: '0 12px' }} onClick={() => setShowGastoModal(true)}>
-            <TrendingDown size={14} /> Gasto
+          <button className="btn-secondary" style={{ height: '34px', fontSize: '11px', padding: '0 12px' }} onClick={() => { setMovimientoTipo('gasto'); setShowMovimientoModal(true) }}>
+            Gasto
           </button>
           <button className="btn-primary" style={{ height: '34px', fontSize: '11px', padding: '0 12px', background: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={() => {
             setMontoReal(t.efectivoEsperado)
@@ -358,187 +324,80 @@ export default function CajaPage() {
 
       {/* ─── MODALES ─────────────────────────────────────────────── */}
 
-      {/* Modal Gasto */}
-      {showGastoModal && (
-        <div className="modal-overlay" onClick={() => setShowGastoModal(false)}>
-          <div className="modal-box" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">Registrar Gasto (Salida de Efectivo)</h3>
-            </div>
-            <div className="modal-body p-5">
-              <div className="form-group mb-4">
-                <label>Concepto / Motivo</label>
-                <input type="text" className="form-input" placeholder="Ej. Compra de material..." value={gastoConcepto} onChange={e => setGastoConcepto(e.target.value)} autoFocus />
-              </div>
-              <div className="form-group mb-4">
-                <label>Monto extraído ($)</label>
-                <input type="number" className="form-input" value={gastoMonto} onChange={e => setGastoMonto(Number(e.target.value))} min="0" step="10" />
-              </div>
-              <div className="form-group">
-                <label>Empleada que retira (Opcional)</label>
-                <select className="form-input" value={gastoEmpleadaId} onChange={e => setGastoEmpleadaId(e.target.value)}>
-                  <option value="">-- Seleccionar --</option>
-                  {empleadas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowGastoModal(false)}>Cancelar</button>
-              <button className="btn-danger" onClick={handleGuardarGasto} disabled={crearMovimiento.isPending}>
-                Registrar Gasto
-              </button>
-            </div>
-          </div>
-        </div>
+      {showMovimientoModal && (
+        <MovimientoManual
+          tipo={movimientoTipo}
+          empleadas={empleadas}
+          isPending={crearMovimiento.isPending}
+          onClose={() => setShowMovimientoModal(false)}
+          onConfirm={handleGuardarMovimiento}
+        />
       )}
 
-      {/* Modal Ingreso Extra */}
-      {showIngresoModal && (
-        <div className="modal-overlay" onClick={() => setShowIngresoModal(false)}>
-          <div className="modal-box" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">Registrar Ingreso Extra</h3>
-            </div>
-            <div className="modal-body p-5">
-              <div className="form-group mb-4">
-                <label>Concepto / Descripción</label>
-                <input type="text" className="form-input" placeholder="Ej. Cambio de billete, depósito..." value={ingresoConcepto} onChange={e => setIngresoConcepto(e.target.value)} autoFocus />
-              </div>
-              <div className="form-group mb-4">
-                <label>Monto ingresado ($)</label>
-                <input type="number" className="form-input" value={ingresoMonto} onChange={e => setIngresoMonto(Number(e.target.value))} min="0" step="10" />
-              </div>
-              <div className="form-group">
-                <label>Empleada responsable (Opcional)</label>
-                <select className="form-input" value={ingresoEmpleadaId} onChange={e => setIngresoEmpleadaId(e.target.value)}>
-                  <option value="">-- Seleccionar --</option>
-                  {empleadas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowIngresoModal(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={handleGuardarIngreso} disabled={crearMovimiento.isPending}>
-                <TrendingUp size={16} /> Registrar Ingreso
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Cierre (Paso 1: ingresar monto) */}
+      {/* Modal Cierre — todo en un paso */}
       {showCierreModal && (
         <div className="modal-overlay" onClick={() => setShowCierreModal(false)}>
-          <div className="modal-box" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">Cierre de Caja (Corte)</h3>
+          <div className="modal-box" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header" style={{ background: 'var(--danger-bg)', borderBottom: '1px solid rgba(220,38,38,0.2)' }}>
+              <h3 className="modal-title" style={{ color: 'var(--danger)' }}>Cierre de Caja</h3>
             </div>
-            <div className="modal-body p-6" style={{ background: 'var(--bg)' }}>
-              
-              <div style={{ padding: 15, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Fondo Inicial:</span>
-                  <span style={{ fontWeight: 600 }}>${t.fondoInicial.toFixed(2)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Ventas Efectivo:</span>
-                  <span style={{ fontWeight: 600 }}>${t.ventasEfectivo.toFixed(2)}</span>
-                </div>
-                {t.ingresosExtra > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Ingresos Extra:</span>
-                    <span style={{ fontWeight: 600, color: 'var(--success)' }}>+${t.ingresosExtra.toFixed(2)}</span>
+            <div className="modal-body p-5" style={{ background: 'var(--bg)' }}>
+              {/* Resumen */}
+              <div style={{ padding: 14, background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 20 }}>
+                {[
+                  { label: 'Fondo Inicial', value: t.fondoInicial, color: undefined },
+                  { label: 'Ventas Efectivo', value: t.ventasEfectivo, color: undefined },
+                  ...(t.ingresosExtra > 0 ? [{ label: 'Ingresos Extra', value: t.ingresosExtra, color: 'var(--success)' as string }] : []),
+                  { label: 'Gastos / Retiros', value: -t.gastos, color: 'var(--danger)' as string },
+                ].map(row => (
+                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13 }}>
+                    <span style={{ color: 'var(--text-2)' }}>{row.label}:</span>
+                    <span style={{ fontWeight: 600, color: row.color }}>{row.value >= 0 ? '+' : ''}${row.value.toFixed(2)}</span>
                   </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Gastos / Retiros:</span>
-                  <span style={{ fontWeight: 600, color: 'var(--danger)' }}>-${t.gastos.toFixed(2)}</span>
-                </div>
+                ))}
                 <div style={{ borderTop: '1px solid var(--border)', margin: '10px 0' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, color: 'var(--accent)' }}>
-                  <span>Efectivo Total Esperado:</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 800, color: 'var(--accent)' }}>
+                  <span>Esperado en cajón:</span>
                   <span>${t.efectivoEsperado.toFixed(2)}</span>
                 </div>
               </div>
 
-              <div className="form-group mb-4">
-                <label style={{ fontSize: 14, fontWeight: 600 }}>¿Cuánto efectivo real hay en caja?</label>
+              {/* Input monto real */}
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 600 }}>¿Cuánto efectivo real hay en caja?</label>
                 <div style={{ position: 'relative', marginTop: 8 }}>
-                  <span style={{ position: 'absolute', left: 15, top: 12, color: 'var(--text-3)', fontSize: 18 }}>$</span>
-                  <input 
-                    type="number" 
-                    className="form-input" 
-                    style={{ paddingLeft: 35, height: 50, fontSize: 24, fontWeight: 700, color: 'var(--text-1)' }}
-                    value={montoReal} 
-                    onChange={e => setMontoReal(Number(e.target.value))} 
+                  <span style={{ position: 'absolute', left: 14, top: 11, color: 'var(--text-3)', fontSize: 18 }}>$</span>
+                  <input
+                    type="number"
+                    className="form-input"
+                    style={{ paddingLeft: 32, height: 50, fontSize: 24, fontWeight: 800 }}
+                    value={montoReal}
+                    onChange={e => setMontoReal(Number(e.target.value))}
+                    autoFocus
                   />
                 </div>
                 {montoReal !== t.efectivoEsperado && (
-                  <div style={{ marginTop: 8, fontSize: 12, color: montoReal > t.efectivoEsperado ? 'var(--success)' : 'var(--danger)', fontWeight: 600 }}>
-                    Diferencia de: ${(montoReal - t.efectivoEsperado).toFixed(2)} MXN
+                  <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: montoReal > t.efectivoEsperado ? 'var(--success)' : 'var(--danger)' }}>
+                    Diferencia: {montoReal > t.efectivoEsperado ? '+' : ''}${(montoReal - t.efectivoEsperado).toFixed(2)} MXN
                   </div>
                 )}
               </div>
 
               <div className="form-group">
                 <label>Notas de Cierre (Opcional)</label>
-                <textarea 
-                  className="form-input" 
+                <textarea
+                  className="form-input"
                   rows={2}
-                  placeholder="Justificación de faltantes/sobrantes..." 
-                  value={notasCierre} 
-                  onChange={e => setNotasCierre(e.target.value)} 
+                  placeholder="Justificación de faltantes/sobrantes..."
+                  value={notasCierre}
+                  onChange={e => setNotasCierre(e.target.value)}
                 />
               </div>
-
             </div>
             <div className="modal-footer">
               <button className="btn-secondary" onClick={() => setShowCierreModal(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={() => {
-                setShowCierreModal(false)
-                setShowCierreConfirmModal(true)
-              }}>
-                <Wallet size={16} /> Continuar → Confirmar Cierre
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Cierre (Paso 2: Confirmación visual) */}
-      {showCierreConfirmModal && (
-        <div className="modal-overlay">
-          <div className="modal-box" style={{ maxWidth: 400 }}>
-            <div className="modal-header" style={{ background: 'var(--danger-bg)', borderBottom: '1px solid var(--danger)' }}>
-              <AlertTriangle size={20} color="var(--danger)" />
-              <h3 className="modal-title" style={{ color: 'var(--danger)' }}>Confirmar Cierre de Caja</h3>
-            </div>
-            <div className="modal-body p-6">
-              <p style={{ marginBottom: 20, fontSize: 14, color: 'var(--text-2)', lineHeight: 1.6 }}>
-                Estás a punto de cerrar el turno de caja. Esta acción <strong>no se puede revertir</strong>.
-              </p>
-              <div style={{ padding: 15, background: 'var(--surface-2)', borderRadius: 8, fontSize: 13 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span>Efectivo esperado:</span>
-                  <span style={{ fontWeight: 700 }}>${t.efectivoEsperado.toFixed(2)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span>Efectivo contado:</span>
-                  <span style={{ fontWeight: 700 }}>${montoReal.toFixed(2)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 15, color: montoReal >= t.efectivoEsperado ? 'var(--success)' : 'var(--danger)' }}>
-                  <span>Diferencia:</span>
-                  <span>{montoReal >= t.efectivoEsperado ? '+' : ''}{(montoReal - t.efectivoEsperado).toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => {
-                setShowCierreConfirmModal(false)
-                setShowCierreModal(true)
-              }}>← Volver</button>
               <button className="btn-danger" onClick={handleCerrarCaja} disabled={cerrarCaja.isPending}>
-                {cerrarCaja.isPending ? 'Cerrando...' : 'Confirmar Cierre'}
+                <Wallet size={15} /> {cerrarCaja.isPending ? 'Cerrando...' : 'Confirmar Cierre'}
               </button>
             </div>
           </div>
