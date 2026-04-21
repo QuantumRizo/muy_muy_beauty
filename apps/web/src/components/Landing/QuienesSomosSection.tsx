@@ -19,7 +19,7 @@ export default function QuienesSomosSection({ isMobile }: QuienesSomosSectionPro
       <div style={{
         position: 'absolute',
         inset: 0,
-        backgroundImage: 'url(/who_we_are.png)',
+        backgroundImage: 'url(/who_we_are.webp)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         opacity: 0.7,
@@ -80,7 +80,7 @@ export default function QuienesSomosSection({ isMobile }: QuienesSomosSectionPro
           fontWeight: 600,
           cursor: 'pointer',
           transition: 'all 0.3s ease',
-          backdropFilter: 'blur(10px)'
+          backdropFilter: 'none'
         }}>
           Descubre nuestra historia
         </button>

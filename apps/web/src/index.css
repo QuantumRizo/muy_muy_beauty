@@ -19,7 +19,7 @@
   --kpi-gradient: linear-gradient(135deg, var(--kpi) 0%, #0f7a35 100%);
 
   /* Imagen de Fondo Landing (debe estar en la carpeta public) */
-  --hero-image: url('/esmaltado permanente_compressed.webp');
+  --hero-image: url('/hero.webp');
   --text-1: #111827;
   --text-2: #6b7280;
   --text-3: #9ca3af;

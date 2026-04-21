@@ -3,7 +3,7 @@ import { useParams, Link, Navigate } from 'react-router-dom'
 import { FAMILIES_DATA } from '../data/servicesData'
 import LandingNavbar from '../components/Landing/LandingNavbar'
 import ContactSection from '../components/Landing/ContactSection'
-import { ArrowLeft, Clock, Sparkles } from 'lucide-react'
+import { ArrowLeft, Clock } from 'lucide-react'
 
 export default function ServiceFamilyPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -81,13 +81,6 @@ export default function ServiceFamilyPage() {
           
           {/* DESCRIPTION */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', color: 'var(--accent)' }}>
-              <div style={{ width: '40px', height: '1px', background: 'currentColor' }} />
-              <span style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '2px', fontSize: '13px' }}>Experiencia Muy Muy</span>
-            </div>
-            <h2 style={{ fontSize: 'clamp(32px, 4vw, 48px)', marginBottom: '32px', lineHeight: 1.1 }}>
-              Excelencia en cada detalle para tu bienestar.
-            </h2>
             <p style={{ fontSize: '18px', lineHeight: 1.7, color: '#444', marginBottom: '48px' }}>
               {family.description}
             </p>
@@ -106,7 +99,6 @@ export default function ServiceFamilyPage() {
               boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
             }}>
               Reservar ahora
-              <Sparkles size={18} />
             </Link>
           </div>
 

@@ -119,7 +119,7 @@ export default function HeroSection({ isMobile }: HeroSectionProps) {
               background: 'rgba(255,255,255,0.1)',
               color: '#fff',
               border: '1px solid rgba(255,255,255,0.3)',
-              backdropFilter: 'blur(10px)',
+              backdropFilter: 'none',
               padding: '20px 42px',
               borderRadius: '40px',
               fontSize: '18px',

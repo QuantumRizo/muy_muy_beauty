@@ -8,14 +8,23 @@ export default function LandingNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50)
+    let ticking = false
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setIsScrolled(window.scrollY > 50)
+          ticking = false
+        })
+        ticking = true
+      }
+    }
     const handleResize = () => setIsMobile(window.innerWidth < 900)
 
     handleScroll()
     handleResize()
 
-    window.addEventListener('scroll', handleScroll)
-    window.addEventListener('resize', handleResize)
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleResize, { passive: true })
     return () => {
       window.removeEventListener('scroll', handleScroll)
       window.removeEventListener('resize', handleResize)
@@ -28,8 +37,8 @@ export default function LandingNavbar() {
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
-      background: isScrolled ? 'rgba(255,255,255,0.8)' : (isMobile ? '#fff' : 'transparent'),
-      backdropFilter: isScrolled ? 'blur(20px)' : 'none',
+      background: isScrolled ? 'rgba(255,255,255,0.98)' : (isMobile ? '#fff' : 'transparent'),
+      backdropFilter: 'none',
       height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '0 24px', transition: 'all 0.4s ease',
       borderBottom: (isScrolled || isMobile) ? '1px solid #f2f2f2' : 'none',

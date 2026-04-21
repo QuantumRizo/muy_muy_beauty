@@ -4,6 +4,7 @@ import HeroSection from '../components/Landing/HeroSection'
 import QuienesSomosSection from '../components/Landing/QuienesSomosSection'
 import ServicesSection from '../components/Landing/ServicesSection'
 import ProductosSection from '../components/Landing/ProductosSection'
+import DownloadAppSection from '../components/Landing/DownloadAppSection'
 import ContactSection from '../components/Landing/ContactSection'
 
 export default function LandingPage() {
@@ -23,6 +24,7 @@ export default function LandingPage() {
       <QuienesSomosSection isMobile={isMobile} />
       <ServicesSection />
       <ProductosSection isMobile={isMobile} />
+      <DownloadAppSection isMobile={isMobile} />
       <ContactSection />
 
       <style>{`
@@ -38,7 +40,6 @@ export default function LandingPage() {
         @media (max-width: 768px) {
           .desktop-only { display: none; }
         }
-        * { scroll-behavior: smooth; }
       `}</style>
     </div>
   )
