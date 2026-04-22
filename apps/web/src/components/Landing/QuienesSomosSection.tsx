@@ -4,7 +4,7 @@ interface QuienesSomosSectionProps {
 
 export default function QuienesSomosSection({ isMobile }: QuienesSomosSectionProps) {
   return (
-    <section id="quienes-somos" style={{
+    <section id="welcome" style={{
       position: 'relative',
       padding: isMobile ? '60px 24px' : '80px 24px',
       minHeight: isMobile ? 'auto' : '350px',

@@ -17,6 +17,20 @@ export default function LandingPage() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  // Handle scroll to hash on mount and hash change
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash) {
+      const id = hash.replace('#', '')
+      const element = document.getElementById(id)
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' })
+        }, 100)
+      }
+    }
+  }, [])
+
   return (
     <div className="landing-editorial" style={{ background: '#fff', color: '#1d1d1f', fontFamily: '"Inter", -apple-system, sans-serif' }}>
       <LandingNavbar />
