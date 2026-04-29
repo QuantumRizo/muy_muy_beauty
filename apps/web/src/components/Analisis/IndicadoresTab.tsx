@@ -101,7 +101,10 @@ export default function IndicadoresTab() {
       if (i === 0) return '"Total:"'
       if (col.key === 'nombre' || col.key === 'tratamiento') return '""'
       if (col.type === 'percent') return '"100%"'
-      if (col.type === 'money') return `"${resultado.totals.total?.toFixed(2) || '0.00'}"`
+      if (col.type === 'money') {
+        const val = resultado.totals[col.key] ?? resultado.totals.total
+        return `"${val?.toFixed(2) || '0.00'}"`
+      }
       if (col.key === 'cantidad') return `"${resultado.totals.cantidad || '0'}"`
       return '"-"'
     })
@@ -297,7 +300,10 @@ export default function IndicadoresTab() {
                       if (i === 0) return <td key={col.key} align="right"><strong>Total:</strong></td>
                       if (col.key === 'nombre' || col.key === 'tratamiento') return <td key={col.key} />
                       if (col.type === 'percent') return <td key={col.key} align="right">100 %</td>
-                      if (col.type === 'money') return <td key={col.key} align="right"><strong>{formatCell(resultado.totals.total, 'money')}</strong></td>
+                      if (col.type === 'money') {
+                        const val = resultado.totals[col.key] ?? resultado.totals.total
+                        return <td key={col.key} align="right"><strong>{formatCell(val, 'money')}</strong></td>
+                      }
                       if (col.key === 'cantidad') return <td key={col.key} align="right"><strong>{resultado.totals.cantidad?.toLocaleString('es-MX')}</strong></td>
                       return <td key={col.key} align="right">—</td>
                     })}

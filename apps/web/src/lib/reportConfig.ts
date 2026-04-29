@@ -214,6 +214,23 @@ export const INDICATOR_CONFIG: Record<string, IndicatorConfig> = {
     ],
     defaultDesglose: 'estado', sortOptions: SORT_COUNT_NAME, defaultSort: 'cantidad_desc',
   },
+  '4.0': {
+    id: '4.0', nombre: '4.0.- Facturación Neta (Ingresos - Gastos)', categoria: '4',
+    columns: [
+      { key: 'nombre', label: 'Concepto', type: 'text', align: 'left' },
+      { key: 'ingresos', label: 'Ingresos', type: 'money', align: 'right' },
+      { key: 'gastos', label: 'Gastos', type: 'money', align: 'right' },
+    ],
+    desgloseOptions: [
+      { value: 'concepto', label: 'Por concepto general' },
+      { value: 'familia', label: 'Por familia de servicios' },
+      { value: 'servicio', label: 'Por servicio específico' }
+    ],
+    defaultDesglose: 'familia',
+    sortOptions: [{ value: 'ingresos_desc', label: 'Ingresos ↓' }, { value: 'gastos_desc', label: 'Gastos ↓' }],
+    defaultSort: 'ingresos_desc',
+    footerLabels: { ingresos: 'Total', gastos: 'Total', total: 'Resultado Neto' },
+  },
   '4.1.1': {
     id: '4.1.1', nombre: '4.1.1.- Facturación total', categoria: '4',
     columns: [
@@ -404,6 +421,7 @@ export const CATEGORIAS = [
   {
     id: '4', nombre: '4. Facturación',
     items: [
+      INDICATOR_CONFIG['4.0'],
       INDICATOR_CONFIG['4.1.1'],
       INDICATOR_CONFIG['4.1.2'],
       INDICATOR_CONFIG['4.4.1'],

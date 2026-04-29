@@ -59,13 +59,14 @@ interface Props {
   isLoading?: boolean
   citas: Cita[]
   bloqueos: BloqueoAgenda[]
+  empleadasConEntrada?: Set<string>  // IDs de empleadas que llegaron hoy
   onSlotClick: (empleadaId: string, hora: string, fecha: string) => void
   onCitaClick: (cita: Cita) => void
   onBloqueoClick?: (bloqueo: BloqueoAgenda) => void
 }
 
 export default function AgendaGrid({
-  weekDates, empleadas, sucursal, isLoading, citas, bloqueos,
+  weekDates, empleadas, sucursal, isLoading, citas, bloqueos, empleadasConEntrada,
   onSlotClick, onCitaClick, onBloqueoClick,
 }: Props) {
 
@@ -273,20 +274,49 @@ export default function AgendaGrid({
                         {empBloqueos.map((b) => {
                           const start = timeToSlot(b.hora_inicio)
                           const end   = timeToSlot(b.hora_fin)
+                          const isComida = b.origen === 'comida'
                           return (
                             <div
                               key={b.id}
-                              className="bloqueo-block"
-                              onClick={() => onBloqueoClick?.(b)}
+                              className={`bloqueo-block${isComida ? ' bloqueo-comida' : ''}`}
+                              onClick={() => {
+                                // Los bloqueos de comida no abren el modal de info
+                                if (!isComida) onBloqueoClick?.(b)
+                              }}
                               style={{
                                 top: start * slotHeight,
                                 height: (end - start) * slotHeight,
+                                cursor: isComida ? 'default' : 'pointer',
                               }}
+                              title={isComida ? '🍽 Empleada en comida (1h)' : b.motivo}
                             >
                               {/* Solo se ven las líneas de cancelación */}
                             </div>
                           )
                         })}
+
+                        {/* Overlay: sin entrada hoy (solo aplica al día de hoy) */}
+                        {isToday(date) && !isVirtual(col) && empleadasConEntrada && !empleadasConEntrada.has(col.id) && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              background: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0,0,0,0.04) 4px, rgba(0,0,0,0.04) 8px)',
+                              backgroundColor: 'rgba(var(--surface-rgb, 255,255,255), 0.6)',
+                              pointerEvents: 'all',
+                              cursor: 'not-allowed',
+                              zIndex: 2,
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              justifyContent: 'center',
+                              paddingTop: 8,
+                            }}
+                            title="Sin registro de entrada hoy"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <span style={{ fontSize: 9, color: 'var(--text-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', background: 'var(--surface)', padding: '2px 4px', borderRadius: 3 }}>Sin entrada</span>
+                          </div>
+                        )}
 
                         {/* Citas */}
                         {empCitas.map((cita) => {

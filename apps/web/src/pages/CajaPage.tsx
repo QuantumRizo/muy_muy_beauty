@@ -13,7 +13,7 @@ export default function CajaPage() {
   const toast = useToast()
 
   const { data: cajaInfo, isLoading } = useCajaActiva(activeSucursal)
-  const [montoApertura, setMontoApertura] = useState(0)
+  const [montoAperturaStr, setMontoAperturaStr] = useState('')
   const [empleadaAperturaId, setEmpleadaAperturaId] = useState('')
   const abrirCaja = useAbrirCaja()
 
@@ -32,7 +32,8 @@ export default function CajaPage() {
   const { data: empleadas = [] } = useEmpleadas(activeSucursal || undefined)
 
   const handleAbrirCaja = async () => {
-    if (montoApertura < 0) { toast('Monto inválido', 'warning'); return }
+    const montoApertura = Number(montoAperturaStr)
+    if (isNaN(montoApertura) || montoApertura < 0) { toast('Monto inválido', 'warning'); return }
     if (!activeSucursal) { toast('Selecciona una sucursal', 'warning'); return }
     try {
       await abrirCaja.mutateAsync({ 
@@ -40,7 +41,7 @@ export default function CajaPage() {
         montoEfectivo: montoApertura,
         empleadaId: empleadaAperturaId || undefined
       })
-      setMontoApertura(0)
+      setMontoAperturaStr('')
       setEmpleadaAperturaId('')
     } catch (e) {
       console.error(e)
@@ -137,9 +138,22 @@ export default function CajaPage() {
                     type="number" 
                     className="form-input" 
                     style={{ paddingLeft: 32, height: 44, fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}
-                    value={montoApertura}
-                    onChange={e => setMontoApertura(Number(e.target.value))}
-                    min="0" step="10"
+                    value={montoAperturaStr}
+                    onChange={e => setMontoAperturaStr(e.target.value)}
+                    onBlur={() => {
+                      if (!montoAperturaStr) {
+                        setMontoAperturaStr('0.00')
+                      } else {
+                        const val = Number(montoAperturaStr)
+                        if (!isNaN(val)) setMontoAperturaStr(val.toFixed(2))
+                      }
+                    }}
+                    onFocus={(e) => {
+                      if (e.target.value === '0.00' || e.target.value === '0') {
+                        setMontoAperturaStr('')
+                      }
+                    }}
+                    min="0" step="0.01"
                   />
                 </div>
               </div>
@@ -195,19 +209,12 @@ export default function CajaPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           {/* Dashboard Metrics Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
             <KPICard 
               title="Ventas Efectivo" 
               value={new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(t.ventasEfectivo)}
               Icon={DollarSign}
               subtitle={`+ Fondo: $${t.fondoInicial.toFixed(0)}`}
-              variant="accent"
-            />
-            <KPICard 
-              title="Tarjeta / Otros" 
-              value={new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(t.ventasTarjeta + t.ventasOtros)}
-              Icon={CreditCard}
-              subtitle={`T: $${t.ventasTarjeta.toFixed(0)} | O: $${t.ventasOtros.toFixed(0)}`}
               variant="accent"
             />
             <KPICard 

@@ -13,6 +13,7 @@ interface TicketPrintViewProps {
     descuento: number
     pagos: Pago[]
     pendiente: number
+    propina?: number
   }
 }
 
@@ -109,6 +110,12 @@ export default function TicketPrintView({ cita, ticketData }: TicketPrintViewPro
             <span>Total compra:</span>
             <span className="total-amount">{ticketData.total.toFixed(2)} $</span>
           </div>
+          {(ticketData.propina ?? 0) > 0 && (
+            <div className="total-row" style={{ fontSize: 12, marginTop: 5, color: '#555' }}>
+              <span>Propina (No incluida):</span>
+              <span>+{ticketData.propina!.toFixed(2)} $</span>
+            </div>
+          )}
         </div>
 
         {/* Pagos */}

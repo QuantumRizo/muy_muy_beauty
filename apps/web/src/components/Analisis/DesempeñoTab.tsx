@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react'
-import { CheckSquare, Square, ChevronLeft, ChevronRight, FileCheck, User, Save, TrendingUp, AlertCircle, FileDown } from 'lucide-react'
+import { CheckSquare, Square, ChevronLeft, ChevronRight, FileCheck, User, Save, TrendingUp, AlertCircle } from 'lucide-react'
 import { useEmpleadas } from '../../hooks/useEmpleadas'
 import { useEvaluacionesHoja, useGuardarEvaluacion, useComisionesHoja } from '../../hooks/useHoja'
-import { downloadLiquidacionComisionesCSV } from '../../lib/exportReports'
+
 import { useToast } from '../Common/Toast'
 
 const MESES = [
@@ -168,18 +168,6 @@ export default function DesempeñoTab() {
                     <span className="label">Total Comisiones del Mes</span>
                   </div>
                 </div>
-                
-                <button 
-                  className="btn-secondary-outline" 
-                  style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-                  onClick={() => {
-                    const fi = `${anio}-${String(mes).padStart(2, '0')}-01`
-                    const ff = new Date(anio, mes, 0).toISOString().split('T')[0]
-                    downloadLiquidacionComisionesCSV(fi, ff)
-                  }}
-                >
-                  <FileDown size={16} /> Exportar Excel
-                </button>
              </div>
 
               <div className="alert-info">

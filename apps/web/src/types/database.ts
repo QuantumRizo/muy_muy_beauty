@@ -124,6 +124,7 @@ export interface BloqueoAgenda {
   hora_inicio: string
   hora_fin: string
   motivo: string
+  origen: 'manual' | 'comida' | 'sin_entrada'
 }
 
 export interface Ticket {

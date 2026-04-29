@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { applySort } from './reportConfig'
+import { calcularPorcentaje, type CommissionThreshold } from './commissions'
 
 // ─── Result Types ─────────────────────────────────────────────
 
@@ -14,6 +15,9 @@ export interface ReportRow {
   total_citas?: number
   tratamiento?: string
   porcentaje?: number
+  tipo?: string
+  ingresos?: number
+  gastos?: number
 }
 
 export interface ReportResult {
@@ -63,6 +67,7 @@ export async function runQuery(
     case '3.1':   return q_no_asistidas_pct(desglose, sort, fechaInicio, fechaFin, sucursalId)
     case '3.5':   return q_desglose_no_asistidas(desglose, sort, fechaInicio, fechaFin, sucursalId)
     case '3.7':   return q_citas_agenda(desglose, sort, fechaInicio, fechaFin, sucursalId)
+    case '4.0':  return q_facturacion_neta(desglose, sort, fechaInicio, fechaFin, sucursalId)
     case '4.1.1': return q_facturacion(desglose, sort, fechaInicio, fechaFin, sucursalId, false)
     case '4.1.2': return q_facturacion(desglose, sort, fechaInicio, fechaFin, sucursalId, true)
     case '4.4.1': return q_facturacion_tratamiento(desglose, sort, fechaInicio, fechaFin, sucursalId)
@@ -496,7 +501,179 @@ async function q_citas_agenda(desglose: string, sort: string, fi: string, ff: st
   return { rows: applySort(rows, sort), totals: buildTotals(rows) }
 }
 
-// ─── 4.1.1 / 4.1.2 Facturación / Ventas ─────────────────────
+// ─── 4.0 Facturación Neta (Ingresos – Gastos) ─────────────────
+
+async function q_facturacion_neta(desglose: string, sort: string, fi: string, ff: string, suc: string): Promise<ReportResult> {
+  // ─── 1. INGRESOS: Total de tickets pagados (sin propina) ───
+  let ingresosQuery = supabase
+    .from('ticket_items')
+    .select('total, nombre, tipo, ticket:tickets!inner(fecha, estado, sucursal_id)')
+    .eq('ticket.estado', 'Pagado')
+    .gte('ticket.fecha', fi).lte('ticket.fecha', ff)
+  if (suc !== 'all') ingresosQuery = ingresosQuery.eq('ticket.sucursal_id', suc)
+  const { data: ticketsItems, error: ticketsErr } = await ingresosQuery
+  if (ticketsErr) throw ticketsErr
+
+  let totalIngresos = 0
+  const ingresosGroups: Record<string, number> = {}
+
+  if (desglose === 'familia') {
+    const { data: servicios } = await supabase.from('servicios').select('nombre, familia')
+    const familiaMap: Record<string, string> = {}
+    servicios?.forEach(s => { familiaMap[s.nombre] = s.familia || 'Otros' })
+    
+    ;(ticketsItems || []).forEach((t: any) => {
+      totalIngresos += (t.total || 0)
+      let groupName = 'Ingresos - Otros'
+      if (t.tipo === 'Servicio') groupName = `Ingresos - ${familiaMap[t.nombre] || 'Otros'}`
+      if (t.tipo === 'Producto') groupName = `Ingresos - Productos`
+      
+      ingresosGroups[groupName] = (ingresosGroups[groupName] || 0) + (t.total || 0)
+    })
+  } else if (desglose === 'servicio') {
+    ;(ticketsItems || []).forEach((t: any) => {
+      totalIngresos += (t.total || 0)
+      const groupName = `Ingresos - ${t.nombre || 'Desconocido'}`
+      ingresosGroups[groupName] = (ingresosGroups[groupName] || 0) + (t.total || 0)
+    })
+  } else {
+    // desglose === 'concepto'
+    ;(ticketsItems || []).forEach((t: any) => {
+      totalIngresos += (t.total || 0)
+    })
+    ingresosGroups['Ingresos por Ventas'] = totalIngresos
+  }
+
+  // ─── 2. GASTO: Sueldos (sueldo_diario × días con registro de Entrada) ───
+  let asistQuery = supabase
+    .from('asistencia')
+    .select('empleada_id, created_at, tipo')
+    .gte('created_at', `${fi}T00:00:00`)
+    .lte('created_at', `${ff}T23:59:59`)
+  if (suc !== 'all') asistQuery = asistQuery.eq('sucursal_id', suc)
+  const { data: asistencia, error: asistErr } = await asistQuery
+  if (asistErr) throw asistErr
+
+  // Filtrar solo 'Entrada' para contar días trabajados
+  const entradas = (asistencia || []).filter((a: any) => a.tipo === 'Entrada')
+
+  // Contar días únicos por empleada
+  const diasPorEmpleada: Record<string, Set<string>> = {}
+  entradas.forEach((a: any) => {
+    const empId = a.empleada_id
+    if (!empId) return
+    if (!diasPorEmpleada[empId]) diasPorEmpleada[empId] = new Set()
+    diasPorEmpleada[empId].add(new Date(a.created_at).toISOString().split('T')[0])
+  })
+
+  // Traer sueldos diarios de las empleadas
+  const { data: emps, error: empsErr } = await supabase
+    .from('perfiles_empleadas')
+    .select('id, sueldo_diario')
+    .eq('activo', true)
+  if (empsErr) throw empsErr
+
+  let totalSueldos = 0
+  ;(emps || []).forEach((emp: any) => {
+    const dias = diasPorEmpleada[emp.id]?.size || 0
+    totalSueldos += dias * (emp.sueldo_diario || 0)
+  })
+
+  // ─── 3. GASTO: Costo de inventario (productos vendidos) ───
+  let itemQuery = supabase
+    .from('ticket_items')
+    .select('total, cantidad, referencia_id, ticket:tickets!inner(fecha, estado, sucursal_id)')
+    .eq('tipo', 'Producto')
+    .eq('ticket.estado', 'Pagado')
+    .gte('ticket.fecha', fi).lte('ticket.fecha', ff)
+  if (suc !== 'all') itemQuery = itemQuery.eq('ticket.sucursal_id', suc)
+  const { data: prodItems, error: prodErr } = await itemQuery
+  if (prodErr) throw prodErr
+
+  const productIds = Array.from(new Set((prodItems || []).map((i: any) => i.referencia_id).filter(Boolean)))
+  let totalCostoInventario = 0
+  if (productIds.length > 0) {
+    const { data: products } = await supabase
+      .from('productos')
+      .select('id, precio_costo')
+      .in('id', productIds)
+    const costMap: Record<string, number> = {}
+    products?.forEach((p: any) => { costMap[p.id] = p.precio_costo || 0 })
+    ;(prodItems || []).forEach((i: any) => {
+      totalCostoInventario += (i.cantidad || 0) * (costMap[i.referencia_id] || 0)
+    })
+  }
+
+  // ─── 4. GASTO: Comisiones del periodo ───
+  const [anioStr, mesStr] = fi.split('-')
+  const mesNum = parseInt(mesStr, 10)
+  const anioNum = parseInt(anioStr, 10)
+
+  let ventaQuery = supabase
+    .from('ticket_items')
+    .select('vendedor_id, total, ticket:tickets!inner(fecha, estado, sucursal_id)')
+    .eq('ticket.estado', 'Pagado')
+    .gte('ticket.fecha', fi).lte('ticket.fecha', ff)
+  if (suc !== 'all') ventaQuery = ventaQuery.eq('ticket.sucursal_id', suc)
+  const { data: ventaItems, error: ventaErr } = await ventaQuery
+  if (ventaErr) throw ventaErr
+
+  const ventasPorVendedor: Record<string, number> = {}
+  ;(ventaItems || []).forEach((item: any) => {
+    const vid = item.vendedor_id
+    if (!vid) return
+    ventasPorVendedor[vid] = (ventasPorVendedor[vid] || 0) + (Number(item.total) || 0)
+  })
+
+  const { data: evals } = await supabase
+    .from('evaluaciones_hoja')
+    .select('empleada_id, cumplio_hoja')
+    .eq('mes', mesNum)
+    .eq('anio', anioNum)
+
+  const evalMap: Record<string, boolean> = {}
+  ;(evals || []).forEach((ev: any) => {
+    if (ev.cumplio_hoja) evalMap[ev.empleada_id] = true
+    else if (!(ev.empleada_id in evalMap)) evalMap[ev.empleada_id] = false
+  })
+
+  const { data: config } = await supabase
+    .from('config_comisiones')
+    .select('*')
+    .order('umbral', { ascending: true })
+  const tablaComisiones = (config as CommissionThreshold[]) || []
+
+  let totalComisiones = 0
+  Object.entries(ventasPorVendedor).forEach(([empId, totalConIva]) => {
+    const cumplioHoja = evalMap[empId] ?? false
+    const totalSinIva = totalConIva / 1.16
+    const porcentaje = calcularPorcentaje(totalConIva, cumplioHoja, tablaComisiones)
+    totalComisiones += (totalSinIva * porcentaje) / 100
+  })
+
+  // ─── Construir filas ───
+  const neto = totalIngresos - totalSueldos - totalCostoInventario - totalComisiones
+  const totalGastos = totalSueldos + totalCostoInventario + totalComisiones
+
+  let rows: ReportRow[] = Object.entries(ingresosGroups).map(([nombre, total]) => ({
+    nombre,
+    ingresos: total,
+    gastos: 0
+  }))
+
+  rows.push({ nombre: 'Sueldos (Días trabajados)', ingresos: 0, gastos: totalSueldos })
+  rows.push({ nombre: 'Costo de Inventario', ingresos: 0, gastos: totalCostoInventario })
+  rows.push({ nombre: 'Comisiones', ingresos: 0, gastos: totalComisiones })
+
+  rows = applySort(rows, sort)
+
+  return {
+    rows,
+    totals: { ingresos: totalIngresos, gastos: totalGastos, total: neto }
+  }
+}
+
+// ─── 4.1.1 Facturación total ─────────────────────────────────
 
 async function q_facturacion(desglose: string, sort: string, fi: string, ff: string, suc: string, includeAll: boolean): Promise<ReportResult> {
   let query = supabase

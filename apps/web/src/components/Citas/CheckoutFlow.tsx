@@ -85,7 +85,7 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
 
   // ─── Cálculos compartidos ─────────────────────────────────────────
   const subtotal = items.reduce((sum, item) => sum + item.total, 0)
-  const total = subtotal - descuentoGlobal + propina
+  const total = subtotal - descuentoGlobal // Propina ya no suma al total facturable
   const totalPagado = pagos.reduce((sum, p) => sum + p.importe, 0)
   const pendiente = Math.max(0, total - totalPagado)
 
@@ -344,9 +344,9 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
         <div className="ticket-summary-card" style={{ background: 'var(--surface-2)', borderRadius: 12, padding: 16 }}>
           <div className="summary-row" style={{ fontSize: 13, marginBottom: 6 }}><span>Subtotal:</span><span>${subtotal.toFixed(2)}</span></div>
           {descuentoGlobal > 0 && <div className="summary-row" style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 6 }}><span>Descuento:</span><span>-${descuentoGlobal.toFixed(2)}</span></div>}
-          {propina > 0 && <div className="summary-row" style={{ fontSize: 13, marginBottom: 6 }}><span>Propina:</span><span>+${propina.toFixed(2)}</span></div>}
+          {propina > 0 && <div className="summary-row" style={{ color: 'var(--text-3)', fontSize: 13, marginBottom: 6 }}><span>Propina (Se cobra por separado):</span><span>+${propina.toFixed(2)}</span></div>}
           <div className="summary-row total" style={{ borderTop: '1px solid var(--border)', paddingTop: 10, marginTop: 10, fontSize: 18, fontWeight: 800 }}>
-            <span>TOTAL:</span>
+            <span>TOTAL (Sin propina):</span>
             <span>${total.toFixed(2)}</span>
           </div>
         </div>
@@ -389,6 +389,7 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
       total,
       descuento: descuentoGlobal,
       pagos,
+      propina,
       pendiente
     }
 

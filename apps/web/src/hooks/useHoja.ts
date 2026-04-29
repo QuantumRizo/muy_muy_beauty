@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { calcularPorcentaje, getTramoStr } from '../lib/commissions'
+import { calcularPorcentaje, getTramoStr, type CommissionThreshold } from '../lib/commissions'
 
 export interface EvaluacionHoja {
   id?: string
@@ -109,17 +109,26 @@ export function useComisionesHoja(mes: number, anio: number) {
         else if (!(ev.empleada_id in evalMap)) evalMap[ev.empleada_id] = false
       })
 
+      // 5.5 Traer configuración de comisiones
+      const { data: config, error: configErr } = await supabase
+        .from('config_comisiones')
+        .select('*')
+        .order('umbral', { ascending: true })
+
+      if (configErr) throw configErr
+      const tablaComisiones = (config as CommissionThreshold[]) || []
+
       // 6. Calcular comisiones
       const resultados: ResultadoComision[] = Object.entries(acum).map(([empId, datos]) => {
         const cumplioHoja = evalMap[empId] ?? false
         const totalConIva = datos.totalConIva
         // Quitar IVA (16%): base imponible = totalConIva / 1.16
         const totalSinIva = totalConIva / 1.16
-        const porcentaje = calcularPorcentaje(totalConIva, cumplioHoja)
+        const porcentaje = calcularPorcentaje(totalConIva, cumplioHoja, tablaComisiones)
         const comision = (totalSinIva * porcentaje) / 100
 
         // Tramo legible
-        let tramoStr = getTramoStr(totalConIva)
+        let tramoStr = getTramoStr(totalConIva, tablaComisiones)
 
         return {
           empleada_id: empId,

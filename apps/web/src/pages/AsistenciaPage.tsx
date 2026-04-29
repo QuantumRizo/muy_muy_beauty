@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Clock, Search, Users, MapPin, CheckCircle2, LogIn, Coffee, LogOut, Activity } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useSucursalContext } from '../context/SucursalContext'
@@ -8,13 +9,14 @@ import { useToast } from '../components/Common/Toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
-type TipoAsistencia = 'Entrada' | 'Salida Comida' | 'Regreso Comida' | 'Salida'
+type TipoAsistencia = 'Entrada' | 'Salida Comida' | 'Salida'
 
 export default function AsistenciaPage() {
   const { selectedSucursalId } = useSucursalContext()
   const { data: sucursales = [] } = useSucursales()
   const { data: empleadas = [] } = useEmpleadas(selectedSucursalId || undefined)
   const toast = useToast()
+  const queryClient = useQueryClient()
 
   const [selectedEmpleadaId, setSelectedEmpleadaId] = useState('')
   const [history, setHistory] = useState<any[]>([])
@@ -66,7 +68,46 @@ export default function AsistenciaPage() {
 
       if (error) throw error
 
+      // ── Bloqueo automático de comida ──────────────────────────
+      if (tipo === 'Salida Comida') {
+        // Calcular hora actual + 1 hora
+        const ahora = new Date()
+        const horaInicio = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:00`
+        const unaHoraDespues = new Date(ahora.getTime() + 60 * 60 * 1000)
+        const horaFin = `${String(unaHoraDespues.getHours()).padStart(2, '0')}:${String(unaHoraDespues.getMinutes()).padStart(2, '0')}:00`
+        const hoy = ahora.toISOString().split('T')[0]
+
+        await supabase.from('bloqueos_agenda').insert({
+          empleada_id: selectedEmpleadaId,
+          fecha: hoy,
+          hora_inicio: horaInicio,
+          hora_fin: horaFin,
+          motivo: 'Comida (automático)',
+          origen: 'comida',
+        })
+      }
+
+      if (tipo === 'Salida') {
+        // Eliminar completamente el bloqueo de comida de hoy al finalizar el turno
+        // para no dejar basura en la base de datos.
+        const hoy = new Date().toISOString().split('T')[0]
+        await supabase
+          .from('bloqueos_agenda')
+          .delete()
+          .eq('empleada_id', selectedEmpleadaId)
+          .eq('fecha', hoy)
+          .eq('origen', 'comida')
+      }
+      // ─────────────────────────────────────────────────────────
+
       toast(`Registro exitoso: ${tipo}`, 'success')
+      
+      // Invalidar query de la agenda al instante para que quite el bloqueo si es Entrada
+      if (tipo === 'Entrada') {
+        const hoy = new Date().toISOString().split('T')[0]
+        queryClient.invalidateQueries({ queryKey: ['asistencia_hoy', hoy] })
+      }
+
       fetchTodayHistory()
     } catch (err) {
       console.error(err)
@@ -83,8 +124,7 @@ export default function AsistenciaPage() {
   let availableActions: TipoAsistencia[] = ['Entrada']
   if (lastLog) {
     if (lastLog.tipo === 'Entrada') availableActions = ['Salida Comida', 'Salida']
-    else if (lastLog.tipo === 'Salida Comida') availableActions = ['Regreso Comida']
-    else if (lastLog.tipo === 'Regreso Comida') availableActions = ['Salida']
+    else if (lastLog.tipo === 'Salida Comida') availableActions = ['Salida']
     else if (lastLog.tipo === 'Salida') availableActions = []
   }
 
@@ -92,7 +132,6 @@ export default function AsistenciaPage() {
     switch (tipo) {
       case 'Entrada': return <LogIn size={14} />
       case 'Salida Comida': return <Coffee size={14} />
-      case 'Regreso Comida': return <LogIn size={14} />
       case 'Salida': return <LogOut size={14} />
       default: return <CheckCircle2 size={14} />
     }
@@ -102,7 +141,6 @@ export default function AsistenciaPage() {
     switch (tipo) {
       case 'Entrada': return 'var(--success)'
       case 'Salida Comida': return '#f59e0b'
-      case 'Regreso Comida': return 'var(--success)'
       case 'Salida': return 'var(--danger)'
       default: return 'var(--accent)'
     }
@@ -111,8 +149,7 @@ export default function AsistenciaPage() {
   const getCurrentStatusLabel = (tipo?: string) => {
     switch (tipo) {
       case 'Entrada': return 'Trabajando'
-      case 'Salida Comida': return 'En Comida'
-      case 'Regreso Comida': return 'Trabajando (Regresó)'
+      case 'Salida Comida': return 'En Comida (Duración: 1 hora)'
       case 'Salida': return 'Jornada Terminada'
       default: return 'Fuera de Turno'
     }
@@ -219,16 +256,6 @@ export default function AsistenciaPage() {
                     </button>
                   )}
                   
-                  {availableActions.includes('Regreso Comida') && (
-                    <button 
-                      className="btn-primary" 
-                      onClick={() => handleRegister('Regreso Comida')} 
-                      disabled={registering}
-                      style={{ width: '100%', padding: '16px', fontSize: '15px', fontWeight: 700, gap: '10px', background: 'var(--success)', borderColor: 'var(--success)', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' }}
-                    >
-                      <LogIn size={20} /> {registering ? 'Registrando...' : 'Regresar de Comer'}
-                    </button>
-                  )}
                   
                   {availableActions.includes('Salida') && (
                     <button 
@@ -316,6 +343,9 @@ export default function AsistenciaPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: getTipoColor(log.tipo), textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 800, marginTop: '2px' }}>
                           {getTipoIcon(log.tipo || 'Entrada')}
                           {log.tipo || 'ENTRADA'}
+                          {log.tipo === 'Salida Comida' && (
+                            <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px', textTransform: 'none', fontWeight: 500 }}>(Duración: 1 hora)</span>
+                          )}
                         </div>
                       </div>
                     </div>

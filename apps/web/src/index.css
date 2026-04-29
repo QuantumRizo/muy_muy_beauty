@@ -566,7 +566,7 @@ body,
   overflow: hidden;
   cursor: pointer;
   transition: filter 0.12s, box-shadow 0.12s;
-  z-index: 2;
+  z-index: 3;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
@@ -756,6 +756,21 @@ body,
   z-index: 10;
 }
 
+/* Bloqueo automático de comida — visualmente diferente al manual */
+.bloqueo-comida {
+  background: repeating-linear-gradient(45deg,
+      #fed7aa,
+      #fed7aa 8px,
+      #fff7ed 8px,
+      #fff7ed 16px);
+  border: 2px dashed #f97316;
+  cursor: default !important;
+}
+.bloqueo-comida:hover {
+  border-color: #ea580c;
+  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.1);
+}
+
 .bloqueo-label {
   font-size: 9px;
   color: #b91c1c;
@@ -856,6 +871,16 @@ body,
 .modal-close-btn:hover {
   background: var(--bg);
 }
+
+.modal-body {
+  padding: 18px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.p-4 { padding: 16px; }
+.p-5 { padding: 24px; }
+.p-6 { padding: 32px; }
 
 .modal-footer {
   display: flex;

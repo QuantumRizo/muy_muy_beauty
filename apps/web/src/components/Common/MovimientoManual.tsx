@@ -12,17 +12,18 @@ interface Props {
 
 export default function MovimientoManual({ tipo: tipoProp, empleadas, isPending, onClose, onConfirm }: Props) {
   const [tipo, setTipo] = useState<'gasto' | 'ingreso'>(tipoProp ?? 'gasto')
-  const [monto, setMonto] = useState(0)
-  const [concepto, setConcepto] = useState('')
+  const [montoStr, setMontoStr] = useState('')
+  const [concepto, setConcepto] = useState('Propina') // Default for gasto
   const [empleadaId, setEmpleadaId] = useState('')
 
   const isGasto = tipo === 'gasto'
 
   const handleConfirm = () => {
-    if (!concepto.trim() || monto <= 0) return
+    const numericMonto = Number(montoStr)
+    if (!concepto.trim() || numericMonto <= 0 || isNaN(numericMonto)) return
     onConfirm({
       tipo: isGasto ? 'Gasto / Salida' : 'Ingreso Extra',
-      monto,
+      monto: numericMonto,
       concepto,
       empleadaId,
     })
@@ -64,14 +65,21 @@ export default function MovimientoManual({ tipo: tipoProp, empleadas, isPending,
         <div className="modal-body p-5">
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label>Concepto / Descripción</label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder={isGasto ? 'Ej. Compra de material...' : 'Ej. Cambio de billete, depósito...'}
-              value={concepto}
-              onChange={e => setConcepto(e.target.value)}
-              autoFocus
-            />
+            {isGasto ? (
+              <select className="form-input" value={concepto} onChange={e => setConcepto(e.target.value)}>
+                <option value="Propina">Propina</option>
+                <option value="Compra de material">Compra de material</option>
+              </select>
+            ) : (
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Ej. Cambio de billete, depósito..."
+                value={concepto}
+                onChange={e => setConcepto(e.target.value)}
+                autoFocus
+              />
+            )}
           </div>
 
           <div className="form-group" style={{ marginBottom: 16 }}>
@@ -84,10 +92,23 @@ export default function MovimientoManual({ tipo: tipoProp, empleadas, isPending,
                 type="number"
                 className="form-input"
                 style={{ paddingLeft: 36, fontSize: 20, fontWeight: 700, color: isGasto ? 'var(--danger)' : 'var(--success)' }}
-                value={monto}
-                onChange={e => setMonto(Number(e.target.value))}
+                value={montoStr}
+                onChange={e => setMontoStr(e.target.value)}
+                onBlur={() => {
+                  if (!montoStr) {
+                    setMontoStr('0.00')
+                  } else {
+                    const val = Number(montoStr)
+                    if (!isNaN(val)) setMontoStr(val.toFixed(2))
+                  }
+                }}
+                onFocus={(e) => {
+                  if (e.target.value === '0.00' || e.target.value === '0') {
+                    setMontoStr('')
+                  }
+                }}
                 min={0}
-                step={10}
+                step={0.01}
                 onKeyDown={e => e.key === 'Enter' && handleConfirm()}
               />
             </div>
@@ -107,7 +128,7 @@ export default function MovimientoManual({ tipo: tipoProp, empleadas, isPending,
           <button
             className={isGasto ? 'btn-danger' : 'btn-primary'}
             onClick={handleConfirm}
-            disabled={isPending || !concepto.trim() || monto <= 0}
+            disabled={isPending || !concepto.trim() || Number(montoStr) <= 0 || isNaN(Number(montoStr))}
           >
             {isPending ? 'Guardando...' : isGasto ? 'Registrar Gasto' : 'Registrar Ingreso'}
           </button>

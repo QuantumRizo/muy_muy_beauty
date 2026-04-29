@@ -150,7 +150,7 @@ export async function downloadResumenVentasCSV(fechaInicio: string, fechaFin: st
 }
 
 
-import { calcularPorcentaje, getTramoStr } from './commissions'
+import { calcularPorcentaje, getTramoStr, type CommissionThreshold } from './commissions'
 
 function downloadBlob(csvContent: string, fileName: string) {
   const BOM = '\uFEFF'
@@ -225,14 +225,23 @@ export async function downloadLiquidacionComisionesCSV(fechaInicio: string, fech
     else if (!(ev.empleada_id in evalMap)) evalMap[ev.empleada_id] = false
   })
 
+  // 3.5 Traer configuración de comisiones
+  const { data: config, error: configErr } = await supabase
+    .from('config_comisiones')
+    .select('*')
+    .order('umbral', { ascending: true })
+
+  if (configErr) throw configErr
+  const tablaComisiones = (config as CommissionThreshold[]) || []
+
   // Calcular tabla final
   const resultados = Object.entries(acum).map(([empId, datos]) => {
     const cumplioHoja = evalMap[empId] ?? false
     const totalConIva = datos.totalConIva
     const totalSinIva = totalConIva / 1.16
-    const porcentaje = calcularPorcentaje(totalConIva, cumplioHoja)
+    const porcentaje = calcularPorcentaje(totalConIva, cumplioHoja, tablaComisiones)
     const comision = (totalSinIva * porcentaje) / 100
-    const tramoStr = getTramoStr(totalConIva)
+    const tramoStr = getTramoStr(totalConIva, tablaComisiones)
 
     return {
       nombre: datos.nombre,

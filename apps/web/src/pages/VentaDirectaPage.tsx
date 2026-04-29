@@ -36,7 +36,7 @@ export default function VentaDirectaPage() {
   const [numTicketFinal, setNumTicketFinal] = useState('')
   const [ticketSnapshot, setTicketSnapshot] = useState<{
     items: TicketItem[]; pagos: Pago[]; subtotal: number; total: number;
-    descuento: number; sucursal: Sucursal | null; vendedorNombre: string
+    descuento: number; propina: number; sucursal: Sucursal | null; vendedorNombre: string
   } | null>(null)
 
   // Modales de selección
@@ -71,7 +71,7 @@ export default function VentaDirectaPage() {
   }, [allServicios, searchServicio])
 
   const subtotal = items.reduce((sum, item) => sum + item.total, 0)
-  const total = subtotal - descuentoGlobal + propina
+  const total = subtotal - descuentoGlobal // Propina ya no suma al total facturable
   const totalPagado = pagos.reduce((sum, p) => sum + p.importe, 0)
   const pendiente = Math.max(0, total - totalPagado)
 
@@ -175,7 +175,7 @@ export default function VentaDirectaPage() {
       // Guardar snapshot para la vista de impresión
       const sucursalObj = sucursales.find(s => s.id === sucursalId) || null
       const vendedorNombre = empleadas.find(e => e.id === vendedorId)?.nombre || ''
-      setTicketSnapshot({ items, pagos, subtotal, total, descuento: descuentoGlobal, sucursal: sucursalObj, vendedorNombre })
+      setTicketSnapshot({ items, pagos, subtotal, total, descuento: descuentoGlobal, propina, sucursal: sucursalObj, vendedorNombre })
       setNumTicketFinal(tData.num_ticket)
       setTicketGuardado(true)
     } catch (err) {
@@ -240,6 +240,7 @@ export default function VentaDirectaPage() {
             total: ticketSnapshot.total,
             descuento: ticketSnapshot.descuento,
             pagos: ticketSnapshot.pagos,
+            propina: ticketSnapshot.propina,
             pendiente: Math.max(0, ticketSnapshot.total - ticketSnapshot.pagos.reduce((s, p) => s + p.importe, 0))
           }}
         />
@@ -366,13 +367,13 @@ export default function VentaDirectaPage() {
               </div>
             )}
             {propina > 0 && (
-              <div className="summary-row">
-                <span>Propina:</span>
+              <div className="summary-row" style={{ color: 'var(--text-3)' }}>
+                <span>Propina (Se cobra por separado):</span>
                 <span>+${propina.toFixed(2)}</span>
               </div>
             )}
             <div className="summary-row total" style={{ borderTop: '2px solid var(--border)', paddingTop: 10, marginTop: 10 }}>
-              <span>TOTAL:</span>
+              <span>TOTAL (Sin propina):</span>
               <span>${total.toFixed(2)}</span>
             </div>
           </div>

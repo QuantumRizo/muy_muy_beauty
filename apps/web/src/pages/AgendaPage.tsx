@@ -15,6 +15,8 @@ import { useSucursalContext } from '../context/SucursalContext'
 import { useEmpleadas } from '../hooks/useEmpleadas'
 import { useSucursales } from '../hooks/useSucursales'
 import { useCitasSemana, useBloqueosSemana, useEliminarBloqueo } from '../hooks/useCitas'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '../lib/supabase'
 import type { Cliente, Cita, SlotInfo, BloqueoAgenda } from '../types/database'
 import { useToast } from '../components/Common/Toast'
 import { useAuthContext } from '../context/AuthContext'
@@ -61,6 +63,29 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected }: P
   const { data: empleadas = [], isLoading: isLoadingEmpleadas }  = useEmpleadas(activeSucursal || undefined)
   const { data: citas = [] }      = useCitasSemana(inicioStr, finStr, activeSucursal)
   const { data: bloqueos = [] }   = useBloqueosSemana(inicioStr, finStr)
+
+  // ─── Asistencia hoy: qué empleadas registraron Entrada ──────
+  const hoy = format(new Date(), 'yyyy-MM-dd')
+  const { data: asistenciaHoy = [] } = useQuery({
+    queryKey: ['asistencia_hoy', hoy, activeSucursal],
+    queryFn: async () => {
+      let q = supabase
+        .from('asistencia')
+        .select('empleada_id, tipo')
+        .gte('created_at', `${hoy}T00:00:00`)
+        .lte('created_at', `${hoy}T23:59:59`)
+      if (activeSucursal) q = q.eq('sucursal_id', activeSucursal)
+      const { data } = await q
+      return data ?? []
+    },
+    // Refresca cada 2 minutos para captar nuevas entradas
+    refetchInterval: 2 * 60 * 1000,
+  })
+
+  // Set de empleadas que registraron al menos una Entrada hoy
+  const empleadasConEntrada = new Set(
+    asistenciaHoy.filter((a: any) => a.tipo === 'Entrada').map((a: any) => a.empleada_id)
+  )
 
   const prevWeek  = () => setWeekStart((w) => subWeeks(w, 1))
   const nextWeek  = () => setWeekStart((w) => addWeeks(w, 1))
@@ -182,6 +207,7 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected }: P
         isLoading={isLoadingEmpleadas}
         citas={citas}
         bloqueos={bloqueos}
+        empleadasConEntrada={empleadasConEntrada}
         onSlotClick={handleSlotClick}
         onCitaClick={(c) => setModal({ type: 'gestion', cita: c })}
         onBloqueoClick={(b) => setModal({ type: 'bloqueo-info', bloqueo: b })}
