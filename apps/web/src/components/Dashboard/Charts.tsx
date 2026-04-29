@@ -12,7 +12,17 @@ interface ChartProps {
 // SaaS Palette: Amber/Yellow shades + expanded palette
 // Forest & Leaf Green Palette
 const DEFAULT_COLORS = ['#2D5A27', '#88B04B', '#1a3617', '#c8d59a', '#4d552b']
-const MULTI_COLORS = ['#2D5A27', '#88B04B', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444', '#06b6d4']
+const MULTI_COLORS = [
+  '#2D5A27', // Forest
+  '#88B04B', // Sage
+  '#f59e0b', // Amber
+  '#8b5cf6', // Violet
+  '#ec4899', // Pink
+  '#3b82f6', // Blue
+  '#10b981', // Emerald
+  '#f43f5e', // Rose
+  '#06b6d4', // Cyan
+]
 
 const truncate = (str: string, max = 15) => 
   (str && str.length > max) ? str.substring(0, max) + '...' : (str || '')
@@ -90,35 +100,55 @@ export const DashboardBarChart = ({ data, height = 300, colors = DEFAULT_COLORS,
   )
 }
 
-// ─── Area Chart ────────────────────────────────────────────────
+interface AreaChartProps extends ChartProps {
+  filterKeys?: string[]
+}
 
-export const DashboardAreaChart = ({ data, height = 300, colors = DEFAULT_COLORS }: ChartProps) => {
+export const DashboardAreaChart = ({ data, height = 300, colors = MULTI_COLORS, filterKeys }: AreaChartProps) => {
+  if (!data || data.length === 0) return null
+  
+  // Identify all keys except 'nombre'
+  let keys = Object.keys(data[0]).filter(k => k !== 'nombre')
+  if (filterKeys) {
+    keys = keys.filter(k => filterKeys.includes(k))
+  }
+
   return (
     <div style={{ width: '100%', height }}>
       <ResponsiveContainer minWidth={0}>
         <AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
           <defs>
-            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={colors[0]} stopOpacity={0.15}/>
-              <stop offset="95%" stopColor={colors[0]} stopOpacity={0}/>
-            </linearGradient>
+            {keys.map((key, i) => (
+              <linearGradient key={`grad-${key}`} id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={colors[i % colors.length]} stopOpacity={0.3}/>
+                <stop offset="95%" stopColor={colors[i % colors.length]} stopOpacity={0}/>
+              </linearGradient>
+            ))}
           </defs>
           <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border)" />
           <XAxis 
             dataKey="nombre" axisLine={false} tickLine={false}
-            tickFormatter={(val: string) => truncate(val, 12)}
-            tick={{ fill: 'var(--text-3)', fontSize: 11, fontWeight: 500 }} dy={8}
+            tick={{ fill: 'var(--text-3)', fontSize: 10 }} dy={8}
           />
-          <YAxis axisLine={false} tickLine={false}
-            tickFormatter={(v: number) => v >= 1000 ? `$${(v/1000).toFixed(0)}k` : `$${v}`}
-            tick={{ fill: 'var(--text-3)', fontSize: 11 }} 
-          />
+          <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-3)', fontSize: 11 }} />
           <Tooltip content={<CustomTooltip />} />
-          <Area 
-            type="monotone" dataKey="total" name="Total"
-            stroke={colors[0]} fillOpacity={1} fill="url(#colorValue)" 
-            strokeWidth={2.5} animationDuration={800}
+          <Legend 
+            verticalAlign="top" align="right" iconType="circle" iconSize={8}
+            wrapperStyle={{ fontSize: '10px', fontWeight: 600, paddingBottom: 12 }}
           />
+          {keys.map((key, i) => (
+            <Area 
+              key={key}
+              type="monotone" 
+              dataKey={key} 
+              name={key}
+              stackId="1"
+              stroke={colors[i % colors.length]} 
+              fill={`url(#grad-${i})`}
+              strokeWidth={2}
+              animationDuration={800}
+            />
+          ))}
         </AreaChart>
       </ResponsiveContainer>
     </div>

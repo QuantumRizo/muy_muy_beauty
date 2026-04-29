@@ -8,7 +8,7 @@ import KPICard from '../components/Dashboard/KPICard'
 import { 
   DashboardBarChart,
   DashboardPieChart,
-  DashboardLineChart,
+  DashboardAreaChart,
 } from '../components/Dashboard/Charts'
 import { useDashboardData, type TimeRange } from '../hooks/useDashboardData'
 import type { Sucursal } from '../types/database'
@@ -20,8 +20,26 @@ export default function InicioPage() {
   const [sucursalId, setSucursalId] = useState<string>('all')
   const [range, setRange] = useState<TimeRange>('today')
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
+  const [selectedFamilies, setSelectedFamilies] = useState<string[]>([])
+  const [showFamilyDropdown, setShowFamilyDropdown] = useState(false)
 
-  const { data, loading, error } = useDashboardData(sucursalId, range)
+  const { data, loading, error, isRefreshing, refresh } = useDashboardData(sucursalId, range)
+
+  const availableFamilies = data?.serviciosTendencia?.[0] 
+    ? Object.keys(data.serviciosTendencia[0]).filter(k => k !== 'nombre')
+    : []
+
+  useEffect(() => {
+    if (availableFamilies.length > 0 && selectedFamilies.length === 0) {
+      setSelectedFamilies(availableFamilies)
+    }
+  }, [data?.serviciosTendencia])
+
+  const toggleFamily = (f: string) => {
+    setSelectedFamilies(prev => 
+      prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]
+    )
+  }
 
   useEffect(() => {
     supabase.from('sucursales').select('*').order('nombre').then(({ data }) => {
@@ -42,7 +60,15 @@ export default function InicioPage() {
       {/* Page Header */}
       <div className="page-header" style={{ padding: '18px 24px 0', marginBottom: 15 }}>
         <div className="page-header-content">
-          <h1 className="page-title" style={{ fontSize: '24px', margin: 0 }}>Inicio</h1>
+          <h1 className="page-title" style={{ fontSize: '24px', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            Inicio
+            {isRefreshing && (
+              <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <RefreshCw size={10} style={{ animation: 'spin 1s linear infinite' }} />
+                actualizando
+              </span>
+            )}
+          </h1>
           <p className="page-subtitle" style={{ fontSize: '12px', marginTop: '2px' }}>Rendimiento general del negocio</p>
         </div>
         
@@ -80,6 +106,17 @@ export default function InicioPage() {
               </button>
             ))}
           </div>
+          <button
+            onClick={refresh}
+            title="Actualizar ahora"
+            style={{
+              width: 34, height: 34, borderRadius: 8, border: '1px solid var(--border)',
+              background: 'var(--surface-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--text-3)'
+            }}
+          >
+            <RefreshCw size={14} />
+          </button>
         </div>
       </div>
 
@@ -146,19 +183,80 @@ export default function InicioPage() {
                   height={220} 
                   stacked 
                   dataKeys={[
-                    { key: 'comisiones', name: 'Comisiones', color: '#88B04B' },
-                    { key: 'sueldos', name: 'Sueldos', color: '#2D5A27' },
+                    { key: 'comisiones', name: 'Comisiones', color: '#9333ea' },
+                    { key: 'sueldos', name: 'Sueldos', color: '#eab308' },
                     { key: 'otros', name: 'Utilidad/Otros', color: '#10b981' },
                   ]}
                 />
               </div>
+              <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', position: 'relative' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className="card-title" style={{ fontSize: '13px' }}>Tendencia del Periodo</span>
+                    
+                    {/* Multi-select Dropdown */}
+                    <div style={{ position: 'relative' }}>
+                      <button 
+                        onClick={() => setShowFamilyDropdown(!showFamilyDropdown)}
+                        style={{ 
+                          fontSize: '10px', padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border)',
+                          background: 'var(--surface-2)', color: 'var(--text-2)', cursor: 'pointer', 
+                          display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600
+                        }}
+                      >
+                        <BarChart2 size={12} />
+                        {selectedFamilies.length === availableFamilies.length ? 'Todas las familias' : `${selectedFamilies.length} seleccionadas`}
+                      </button>
 
-              <div className="card" style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <span className="card-title" style={{ fontSize: '13px' }}>Tendencia del Periodo (Servicios por Familia)</span>
+                      {showFamilyDropdown && (
+                        <>
+                          <div 
+                            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }} 
+                            onClick={() => setShowFamilyDropdown(false)}
+                          />
+                          <div style={{ 
+                            position: 'absolute', top: '110%', left: 0, width: '200px',
+                            background: 'var(--surface)', border: '1px solid var(--border)', 
+                            borderRadius: '8px', boxShadow: 'var(--shadow-lg)', zIndex: 11,
+                            padding: '8px', maxHeight: '250px', overflowY: 'auto'
+                          }}>
+                            <div 
+                              onClick={() => setSelectedFamilies(selectedFamilies.length === availableFamilies.length ? [] : availableFamilies)}
+                              style={{ 
+                                padding: '6px 10px', fontSize: '11px', fontWeight: 700, color: 'var(--accent)',
+                                cursor: 'pointer', borderBottom: '1px solid var(--border)', marginBottom: '4px'
+                              }}
+                            >
+                              {selectedFamilies.length === availableFamilies.length ? 'Desmarcar todas' : 'Marcar todas'}
+                            </div>
+                            {availableFamilies.map(f => (
+                              <div 
+                                key={f}
+                                onClick={() => toggleFamily(f)}
+                                style={{ 
+                                  padding: '6px 10px', fontSize: '11px', color: 'var(--text-2)',
+                                  display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
+                                  borderRadius: '4px', background: selectedFamilies.includes(f) ? 'var(--surface-2)' : 'transparent'
+                                }}
+                              >
+                                <input 
+                                  type="checkbox" 
+                                  checked={selectedFamilies.includes(f)} 
+                                  readOnly 
+                                  style={{ cursor: 'pointer' }}
+                                />
+                                {f}
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
                   <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-light)', padding: '3px 8px', borderRadius: '15px' }}>PERIODICIDAD</span>
                 </div>
-                <DashboardLineChart data={data?.serviciosTendencia || []} height={220} />
+
+                <DashboardAreaChart data={data?.serviciosTendencia || []} height={220} filterKeys={selectedFamilies} />
               </div>
             </div>
 
@@ -169,7 +267,16 @@ export default function InicioPage() {
                   <span className="card-title" style={{ fontSize: '13px' }}>Top 10 Empleados</span>
                   <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-light)', padding: '3px 8px', borderRadius: '15px' }}>RENDIMIENTO</span>
                 </div>
-                <DashboardBarChart data={data?.topEmpleados || []} height={220} colors={['#2D5A27']} />
+                <DashboardBarChart 
+                  data={data?.topEmpleados || []} 
+                  height={220} 
+                  stacked 
+                  dataKeys={[
+                    { key: 'comisiones', name: 'Comisiones', color: '#9333ea' },
+                    { key: 'sueldos', name: 'Sueldos', color: '#eab308' },
+                    { key: 'otros', name: 'Utilidad/Otros', color: '#10b981' },
+                  ]}
+                />
               </div>
 
               <div className="card" style={{ padding: '20px' }}>
