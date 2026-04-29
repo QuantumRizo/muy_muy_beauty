@@ -85,11 +85,13 @@ export async function runQuery(
     case '5.3':   return q_cash_metrics(fechaInicio, fechaFin, sucursalId)
     case 'A.1':   return q_ticket_promedio(fechaInicio, fechaFin, sucursalId)
     case 'A.2':   return q_retention_rate(fechaInicio, fechaFin)
-    case 'A.3':   return q_ingresos_sucursal(fechaInicio, fechaFin)
+    case 'A.3':   return q_ingresos_sucursal_stacked(fechaInicio, fechaFin)
     case 'A.4':   return q_service_mix(fechaInicio, fechaFin, sucursalId)
     case 'A.5':   return q_citas_tendencia(fechaInicio, fechaFin, sucursalId)
     case 'A.6':   return q_heatmap_afluencia(fechaInicio, fechaFin, sucursalId)
     case 'A.7':   return q_stock_semaforo()
+    case 'A.8':   return q_top_empleados(fechaInicio, fechaFin, sucursalId)
+    case 'A.9':   return q_servicios_familia_tendencia(fechaInicio, fechaFin, sucursalId)
     default: throw new Error(`Indicador ${id} no implementado`)
   }
 }
@@ -1054,25 +1056,109 @@ async function q_retention_rate(fi: string, ff: string): Promise<ReportResult> {
   }
 }
 
-// ─── A.3 Ingresos por Sucursal ────────────────────────────────
+// ─── A.3 Ingresos por Sucursal (Stacked with Expenses) ──────────
 
-async function q_ingresos_sucursal(fi: string, ff: string): Promise<ReportResult> {
-  const { data, error } = await supabase
+async function q_ingresos_sucursal_stacked(fi: string, ff: string): Promise<ReportResult> {
+  // 1. Incomes by branch
+  const { data: tickets, error: te } = await supabase
     .from('tickets')
-    .select('total, sucursal:sucursales(nombre)')
+    .select('total, sucursal_id, sucursal:sucursales(nombre)')
     .eq('estado', 'Pagado')
     .gte('fecha', fi).lte('fecha', ff)
-  if (error) throw error
+  if (te) throw te
 
-  const groups: Record<string, number> = {}
-  data?.forEach((t: any) => {
-    const key = (t.sucursal as any)?.nombre || 'Sin sucursal'
-    groups[key] = (groups[key] || 0) + (t.total || 0)
+  const branchNames: Record<string, string> = {}
+  tickets?.forEach((t: any) => {
+    if (t.sucursal_id && t.sucursal) {
+      // Handle Supabase returning object or array for joined table
+      const name = Array.isArray(t.sucursal) ? t.sucursal[0]?.nombre : t.sucursal.nombre
+      branchNames[t.sucursal_id] = name || 'Desconocida'
+    }
   })
 
-  const rows: ReportRow[] = Object.entries(groups).map(([nombre, total]) => ({
-    nombre, total: parseFloat(total.toFixed(2))
-  })).sort((a, b) => (b.total || 0) - (a.total || 0))
+  // 2. Salaries by branch (based on attendance records)
+  const { data: asist, error: ae } = await supabase
+    .from('asistencia')
+    .select('sucursal_id, created_at, empleada_id')
+    .eq('tipo', 'Entrada')
+    .gte('created_at', `${fi}T00:00:00`)
+    .lte('created_at', `${ff}T23:59:59`)
+  if (ae) throw ae
+
+  const { data: emps } = await supabase.from('perfiles_empleadas').select('id, sueldo_diario')
+  const salaryMap: Record<string, number> = {}
+  emps?.forEach(e => { salaryMap[e.id] = e.sueldo_diario || 0 })
+
+  // 3. Commissions by branch (based on ticket items)
+  const { data: items, error: ie } = await supabase
+    .from('ticket_items')
+    .select('vendedor_id, total, ticket:tickets!inner(sucursal_id, fecha, estado)')
+    .eq('ticket.estado', 'Pagado')
+    .gte('ticket.fecha', fi).lte('ticket.fecha', ff)
+  if (ie) throw ie
+
+  // Commission table and evaluation for calculating commissions
+  const [anioStr, mesStr] = fi.split('-')
+  const mesNum = parseInt(mesStr, 10)
+  const anioNum = parseInt(anioStr, 10)
+  const { data: config } = await supabase.from('config_comisiones').select('*').order('umbral', { ascending: true })
+  const tablaComisiones = (config as CommissionThreshold[]) || []
+  const { data: evals } = await supabase.from('evaluaciones_hoja').select('empleada_id, cumplio_hoja').eq('mes', mesNum).eq('anio', anioNum)
+  const evalMap: Record<string, boolean> = {}
+  evals?.forEach(ev => { evalMap[ev.empleada_id] = ev.cumplio_hoja })
+
+  // Aggregate by Branch
+  const branches: Record<string, { total: number; sueldos: number; comisiones: number }> = {}
+
+  // Process Income
+  tickets?.forEach((t: any) => {
+    const key = branchNames[t.sucursal_id] || 'Desconocida'
+    if (!branches[key]) branches[key] = { total: 0, sueldos: 0, comisiones: 0 }
+    branches[key].total += t.total || 0
+  })
+
+  // Process Salaries
+  const seenDays: Record<string, Set<string>> = {}
+  asist?.forEach((a: any) => {
+    const day = a.created_at.substring(0, 10)
+    const empId = a.empleada_id
+    if (!seenDays[empId]) seenDays[empId] = new Set()
+    if (!seenDays[empId].has(day)) {
+      seenDays[empId].add(day)
+      const branchName = branchNames[a.sucursal_id] || 'Desconocida'
+      if (!branches[branchName]) branches[branchName] = { total: 0, sueldos: 0, comisiones: 0 }
+      branches[branchName].sueldos += salaryMap[empId] || 0
+    }
+  })
+
+  // Process Commissions (approximate per branch)
+  const salesByEmpBranch: Record<string, Record<string, number>> = {}
+  items?.forEach((i: any) => {
+    const bid = i.ticket.sucursal_id
+    const eid = i.vendedor_id
+    if (!eid) return
+    if (!salesByEmpBranch[bid]) salesByEmpBranch[bid] = {}
+    salesByEmpBranch[bid][eid] = (salesByEmpBranch[bid][eid] || 0) + (i.total || 0)
+  })
+
+  Object.entries(salesByEmpBranch).forEach(([bid, empSales]) => {
+    const branchName = branchNames[bid] || 'Desconocida'
+    if (!branches[branchName]) branches[branchName] = { total: 0, sueldos: 0, comisiones: 0 }
+    Object.entries(empSales).forEach(([eid, totalConIva]) => {
+      const cumplioHoja = evalMap[eid] ?? false
+      const totalSinIva = totalConIva / 1.16
+      const porcentaje = calcularPorcentaje(totalConIva, cumplioHoja, tablaComisiones)
+      branches[branchName].comisiones += (totalSinIva * porcentaje) / 100
+    })
+  })
+
+  const rows = Object.entries(branches).map(([nombre, vals]) => ({
+    nombre,
+    total: parseFloat(vals.total.toFixed(2)),
+    sueldos: parseFloat(vals.sueldos.toFixed(2)),
+    comisiones: parseFloat(vals.comisiones.toFixed(2)),
+    otros: parseFloat((vals.total - vals.sueldos - vals.comisiones).toFixed(2))
+  })).sort((a, b) => b.total - a.total)
 
   return { rows, totals: buildTotals(rows) }
 }
@@ -1193,6 +1279,66 @@ async function q_stock_semaforo(): Promise<ReportResult> {
     porcentaje: p.stock <= 3 ? 0 : p.stock <= 9 ? 1 : 2,
     total: undefined
   }))
+
+  return { rows, totals: {} }
+}
+// ─── A.8 Top 10 Empleados ──────────────────────────────────────
+
+async function q_top_empleados(fi: string, ff: string, suc: string): Promise<ReportResult> {
+  let query = supabase
+    .from('tickets')
+    .select('total, vendedor:perfiles_empleadas(nombre)')
+    .eq('estado', 'Pagado')
+    .gte('fecha', fi).lte('fecha', ff)
+  if (suc !== 'all') query = query.eq('sucursal_id', suc)
+  const { data, error } = await query
+  if (error) throw error
+
+  const groups: Record<string, number> = {}
+  data?.forEach((t: any) => {
+    const key = t.vendedor?.nombre || 'Sin profesional'
+    groups[key] = (groups[key] || 0) + (t.total || 0)
+  })
+
+  const rows = Object.entries(groups)
+    .map(([nombre, total]) => ({ nombre, total: parseFloat(total.toFixed(2)) }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10)
+
+  return { rows, totals: buildTotals(rows) }
+}
+
+// ─── A.9 Tendencia Servicios por Familia ────────────────────────
+
+async function q_servicios_familia_tendencia(fi: string, ff: string, suc: string): Promise<ReportResult> {
+  let query = supabase
+    .from('ticket_items')
+    .select('nombre, ticket:tickets!inner(fecha, estado, sucursal_id)')
+    .eq('tipo', 'Servicio')
+    .eq('ticket.estado', 'Pagado')
+    .gte('ticket.fecha', fi).lte('ticket.fecha', ff)
+  if (suc !== 'all') query = query.eq('ticket.sucursal_id', suc)
+  const { data, error } = await query
+  if (error) throw error
+
+  const { data: servicios } = await supabase.from('servicios').select('nombre, familia')
+  const famMap: Record<string, string> = {}
+  servicios?.forEach(s => { famMap[s.nombre] = s.familia || 'Otros' })
+
+  const timeGroups: Record<string, Record<string, number>> = {}
+  data?.forEach((i: any) => {
+    const date = i.ticket.fecha
+    const fam = famMap[i.nombre] || 'Otros'
+    if (!timeGroups[date]) timeGroups[date] = {}
+    timeGroups[date][fam] = (timeGroups[date][fam] || 0) + 1
+  })
+
+  const rows = Object.entries(timeGroups)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([fecha, families]) => ({
+      nombre: fecha.substring(5), // MM-DD
+      ...families
+    }))
 
   return { rows, totals: {} }
 }

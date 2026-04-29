@@ -37,7 +37,8 @@ export function useDashboardData(sucursalId: string, range: TimeRange) {
           inventoryMetrics, salaryBase, cashDifference,
           ticketPromedio, retentionData,
           ingresosSucursal, serviceMix,
-          citasTrend, heatmapData, stockSemaforo
+          citasTrend, heatmapData, stockSemaforo,
+          topEmpleados, serviciosTendencia, pagosPreferidos
         ] = await Promise.all([
           runQuery('4.1.1', 'total', 'total_desc', sFi, sFf, sucursalId),
           runQuery('3.7',   'total', 'cantidad_desc', sFi, sFf, sucursalId),
@@ -53,6 +54,9 @@ export function useDashboardData(sucursalId: string, range: TimeRange) {
           runQuery('A.5',   'total', 'total_desc', sFi, sFf, sucursalId),
           runQuery('A.6',   'total', 'total_desc', sFi, sFf, sucursalId),
           runQuery('A.7',   'total', 'total_desc', sFi, sFf, sucursalId),
+          runQuery('A.8',   'total', 'total_desc', sFi, sFf, sucursalId),
+          runQuery('A.9',   'total', 'total_desc', sFi, sFf, sucursalId),
+          runQuery('4.12.1', 'total', 'total_desc', sFi, sFf, sucursalId),
         ])
 
         // Attendance rate
@@ -91,6 +95,9 @@ export function useDashboardData(sucursalId: string, range: TimeRange) {
           citasTrend: citasTrend.rows,
           heatmapData: heatmapData.rows,
           stockSemaforo: stockSemaforo.rows,
+          topEmpleados: topEmpleados.rows,
+          serviciosTendencia: serviciosTendencia.rows,
+          pagosPreferidos: pagosPreferidos.rows,
         })
       } catch (err: any) {
         console.error('Error fetching dashboard data:', err)

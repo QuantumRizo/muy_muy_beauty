@@ -39,9 +39,14 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
-// ─── Bar Chart (single series, Revenue/Branch) ─────────────────
+// ─── Bar Chart (supports stacked) ─────────────────────────────
 
-export const DashboardBarChart = ({ data, height = 300, colors = DEFAULT_COLORS }: ChartProps) => {
+interface BarChartProps extends ChartProps {
+  stacked?: boolean
+  dataKeys?: { key: string; name: string; color: string }[]
+}
+
+export const DashboardBarChart = ({ data, height = 300, colors = DEFAULT_COLORS, stacked, dataKeys }: BarChartProps) => {
   return (
     <div style={{ width: '100%', height }}>
       <ResponsiveContainer minWidth={0}>
@@ -60,11 +65,25 @@ export const DashboardBarChart = ({ data, height = 300, colors = DEFAULT_COLORS 
             tick={{ fill: 'var(--text-3)', fontSize: 11 }} 
           />
           <Tooltip cursor={{ fill: 'var(--surface-2)' }} content={<CustomTooltip />} />
-          <Bar 
-            dataKey="total" name="Ingresos"
-            fill={colors[0]} radius={[6, 6, 0, 0]} 
-            barSize={32} animationDuration={800}
-          />
+          <Legend verticalAlign="top" align="right" iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 10, paddingBottom: 10 }} />
+          {stacked && dataKeys ? (
+            dataKeys.map((dk, i) => (
+              <Bar 
+                key={dk.key}
+                dataKey={dk.key} name={dk.name}
+                stackId="a"
+                fill={dk.color} 
+                radius={i === dataKeys.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0]} 
+                barSize={32} animationDuration={800}
+              />
+            ))
+          ) : (
+            <Bar 
+              dataKey="total" name="Ingresos"
+              fill={colors[0]} radius={[6, 6, 0, 0]} 
+              barSize={32} animationDuration={800}
+            />
+          )}
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -135,19 +154,18 @@ export const DashboardPieChart = ({ data, height = 300, colors = MULTI_COLORS }:
   )
 }
 
-// ─── Line Chart (Dual: Agendadas vs Asistidas) ─────────────────
+// ─── Generic Multi-Line Chart ─────────────────────────────────
 
-export const DashboardLineChart = ({ data, height = 300, colors = DEFAULT_COLORS }: ChartProps) => {
+export const DashboardLineChart = ({ data, height = 300, colors = MULTI_COLORS }: ChartProps) => {
+  if (!data || data.length === 0) return null
+  
+  // Identify all keys except 'nombre'
+  const keys = Object.keys(data[0]).filter(k => k !== 'nombre')
+
   return (
     <div style={{ width: '100%', height }}>
       <ResponsiveContainer minWidth={0}>
         <LineChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-          <defs>
-            <linearGradient id="lineGrad1" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={colors[0]} stopOpacity={0.1}/>
-              <stop offset="95%" stopColor={colors[0]} stopOpacity={0}/>
-            </linearGradient>
-          </defs>
           <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border)" />
           <XAxis 
             dataKey="nombre" axisLine={false} tickLine={false}
@@ -157,16 +175,15 @@ export const DashboardLineChart = ({ data, height = 300, colors = DEFAULT_COLORS
           <Tooltip content={<CustomTooltip />} />
           <Legend 
             verticalAlign="top" align="right" iconType="circle" iconSize={8}
-            wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingBottom: 12 }}
+            wrapperStyle={{ fontSize: '10px', fontWeight: 600, paddingBottom: 12 }}
           />
-          <Line 
-            type="monotone" dataKey="cantidad" name="Agendadas"
-            stroke={colors[0]} strokeWidth={2.5} dot={false} animationDuration={800}
-          />
-          <Line 
-            type="monotone" dataKey="total" name="Asistidas" 
-            stroke="#10b981" strokeWidth={2.5} dot={false} strokeDasharray="4 2" animationDuration={800}
-          />
+          {keys.map((key, i) => (
+            <Line 
+              key={key}
+              type="monotone" dataKey={key} name={key}
+              stroke={colors[i % colors.length]} strokeWidth={2.5} dot={false} animationDuration={800}
+            />
+          ))}
         </LineChart>
       </ResponsiveContainer>
     </div>
