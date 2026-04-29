@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Wallet, DollarSign, CreditCard, CheckCircle, Clock, TrendingUp, TrendingDown } from 'lucide-react'
+import { Wallet, DollarSign, CheckCircle, Clock, TrendingUp, TrendingDown } from 'lucide-react'
 import { useCajaActiva, useAbrirCaja, useCerrarCaja, useCrearMovimientoCaja } from '../hooks/useCaja'
 import { useEmpleadas } from '../hooks/useEmpleadas'
 import { useSucursalContext } from '../context/SucursalContext'
