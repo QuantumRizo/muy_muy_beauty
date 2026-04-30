@@ -124,7 +124,29 @@ export interface BloqueoAgenda {
   hora_inicio: string
   hora_fin: string
   motivo: string
-  origen: 'manual' | 'comida' | 'sin_entrada'
+  origen: 'manual' | 'comida' | 'sin_entrada' | 'vacaciones'
+}
+
+export type EstadoVacacion = 'pendiente' | 'aprobada' | 'rechazada'
+export type TipoVacacion = 'nueva' | 'extension'
+
+export interface SolicitudVacaciones {
+  id: string
+  empleada_id: string
+  sucursal_id: string
+  fecha_inicio: string
+  fecha_fin: string
+  tipo: TipoVacacion
+  solicitud_padre_id: string | null
+  estado: EstadoVacacion
+  notas_empleada: string | null
+  notas_admin: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
+  created_at: string
+  // Joined
+  empleada?: Empleada
+  sucursal?: Sucursal
 }
 
 export interface Ticket {

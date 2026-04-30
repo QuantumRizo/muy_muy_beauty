@@ -1,0 +1,448 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{tcolorbox}
+\usepackage{fontawesome5}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{mdframed}
+
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+
+% ── Colores corporativos ──────────────────────────────────────────
+\definecolor{primario}{HTML}{C9A96E}
+\definecolor{oscuro}{HTML}{1C1C1E}
+\definecolor{gris}{HTML}{6B6B6B}
+\definecolor{fondo}{HTML}{FAF7F2}
+\definecolor{alerta}{HTML}{E74C3C}
+\definecolor{exito}{HTML}{2ECC71}
+\definecolor{info}{HTML}{3498DB}
+\definecolor{admin}{HTML}{8E44AD}
+
+% ── Secciones ────────────────────────────────────────────────────
+\titleformat{\section}{\Large\bfseries\color{oscuro}}{}{0em}{}[\color{primario}\titlerule]
+\titleformat{\subsection}{\large\bfseries\color{oscuro}}{}{0em}{\faAngleRight\ }
+\titleformat{\subsubsection}{\normalsize\bfseries\color{gris}}{}{0em}{}
+
+% ── Cajas ────────────────────────────────────────────────────────
+\tcbuselibrary{skins,breakable}
+\newtcolorbox{notabox}{
+  colback=fondo, colframe=primario, coltitle=white, fonttitle=\bfseries,
+  title={\faInfoCircle\ Nota}, breakable, arc=4pt
+}
+\newtcolorbox{alertabox}{
+  colback=red!5, colframe=alerta, coltitle=white, fonttitle=\bfseries,
+  title={\faExclamationTriangle\ Importante}, breakable, arc=4pt
+}
+\newtcolorbox{pasobox}[1]{
+  colback=blue!3, colframe=info, coltitle=white, fonttitle=\bfseries,
+  title={\faCheckCircle\ #1}, breakable, arc=4pt
+}
+\newtcolorbox{adminbox}{
+  colback=purple!5, colframe=admin, coltitle=white, fonttitle=\bfseries,
+  title={\faCrown\ Solo Administrador}, breakable, arc=4pt
+}
+
+% ── Encabezado ───────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textcolor{primario}{\textbf{MUYMUY Beauty Studio}}}
+\fancyhead[R]{\textcolor{gris}{\small Manual de Administrador}}
+\fancyfoot[C]{\textcolor{gris}{\small Página \thepage}}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{primario}\leaders\hrule height \headrulewidth\hfill}}
+
+\hypersetup{colorlinks=true, linkcolor=primario, urlcolor=primario}
+
+% ════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ── Portada ─────────────────────────────────────────────────────
+\begin{titlepage}
+  \pagecolor{oscuro}
+  \centering
+  \vspace*{4cm}
+  {\color{primario}\rule{\linewidth}{1pt}}\\[1cm]
+  {\color{white}\Huge\bfseries MUYMUY Beauty Studio}\\[0.5cm]
+  {\color{primario}\Large Manual de Usuario}\\[0.3cm]
+  {\color{white}\LARGE\bfseries ROL: ADMINISTRADOR}\\[1cm]
+  {\color{primario}\rule{\linewidth}{1pt}}\\[2cm]
+  {\color{gris}\large Versión 1.0 --- \today}\\[0.5cm]
+  {\color{gris}\normalsize Sistema Administrativo Interno}
+  \vfill
+  {\color{white}\small Documento confidencial --- Solo para uso interno}
+\end{titlepage}
+\nopagecolor
+
+\tableofcontents
+\newpage
+
+% ════════════════════════════════════════════════════════════════
+\section{Introducción}
+
+Este manual está dirigido a los \textbf{Administradores} del sistema de MUYMUY Beauty Studio. El rol de administrador tiene acceso completo a todas las secciones del sistema, incluyendo las operativas (que también usa el empleado) y las de gestión y análisis.
+
+\begin{adminbox}
+El administrador tiene acceso a \textbf{todas} las secciones: Inicio, Agenda, Clientes, Asistencia, Venta Directa, Caja, \textbf{Análisis, Administración, Inventario} y \textbf{Marketing}.
+\end{adminbox}
+
+\begin{notabox}
+Para las secciones operativas (Agenda, Clientes, Asistencia, Venta Directa, Caja), el funcionamiento es idéntico al descrito en el \textbf{Manual de Empleado}. Este manual cubre las \textbf{funciones exclusivas del administrador} y complementa las que ya conoces.
+\end{notabox}
+
+\subsection{Inicio de Sesión}
+
+\begin{pasobox}{Acceder al sistema}
+\begin{enumerate}[leftmargin=*]
+  \item Entra a la URL del sistema en el navegador.
+  \item Ingresa tu correo y contraseña de administrador.
+  \item El sistema te llevará al \textbf{Dashboard de Inicio}.
+\end{enumerate}
+\end{pasobox}
+
+% ════════════════════════════════════════════════════════════════
+\section{Secciones Operativas (igual que Empleado)}
+
+Las siguientes secciones funcionan de la misma manera que en el Manual de Empleado, pero con privilegios adicionales:
+
+\subsection{Agenda (Funciones Adicionales de Admin)}
+
+Como administrador, en la Agenda verás dos botones adicionales en la esquina superior derecha:
+
+\begin{description}[leftmargin=0pt]
+  \item[\textbf{Bloquear Horario:}] Abre un modal para crear bloqueos manuales en la agenda. Puedes:
+    \begin{itemize}
+      \item Seleccionar la empleada.
+      \item Elegir el rango de fechas y horas.
+      \item Escribir el motivo del bloqueo.
+      \item Crear bloqueos recurrentes (días específicos de la semana).
+    \end{itemize}
+  \item[\textbf{Desbloqueo Masivo:}] Permite eliminar múltiples bloqueos de una vez. Útil cuando cambia el horario de una empleada o hay días festivos que se cancelan.
+\end{description}
+
+\begin{alertabox}
+Úsalo con cuidado. Un bloqueo mal puesto puede hacer que los clientes no puedan agendar con una empleada disponible.
+\end{alertabox}
+
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Dashboard de Inicio}
+
+El Dashboard es la pantalla principal para el administrador. Muestra un resumen en tiempo real del estado del negocio.
+
+\subsection{Selectores de Tiempo y Sucursal}
+
+En la parte superior del Dashboard puedes filtrar por:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Período:} Hoy, Esta Semana, Este Mes.
+  \item \textbf{Sucursal:} Ver todas las sucursales o una en específico.
+\end{itemize}
+
+\subsection{Tarjetas de KPI (Indicadores Clave)}
+
+El Dashboard muestra las siguientes métricas:
+
+\begin{center}
+\begin{tabular}{@{}lp{8cm}@{}}
+\toprule
+\textbf{Indicador} & \textbf{Descripción} \\
+\midrule
+Ingresos Totales & Suma de todos los tickets pagados en el período. \\
+Citas & Número total de citas registradas. \\
+Nuevos Clientes & Clientes que visitaron por primera vez. \\
+Tasa de Asistencia & Porcentaje de citas finalizadas vs. total. \\
+Ticket Promedio & Ingreso promedio por visita. \\
+Tasa de Retención & Porcentaje de clientas que regresan. \\
+Ocupación & Porcentaje de slots de agenda utilizados. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Gráficas del Dashboard}
+
+El Dashboard incluye gráficas interactivas:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Ingresos por Sucursal:} Comparativa de ingresos, sueldos y comisiones entre sucursales.
+  \item \textbf{Top 10 Empleadas:} Las profesionales con mayor generación de ingreso.
+  \item \textbf{Tendencia de Servicios:} Servicios más solicitados por categoría a lo largo del tiempo.
+  \item \textbf{Métodos de Pago:} Distribución de pagos por forma de pago.
+\end{itemize}
+
+\begin{notabox}
+Los datos del Dashboard se actualizan automáticamente. Para forzar un refresco manual, hay un botón de actualizar en la esquina superior derecha.
+\end{notabox}
+
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Análisis y Reportes}
+
+La sección de Análisis es la herramienta de inteligencia de negocio del sistema. Está dividida en tres pestañas.
+
+\subsection{Pestaña: Ventas y Cajas}
+
+Contiene reportes financieros detallados:
+
+\begin{itemize}[leftmargin=*]
+  \item Ingresos por período (diario, semanal, mensual).
+  \item Facturación neta (ingresos menos gastos de sueldos y comisiones).
+  \item Análisis de caja (diferencias entre efectivo esperado y real).
+  \item Reporte de métodos de pago.
+  \item Facturación por tratamiento.
+  \item Facturación estimada (citas agendadas pero no cobradas aún).
+\end{itemize}
+
+\subsection{Pestaña: Estadísticas y Reportes}
+
+Indicadores de desempeño operativo:
+
+\begin{itemize}[leftmargin=*]
+  \item Nuevos clientes por período.
+  \item Tasa de no-show (clientes que no asistieron).
+  \item Análisis de asistencia del personal.
+  \item Tendencia de citas agendadas vs. realizadas.
+  \item Heatmap de afluencia por hora y día de la semana.
+  \item Mix de servicios por familia.
+  \item Ticket promedio por sucursal.
+  \item Retención de clientes.
+\end{itemize}
+
+\subsection{Pestaña: Desempeño y Comisiones}
+
+Reportes de rendimiento del equipo:
+
+\begin{itemize}[leftmargin=*]
+  \item Facturación individual por empleada.
+  \item Cálculo de comisiones por ventas (basado en umbrales configurados).
+  \item Evaluación de cumplimiento de hoja de desempeño.
+  \item Ingresos por sucursal desglosados.
+\end{itemize}
+
+\subsection{Cómo Generar un Reporte}
+
+\begin{pasobox}{Pasos para calcular un reporte}
+\begin{enumerate}[leftmargin=*]
+  \item Ve a \textbf{Análisis} y selecciona la pestaña correspondiente.
+  \item En el selector, elige el \textbf{indicador} que deseas ver.
+  \item Configura el \textbf{rango de fechas} (inicio y fin).
+  \item Selecciona la \textbf{sucursal} (o ``Todas'').
+  \item Elige el tipo de \textbf{desglose} (por sucursal, por empleada, por fecha, etc.).
+  \item Selecciona el \textbf{ordenamiento} de los resultados.
+  \item Haz clic en \textbf{Calcular}.
+  \item Opcionalmente, haz clic en \textbf{Exportar a Excel} para descargar el reporte en formato CSV.
+\end{enumerate}
+\end{pasobox}
+
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Administración}
+
+La sección de Administración es el panel de configuración del sistema.
+
+\subsection{Gestión de Empleadas}
+
+Desde aquí puedes administrar el equipo de trabajo:
+
+\begin{pasobox}{Registrar una nueva empleada}
+\begin{enumerate}[leftmargin=*]
+  \item Ve a \textbf{Administración} y selecciona la pestaña de empleadas.
+  \item Haz clic en \textbf{Nueva Empleada}.
+  \item Llena los datos: nombre completo, sucursal asignada, fecha de contratación y sueldo diario.
+  \item Guarda. La empleada aparecerá en la agenda de su sucursal.
+\end{enumerate}
+\end{pasobox}
+
+También puedes:
+\begin{itemize}[leftmargin=*]
+  \item Editar datos de una empleada existente.
+  \item Desactivar empleadas que ya no trabajan en el salón (sin borrar su historial).
+\end{itemize}
+
+\subsection{Gestión de Usuarios del Sistema}
+
+\begin{pasobox}{Crear un usuario de acceso}
+\begin{enumerate}[leftmargin=*]
+  \item En \textbf{Administración}, ve a la sección de Usuarios.
+  \item Haz clic en \textbf{Nuevo Usuario}.
+  \item Ingresa el correo electrónico, nombre y rol (\textit{empleado} o \textit{admin}).
+  \item El sistema enviará un correo de invitación para que establezcan su contraseña.
+\end{enumerate}
+\end{pasobox}
+
+\begin{alertabox}
+El rol de \textbf{superadmin} tiene los mismos permisos que admin pero no puede ser modificado desde el panel. Úsalo con extrema precaución.
+\end{alertabox}
+
+\subsection{Gestión de Sucursales}
+
+Puedes registrar o editar las sucursales del negocio:
+\begin{itemize}[leftmargin=*]
+  \item Nombre de la sucursal.
+  \item Dirección completa.
+  \item Teléfono.
+  \item RFC asociado.
+  \item Número de cabinas disponibles.
+\end{itemize}
+
+\subsection{Gestión de Servicios}
+
+Administra el catálogo de servicios del salón:
+\begin{itemize}[leftmargin=*]
+  \item Nombre del servicio.
+  \item Familia o categoría (Esmaltado Permanente, Uñas Esculpidas, Spa, etc.).
+  \item Precio.
+  \item Duración en slots (cada slot = 30 minutos).
+  \item Activar o desactivar servicios del catálogo.
+\end{itemize}
+
+\subsection{Configuración de Comisiones}
+
+El sistema calcula comisiones automáticamente basado en umbrales de venta:
+
+\begin{center}
+\begin{tabular}{@{}ccc@{}}
+\toprule
+\textbf{Umbral de Ventas} & \textbf{\% Con Hoja} & \textbf{\% Sin Hoja} \\
+\midrule
+Hasta \$24,000 & 4.0\% & 2.0\% \\
+\$24,001 -- \$30,000 & 4.5\% & 2.5\% \\
+\$30,001 -- \$36,000 & 5.0\% & 3.0\% \\
+... & ... & ... \\
+Más de \$84,000 & 9.0\% & 7.0\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textit{``Con Hoja''} significa que la empleada cumplió su evaluación de desempeño del mes. Puedes modificar estos porcentajes desde la sección de configuración de comisiones.
+
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Inventario}
+
+La sección de Inventario permite gestionar los productos que se venden en el salón.
+
+\subsection{Vista del Inventario}
+
+El inventario muestra:
+\begin{itemize}[leftmargin=*]
+  \item Lista de todos los productos activos.
+  \item Stock actual de cada producto.
+  \item \textbf{Semáforo de stock:} Verde (10+), Amarillo (4--9), Rojo (0--3).
+  \item Precio de venta y precio de costo.
+\end{itemize}
+
+\subsection{Gestionar Productos}
+
+\begin{pasobox}{Agregar un producto nuevo}
+\begin{enumerate}[leftmargin=*]
+  \item Ve a \textbf{Inventario}.
+  \item Haz clic en \textbf{Nuevo Producto}.
+  \item Ingresa: nombre, precio de venta, precio de costo y stock inicial.
+  \item Guarda. El producto estará disponible para venta directa y en los tickets de cita.
+\end{enumerate}
+\end{pasobox}
+
+\begin{pasobox}{Actualizar stock}
+\begin{enumerate}[leftmargin=*]
+  \item Encuentra el producto en la lista.
+  \item Haz clic en \textbf{Editar}.
+  \item Modifica la cantidad de stock.
+  \item Guarda los cambios.
+\end{enumerate}
+\end{pasobox}
+
+\begin{notabox}
+El stock se descuenta automáticamente cada vez que se vende un producto en una cita o venta directa.
+\end{notabox}
+
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Marketing}
+
+La sección de Marketing permite gestionar campañas de comunicación con los clientes.
+
+\subsection{Campañas de WhatsApp}
+
+Puedes enviar mensajes masivos o segmentados a tus clientes:
+
+\begin{pasobox}{Crear una campaña}
+\begin{enumerate}[leftmargin=*]
+  \item Ve a \textbf{Marketing}.
+  \item Haz clic en \textbf{Nueva Campaña}.
+  \item Escribe el mensaje que deseas enviar.
+  \item Selecciona el segmento de clientes:
+    \begin{itemize}
+      \item Todos los clientes.
+      \item Clientes que no han visitado en X días.
+      \item Clientes de una sucursal específica.
+      \item Clientes con cumpleaños en el mes.
+    \end{itemize}
+  \item Revisa la lista de destinatarios.
+  \item Confirma el envío.
+\end{enumerate}
+\end{pasobox}
+
+\subsection{Configuración de Mensajes Automáticos}
+
+Puedes configurar mensajes automáticos que el sistema envía sin intervención manual:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Confirmación de cita:} Se envía cuando se agenda una nueva cita.
+  \item \textbf{Recordatorio 24h:} Se envía el día anterior a la cita.
+  \item \textbf{Felicitación de cumpleaños:} Se envía el día del cumpleaños del cliente.
+\end{itemize}
+
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Evaluaciones de Desempeño (Hoja)}
+
+El sistema permite registrar si cada empleada ``cumplió su hoja'' mensualmente. Esto afecta directamente el porcentaje de comisión que recibe.
+
+\begin{pasobox}{Registrar evaluación mensual}
+\begin{enumerate}[leftmargin=*]
+  \item Ve a \textbf{Administración} y busca la sección de Evaluaciones.
+  \item Selecciona el mes y año a evaluar.
+  \item Para cada empleada, indica si \textbf{cumplió} o \textbf{no cumplió} su hoja de desempeño.
+  \item Guarda. El sistema usará estos datos para calcular las comisiones correctamente en los reportes.
+\end{enumerate}
+\end{pasobox}
+
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Preguntas Frecuentes del Administrador}
+
+\begin{description}[leftmargin=0pt]
+  \item[\textbf{¿Cómo reseteo la contraseña de una empleada?}]
+    Ve a Administración \textrightarrow\ Usuarios, selecciona a la empleada y usa la opción ``Restablecer contraseña''. Se enviará un correo de reseteo.
+
+  \item[\textbf{¿Cómo veo los reportes de todas las sucursales a la vez?}]
+    En la sección de Análisis, elige ``Todas las sucursales'' en el filtro de sucursal antes de calcular.
+
+  \item[\textbf{¿Se pueden recuperar datos borrados?}]
+    Los empleados y clientes desactivados conservan su historial. Los tickets y citas no se eliminan, solo cambian de estado. Contacta soporte técnico si necesitas recuperar datos específicos.
+
+  \item[\textbf{¿Con qué frecuencia se actualizan los datos del Dashboard?}]
+    El Dashboard tiene un caché de 3 minutos. Los datos del análisis se calculan en tiempo real al hacer clic en ``Calcular''.
+
+  \item[\textbf{¿Cómo cambio el precio de un servicio?}]
+    Ve a Administración \textrightarrow\ Servicios, edita el servicio y actualiza el precio. Afectará las nuevas citas; las ya creadas conservan el precio original.
+
+  \item[\textbf{¿Puedo tener múltiples administradores?}]
+    Sí. Puedes crear varios usuarios con rol ``admin''. Todos tendrán acceso completo al sistema.
+\end{description}
+
+% ════════════════════════════════════════════════════════════════
+\vspace{2cm}
+\begin{center}
+  \textcolor{gris}{\rule{0.5\linewidth}{0.4pt}}\\[0.3cm]
+  \textcolor{gris}{\small MUYMUY Beauty Studio --- Manual de Administrador v1.0}\\
+  \textcolor{primario}{\small Documento de uso interno y confidencial}
+\end{center}
+
+\end{document}

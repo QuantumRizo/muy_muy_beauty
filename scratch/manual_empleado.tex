@@ -1,0 +1,389 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{tcolorbox}
+\usepackage{fontawesome5}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{mdframed}
+
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+
+% ── Colores corporativos ──────────────────────────────────────────
+\definecolor{primario}{HTML}{C9A96E}
+\definecolor{oscuro}{HTML}{1C1C1E}
+\definecolor{gris}{HTML}{6B6B6B}
+\definecolor{fondo}{HTML}{FAF7F2}
+\definecolor{alerta}{HTML}{E74C3C}
+\definecolor{exito}{HTML}{2ECC71}
+\definecolor{info}{HTML}{3498DB}
+
+% ── Secciones estilo ────────────────────────────────────────────
+\titleformat{\section}{\Large\bfseries\color{oscuro}}{}{0em}{}[\color{primario}\titlerule]
+\titleformat{\subsection}{\large\bfseries\color{oscuro}}{}{0em}{\faAngleRight\ }
+\titleformat{\subsubsection}{\normalsize\bfseries\color{gris}}{}{0em}{}
+
+% ── Cajas de información ────────────────────────────────────────
+\tcbuselibrary{skins,breakable}
+\newtcolorbox{notabox}{
+  colback=fondo, colframe=primario, coltitle=white, fonttitle=\bfseries,
+  title={\faInfoCircle\ Nota}, breakable, arc=4pt
+}
+\newtcolorbox{alertabox}{
+  colback=red!5, colframe=alerta, coltitle=white, fonttitle=\bfseries,
+  title={\faExclamationTriangle\ Importante}, breakable, arc=4pt
+}
+\newtcolorbox{pasobox}[1]{
+  colback=blue!3, colframe=info, coltitle=white, fonttitle=\bfseries,
+  title={\faCheckCircle\ #1}, breakable, arc=4pt
+}
+
+% ── Encabezado/pie ──────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textcolor{primario}{\textbf{MUYMUY Beauty Studio}}}
+\fancyhead[R]{\textcolor{gris}{\small Manual de Empleado}}
+\fancyfoot[C]{\textcolor{gris}{\small Página \thepage}}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{primario}\leaders\hrule height \headrulewidth\hfill}}
+
+% ── Hyperlinks ───────────────────────────────────────────────────
+\hypersetup{colorlinks=true, linkcolor=primario, urlcolor=primario}
+
+% ════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ── Portada ─────────────────────────────────────────────────────
+\begin{titlepage}
+  \pagecolor{oscuro}
+  \centering
+  \vspace*{4cm}
+  {\color{primario}\rule{\linewidth}{1pt}}\\[1cm]
+  {\color{white}\Huge\bfseries MUYMUY Beauty Studio}\\[0.5cm]
+  {\color{primario}\Large Manual de Usuario}\\[0.3cm]
+  {\color{white}\LARGE\bfseries ROL: EMPLEADO}\\[1cm]
+  {\color{primario}\rule{\linewidth}{1pt}}\\[2cm]
+  {\color{gris}\large Versión 1.0 --- \today}\\[0.5cm]
+  {\color{gris}\normalsize Sistema Administrativo Interno}
+  \vfill
+  {\color{white}\small Documento confidencial --- Solo para uso interno}
+\end{titlepage}
+\nopagecolor
+
+% ── Índice ──────────────────────────────────────────────────────
+\tableofcontents
+\newpage
+
+% ════════════════════════════════════════════════════════════════
+\section{Introducción}
+
+Este manual describe el uso del sistema administrativo de \textbf{MUYMUY Beauty Studio} para empleados. Como empleado, tienes acceso a las secciones necesarias para operar tu turno diario de forma completa y autónoma.
+
+\begin{notabox}
+Tu usuario solo da acceso a: \textbf{Agenda, Clientes, Asistencia, Venta Directa} y \textbf{Caja}. Las secciones de análisis, inventario y configuración son exclusivas del administrador.
+\end{notabox}
+
+\subsection{Acceso al Sistema}
+
+\begin{pasobox}{Cómo iniciar sesión}
+\begin{enumerate}[leftmargin=*]
+  \item Abre el navegador y entra a la URL del sistema.
+  \item Escribe tu correo electrónico y contraseña.
+  \item Haz clic en \textbf{Iniciar sesión}.
+  \item El sistema te llevará directamente a la \textbf{Agenda}.
+\end{enumerate}
+\end{pasobox}
+
+\begin{alertabox}
+Nunca compartas tu contraseña con otras personas. Cada empleada tiene su propio acceso único. Al terminar tu turno, usa el botón \textbf{Cerrar sesión} en la parte inferior del menú lateral.
+\end{alertabox}
+
+\subsection{Navegación General}
+
+Al entrar al sistema verás una barra lateral izquierda con las secciones disponibles. En la parte superior de esa barra aparece el \textbf{selector de sucursal}~--- asegúrate de que esté seleccionada tu sucursal antes de comenzar a trabajar.
+
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Asistencia}
+
+La sección de Asistencia es lo primero que debes usar al llegar al trabajo. Registra tu llegada, salida a comer y regreso para que el sistema sepa que estás disponible en la agenda.
+
+\subsection{Registrar Entrada}
+
+\begin{pasobox}{Al llegar al trabajo}
+\begin{enumerate}[leftmargin=*]
+  \item Ve a la sección \textbf{Asistencia} en el menú lateral.
+  \item Busca tu nombre en la lista de empleadas de tu sucursal.
+  \item Haz clic en el botón \textbf{Registrar Entrada}.
+  \item El sistema mostrará la hora de entrada y tu nombre aparecerá en la agenda.
+\end{enumerate}
+\end{pasobox}
+
+\begin{notabox}
+Una vez que registras tu \textbf{Entrada}, tu columna en la Agenda se activa y puedes recibir citas. Si no registras entrada, aparecerás como no disponible.
+\end{notabox}
+
+\subsection{Ir a Comer / Regreso de Comida}
+
+Cuando salgas a comer, es importante registrarlo porque el sistema \textbf{bloquea automáticamente} tu horario en la agenda durante ese tiempo.
+
+\begin{pasobox}{Para registrar salida a comer}
+\begin{enumerate}[leftmargin=*]
+  \item Ve a \textbf{Asistencia}.
+  \item Haz clic en \textbf{Ir a Comer} junto a tu nombre.
+  \item Tu columna en la Agenda mostrará un bloqueo automático.
+  \item Al regresar, haz clic en \textbf{Regreso de Comida}.
+  \item El bloqueo se elimina y vuelves a estar disponible.
+\end{enumerate}
+\end{pasobox}
+
+\begin{alertabox}
+Este es el \textbf{único mecanismo} mediante el cual una empleada puede bloquear su propio horario. Los empleados \textbf{no tienen acceso} al botón de ``Bloquear Horario'' manual --- esa función es exclusiva de administradores.
+\end{alertabox}
+
+\subsection{Registrar Salida}
+
+Al terminar tu turno:
+
+\begin{pasobox}{Al terminar el turno}
+\begin{enumerate}[leftmargin=*]
+  \item Ve a \textbf{Asistencia}.
+  \item Haz clic en \textbf{Registrar Salida} junto a tu nombre.
+  \item El sistema guarda tu hora de salida y cierra tu jornada.
+\end{enumerate}
+\end{pasobox}
+
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Agenda}
+
+La Agenda es el centro de operaciones del sistema. Aquí puedes ver todas las citas de la semana, agendar nuevas y gestionar el estado de cada cita.
+
+\subsection{Vista General de la Agenda}
+
+La agenda muestra una cuadrícula semanal con:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Columnas:} Una por cada día de la semana (Lun--Dom).
+  \item \textbf{Filas:} Bloques de tiempo desde la mañana hasta la noche.
+  \item \textbf{Empleadas:} Cada empleada tiene su propia sección por columna.
+  \item \textbf{Colores:} Las citas muestran colores según su estado (programada, en curso, finalizada, cancelada).
+\end{itemize}
+
+Puedes navegar entre semanas con las flechas \textbf{◄ ►} o volver a la semana actual con el botón \textbf{Hoy}.
+
+\subsection{Agendar una Nueva Cita}
+
+\begin{pasobox}{Cómo crear una cita}
+\begin{enumerate}[leftmargin=*]
+  \item Haz clic en un slot (casilla) vacío en la cuadrícula de la agenda.
+  \item Se abrirá el \textbf{buscador de clientes}. Escribe el nombre o teléfono del cliente.
+  \item Si el cliente existe, selecciónalo de la lista.
+  \item Si es un cliente nuevo, haz clic en \textbf{Nuevo Cliente} y llena el formulario.
+  \item Una vez seleccionado el cliente, elige los servicios que va a recibir.
+  \item Confirma la cita. Aparecerá en la cuadrícula.
+\end{enumerate}
+\end{pasobox}
+
+\begin{notabox}
+También puedes ir primero a \textbf{Clientes}, buscar al cliente y desde su perfil hacer clic en ``Agendar Cita'', que te llevará directamente a la agenda con ese cliente ya seleccionado.
+\end{notabox}
+
+\subsection{Gestionar una Cita Existente}
+
+\begin{pasobox}{Cómo ver o modificar una cita}
+\begin{enumerate}[leftmargin=*]
+  \item Haz clic sobre cualquier cita en la cuadrícula.
+  \item Se abre el panel de \textbf{Gestión de Cita} con todos los detalles.
+  \item Desde ahí puedes:
+  \begin{itemize}
+    \item Ver los servicios agendados.
+    \item Cambiar el estado (Programada, En curso, Finalizada, Cancelada, No asistió).
+    \item Iniciar el proceso de \textbf{cobro} cuando la cita termina.
+  \end{itemize}
+\end{enumerate}
+\end{pasobox}
+
+\subsection{Proceso de Cobro de una Cita}
+
+Cuando la clienta termina su servicio, debes realizar el cobro desde la agenda:
+
+\begin{pasobox}{Cobrar una cita}
+\begin{enumerate}[leftmargin=*]
+  \item Haz clic en la cita finalizada.
+  \item En el panel de gestión, haz clic en \textbf{Cobrar / Validar}.
+  \item Se abre el flujo de checkout. Revisa los servicios y precios.
+  \item Puedes agregar productos adicionales si la clienta compró algo.
+  \item Selecciona el \textbf{método de pago} (Efectivo, Tarjeta, Transferencia, etc.).
+  \item Haz clic en \textbf{Confirmar Pago}. Se genera el ticket automáticamente.
+\end{enumerate}
+\end{pasobox}
+
+\subsection{Bloqueos en la Agenda}
+
+\begin{alertabox}
+Como empleada, \textbf{no puedes crear bloqueos manuales} en la agenda. Los únicos bloqueos que puedes generar son los automáticos al registrar \textbf{Ir a Comer} en la sección de Asistencia. Si necesitas bloquear un horario por otra razón, comunícalo al administrador.
+\end{alertabox}
+
+Si ves un bloqueo en la agenda (celda gris o con candado), puedes hacer clic en él para ver el motivo y la duración, pero no podrás eliminarlo.
+
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Clientes}
+
+La sección de Clientes te permite buscar, registrar y consultar la información de las clientas del salón.
+
+\subsection{Buscar un Cliente}
+
+\begin{pasobox}{Búsqueda de cliente}
+\begin{enumerate}[leftmargin=*]
+  \item Ve a la sección \textbf{Clientes}.
+  \item Usa la barra de búsqueda para escribir nombre, teléfono o correo.
+  \item Los resultados aparecen en tiempo real conforme escribes.
+  \item Haz clic en el cliente para ver su perfil completo.
+\end{enumerate}
+\end{pasobox}
+
+\subsection{Registrar un Nuevo Cliente}
+
+\begin{pasobox}{Alta de cliente nuevo}
+\begin{enumerate}[leftmargin=*]
+  \item En la sección \textbf{Clientes}, haz clic en \textbf{Nuevo Cliente}.
+  \item Llena los campos requeridos:
+    \begin{itemize}
+      \item Nombre completo \textit{(obligatorio)}
+      \item Teléfono \textit{(obligatorio)}
+      \item Correo electrónico \textit{(opcional)}
+      \item Fecha de nacimiento \textit{(opcional, para felicitaciones)}
+      \item Notas \textit{(alergias, preferencias, etc.)}
+    \end{itemize}
+  \item Haz clic en \textbf{Guardar}.
+\end{enumerate}
+\end{pasobox}
+
+\subsection{Perfil del Cliente}
+
+Desde el perfil de un cliente puedes ver:
+\begin{itemize}[leftmargin=*]
+  \item Historial completo de visitas y servicios.
+  \item Total gastado en el salón.
+  \item Última visita.
+  \item Botón directo para \textbf{Agendar una nueva cita}.
+\end{itemize}
+
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Venta Directa}
+
+La Venta Directa te permite registrar ventas de productos o servicios sin necesidad de una cita agendada previamente.
+
+\subsection{¿Cuándo usar Venta Directa?}
+
+Usa esta sección cuando:
+\begin{itemize}[leftmargin=*]
+  \item Un cliente llega a comprar un producto sin cita.
+  \item Se realiza un servicio exprés sin cita previa.
+  \item Necesitas hacer una venta rápida sin pasar por la agenda.
+\end{itemize}
+
+\subsection{Registrar una Venta}
+
+\begin{pasobox}{Proceso de venta directa}
+\begin{enumerate}[leftmargin=*]
+  \item Ve a \textbf{Venta Directa}.
+  \item Selecciona o busca al cliente (puede ser venta sin cliente registrado).
+  \item Agrega los productos o servicios que se están vendiendo.
+  \item El sistema calcula el total automáticamente.
+  \item Selecciona el método de pago.
+  \item Haz clic en \textbf{Confirmar Venta}. Se genera el ticket.
+\end{enumerate}
+\end{pasobox}
+
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Caja}
+
+La sección de Caja te permite gestionar el dinero en efectivo del turno.
+
+\subsection{Abrir Turno de Caja}
+
+Al iniciar tu turno de caja (si eres responsable de ella):
+
+\begin{pasobox}{Abrir caja}
+\begin{enumerate}[leftmargin=*]
+  \item Ve a la sección \textbf{Caja}.
+  \item Haz clic en \textbf{Abrir Turno}.
+  \item Ingresa el monto de efectivo con el que inicias (fondo de caja).
+  \item Confirma la apertura.
+\end{enumerate}
+\end{pasobox}
+
+\subsection{Registrar Movimientos de Caja}
+
+Puedes registrar entradas o salidas de efectivo durante el turno:
+
+\begin{pasobox}{Registrar movimiento}
+\begin{enumerate}[leftmargin=*]
+  \item En \textbf{Caja}, selecciona \textbf{Nuevo Movimiento}.
+  \item Elige el tipo: \textbf{Entrada} o \textbf{Salida}.
+  \item Selecciona el concepto del movimiento del menú desplegable.
+  \item Ingresa el monto.
+  \item Agrega una nota si es necesario.
+  \item Confirma el movimiento.
+\end{enumerate}
+\end{pasobox}
+
+\subsection{Cerrar Turno de Caja}
+
+Al terminar el turno:
+
+\begin{pasobox}{Cerrar caja}
+\begin{enumerate}[leftmargin=*]
+  \item Ve a \textbf{Caja} y haz clic en \textbf{Cerrar Turno}.
+  \item Cuenta el efectivo físico que tienes y escribe el monto.
+  \item El sistema calculará automáticamente si hay diferencia (faltante o sobrante).
+  \item Confirma el cierre.
+\end{enumerate}
+\end{pasobox}
+
+\begin{notabox}
+Es normal que haya pequeñas diferencias por redondeos. Si la diferencia es significativa, comunícala al administrador antes de cerrar.
+\end{notabox}
+
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Preguntas Frecuentes}
+
+\begin{description}[leftmargin=0pt]
+  \item[\textbf{¿Qué hago si no puedo iniciar sesión?}]
+    Verifica que el correo y la contraseña sean correctos. Si olvidaste tu contraseña, pide al administrador que la restablezca.
+
+  \item[\textbf{¿Por qué no aparezco en la agenda?}]
+    Debes registrar tu \textbf{Entrada} en la sección de Asistencia para que tu columna se active en la agenda.
+
+  \item[\textbf{¿Puedo cambiar la sucursal activa?}]
+    Sí, desde el selector en la parte superior de la barra lateral. Asegúrate de seleccionar tu sucursal correcta.
+
+  \item[\textbf{¿Qué hago si cometí un error en una venta?}]
+    No puedes eliminar tickets una vez confirmados. Notifica al administrador para que haga la corrección correspondiente.
+
+  \item[\textbf{¿Por qué no veo los botones de bloquear horario?}]
+    Los botones de bloqueo manual son exclusivos de administradores. Para bloquear tu horario, usa \textbf{Ir a Comer} en Asistencia.
+\end{description}
+
+% ════════════════════════════════════════════════════════════════
+\vspace{2cm}
+\begin{center}
+  \textcolor{gris}{\rule{0.5\linewidth}{0.4pt}}\\[0.3cm]
+  \textcolor{gris}{\small MUYMUY Beauty Studio --- Manual de Empleado v1.0}\\
+  \textcolor{primario}{\small Documento de uso interno y confidencial}
+\end{center}
+
+\end{document}

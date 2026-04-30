@@ -9,6 +9,7 @@ export interface UserProfile {
   email: string
   rol: 'admin' | 'superadmin' | 'empleado'
   avatar_url?: string
+  sucursal_id?: string | null
 }
 
 interface AuthContextType {

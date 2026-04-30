@@ -22,6 +22,8 @@ import CajaPage from './pages/CajaPage'
 import VentaDirectaPage from './pages/VentaDirectaPage'
 import MarketingPage from './pages/MarketingPage'
 import AsistenciaPage from './pages/AsistenciaPage'
+import VacacionesPage from './pages/VacacionesPage'
+import SucursalGuard from './components/Common/SucursalGuard'
 import type { Cliente } from './types/database'
 
 const queryClient = new QueryClient({
@@ -126,14 +128,15 @@ export default function App() {
                   <Route path="/admin" element={<AdminShell />}>
                     <Route path="inicio"        element={<InicioPage />} />
                     <Route path="agenda"        element={<AgendaWrapper />} />
-                    <Route path="asistencia"    element={<AsistenciaPage />} />
+                    <Route path="asistencia"    element={<SucursalGuard><AsistenciaPage /></SucursalGuard>} />
                     <Route path="clientes"      element={<ClientesWrapper />} />
                     <Route path="inventario"    element={<InventarioPage />} />
-                    <Route path="caja"          element={<CajaPage />} />
-                    <Route path="venta-directa" element={<VentaDirectaPage />} />
+                    <Route path="caja"          element={<SucursalGuard><CajaPage /></SucursalGuard>} />
+                    <Route path="venta-directa" element={<SucursalGuard><VentaDirectaPage /></SucursalGuard>} />
                     <Route path="marketing"     element={<MarketingPage />} />
                     <Route path="analisis"      element={<AnalisisPage />} />
                     <Route path="administracion" element={<AdministracionPage />} />
+                    <Route path="vacaciones"    element={<SucursalGuard><VacacionesPage /></SucursalGuard>} />
                   </Route>
 
                   {/* Fallback */}

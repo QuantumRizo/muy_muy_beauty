@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { useAuthContext } from './AuthContext'
 
 interface SucursalContextType {
   selectedSucursalId: string
@@ -18,6 +19,19 @@ export function SucursalProvider({ children }: { children: React.ReactNode }) {
     setSelectedSucursalIdState(id)
     localStorage.setItem(STORAGE_KEY, id)
   }
+
+  // Auto-select based on user profile when logging in
+  const { profile } = useAuthContext()
+  const lastProfileId = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (profile?.id && profile.id !== lastProfileId.current) {
+      lastProfileId.current = profile.id
+      if (profile.sucursal_id) {
+        setSelectedSucursalId(profile.sucursal_id)
+      }
+    }
+  }, [profile])
 
   return (
     <SucursalContext.Provider value={{ selectedSucursalId, setSelectedSucursalId }}>
