@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuthContext } from '../context/AuthContext'
 import { useSucursalContext } from '../context/SucursalContext'
 import { useToast } from '../components/Common/Toast'
 import { format, differenceInCalendarDays } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { PalmtreeIcon, Clock, CheckCircle, XCircle, Plus, CalendarRange, ChevronDown, AlertTriangle, User } from 'lucide-react'
+import { Plus, CalendarRange, ChevronDown, User } from 'lucide-react'
 import type { SolicitudVacaciones, Empleada } from '../types/database'
 
 const ESTADO_BADGE: Record<string, { label: string; color: string }> = {
