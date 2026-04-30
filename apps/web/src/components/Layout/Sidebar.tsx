@@ -1,4 +1,4 @@
-import { Home, Calendar, Users, BarChart2, Package, Wallet, ShoppingCart, Megaphone, LogOut, Clock, Settings } from 'lucide-react'
+import { Home, Calendar, Users, BarChart2, Package, Wallet, ShoppingCart, Megaphone, LogOut, Clock, Settings, Palmtree } from 'lucide-react'
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useSucursales } from '../../hooks/useSucursales'
@@ -30,7 +30,7 @@ const navGroups: NavGroup[] = [
       { id: 'asistencia',     label: 'Asistencia',     Icon: Clock,        path: '/admin/asistencia'     },
       { id: 'venta-directa',  label: 'Venta Directa',  Icon: ShoppingCart, path: '/admin/venta-directa'  },
       { id: 'caja',           label: 'Caja',           Icon: Wallet,       path: '/admin/caja'           },
-      { id: 'vacaciones',     label: 'Vacaciones',     Icon: Calendar,     path: '/admin/vacaciones'     },
+      { id: 'vacaciones',     label: 'Vacaciones',     Icon: Palmtree,     path: '/admin/vacaciones'     },
     ]
   },
   {

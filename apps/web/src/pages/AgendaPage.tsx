@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { startOfWeek, addDays, addWeeks, subWeeks, format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Calendar, CalendarPlus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, CalendarPlus, X, AlertTriangle } from 'lucide-react'
 import AgendaGrid from '../components/Agenda/AgendaGrid'
 import BuscadorModal from '../components/Clientes/BuscadorModal'
 import FormularioCliente from '../components/Clientes/FormularioCliente'
@@ -158,6 +158,27 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected }: P
         </div>
       )}
 
+
+      {/* Cross-branch warning for employees */}
+      {profile?.sucursal_id && sucursalId && profile.sucursal_id !== sucursalId && (
+        <div style={{ 
+          background: 'rgba(245, 158, 11, 0.1)', 
+          color: '#d97706', 
+          padding: '10px 20px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 10, 
+          fontSize: 13, 
+          fontWeight: 600,
+          borderBottom: '1px solid rgba(245, 158, 11, 0.2)'
+        }}>
+          <AlertTriangle size={18} />
+          <span>
+            Estás viendo la agenda de <strong style={{ color: 'var(--text-1)' }}>{activeSucursalObj?.nombre}</strong>. 
+            Tu sucursal base es <strong style={{ color: 'var(--text-1)' }}>{sucursales.find(s => s.id === profile.sucursal_id)?.nombre}</strong>.
+          </span>
+        </div>
+      )}
 
       {/* ── Topbar ───────────────────────────────────────────── */}
       <div className="page-header" style={{ padding: '24px 24px 0', marginBottom: 24 }}>

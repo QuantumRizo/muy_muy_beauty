@@ -63,18 +63,17 @@
 
 % ── Portada ─────────────────────────────────────────────────────
 \begin{titlepage}
-  \pagecolor{oscuro}
   \centering
   \vspace*{4cm}
   {\color{primario}\rule{\linewidth}{1pt}}\\[1cm]
-  {\color{white}\Huge\bfseries MUYMUY Beauty Studio}\\[0.5cm]
+  {\color{oscuro}\Huge\bfseries MUYMUY Beauty Studio}\\[0.5cm]
   {\color{primario}\Large Manual de Usuario}\\[0.3cm]
-  {\color{white}\LARGE\bfseries ROL: EMPLEADO}\\[1cm]
+  {\color{oscuro}\LARGE\bfseries ROL: EMPLEADO}\\[1cm]
   {\color{primario}\rule{\linewidth}{1pt}}\\[2cm]
-  {\color{gris}\large Versión 1.0 --- \today}\\[0.5cm]
+  {\color{gris}\large Versión 1.1 --- \today}\\[0.5cm]
   {\color{gris}\normalsize Sistema Administrativo Interno}
   \vfill
-  {\color{white}\small Documento confidencial --- Solo para uso interno}
+  {\color{oscuro}\small Documento confidencial --- Solo para uso interno}
 \end{titlepage}
 \nopagecolor
 
@@ -88,7 +87,7 @@
 Este manual describe el uso del sistema administrativo de \textbf{MUYMUY Beauty Studio} para empleados. Como empleado, tienes acceso a las secciones necesarias para operar tu turno diario de forma completa y autónoma.
 
 \begin{notabox}
-Tu usuario solo da acceso a: \textbf{Agenda, Clientes, Asistencia, Venta Directa} y \textbf{Caja}. Las secciones de análisis, inventario y configuración son exclusivas del administrador.
+Tu usuario solo da acceso a: \textbf{Agenda, Clientes, Asistencia, Venta Directa, Caja} y \textbf{Vacaciones}. Las secciones de análisis, inventario y configuración son exclusivas del administrador.
 \end{notabox}
 
 \subsection{Acceso al Sistema}
@@ -353,9 +352,48 @@ Al terminar el turno:
 \end{enumerate}
 \end{pasobox}
 
-\begin{notabox}
-Es normal que haya pequeñas diferencias por redondeos. Si la diferencia es significativa, comunícala al administrador antes de cerrar.
-\end{notabox}
+% ════════════════════════════════════════════════════════════════
+\newpage
+\section{Vacaciones}
+
+El sistema cuenta con un módulo para gestionar tus solicitudes de descanso de forma digital y organizada.
+
+\subsection{Solicitar Vacaciones}
+
+\begin{pasobox}{Nueva Solicitud}
+\begin{enumerate}[leftmargin=*]
+  \item Ve a la sección \textbf{Vacaciones} en el menú lateral.
+  \item Haz clic en el botón \textbf{Nueva Solicitud}.
+  \item Selecciona la \textbf{Fecha de Inicio} y la \textbf{Fecha de Fin}.
+  \item Escribe una breve nota o motivo si es necesario.
+  \item Haz clic en \textbf{Enviar Solicitud}.
+\end{enumerate}
+\end{pasobox}
+
+\subsection{Estado de Solicitudes}
+
+En la pantalla principal de Vacaciones verás el listado de tus solicitudes enviadas y su estado:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Pendiente:} El administrador aún no ha revisado la solicitud.
+  \item \textbf{Aprobada:} Tus vacaciones han sido autorizadas. El sistema \textbf{bloqueará automáticamente} tu horario en la agenda para esos días.
+  \item \textbf{Rechazada:} La solicitud no pudo ser autorizada. Podrás ver el motivo en la nota del administrador.
+\end{itemize}
+
+\subsection{Extensiones de Vacaciones}
+
+Si ya tienes una solicitud aprobada y necesitas agregar más días:
+
+\begin{pasobox}{Solicitar Extensión}
+\begin{enumerate}[leftmargin=*]
+  \item Busca tu solicitud aprobada en el listado.
+  \item Haz clic en el botón \textbf{Solicitar Extensión}.
+  \item Selecciona las nuevas fechas y envía para aprobación.
+\end{enumerate}
+\end{pasobox}
+
+\begin{alertabox}
+Una vez que tus vacaciones son \textbf{Aprobadas}, no es necesario que el administrador bloquee tu agenda manualmente; el sistema lo hace por ti para asegurar que no recibas citas en esos días.
+\end{alertabox}
 
 % ════════════════════════════════════════════════════════════════
 \newpage
@@ -382,7 +420,7 @@ Es normal que haya pequeñas diferencias por redondeos. Si la diferencia es sign
 \vspace{2cm}
 \begin{center}
   \textcolor{gris}{\rule{0.5\linewidth}{0.4pt}}\\[0.3cm]
-  \textcolor{gris}{\small MUYMUY Beauty Studio --- Manual de Empleado v1.0}\\
+  \textcolor{gris}{\small MUYMUY Beauty Studio --- Manual de Empleado v1.1}\\
   \textcolor{primario}{\small Documento de uso interno y confidencial}
 \end{center}
 

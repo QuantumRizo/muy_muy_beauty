@@ -67,18 +67,17 @@
 
 % ── Portada ─────────────────────────────────────────────────────
 \begin{titlepage}
-  \pagecolor{oscuro}
   \centering
   \vspace*{4cm}
   {\color{primario}\rule{\linewidth}{1pt}}\\[1cm]
-  {\color{white}\Huge\bfseries MUYMUY Beauty Studio}\\[0.5cm]
+  {\color{oscuro}\Huge\bfseries MUYMUY Beauty Studio}\\[0.5cm]
   {\color{primario}\Large Manual de Usuario}\\[0.3cm]
-  {\color{white}\LARGE\bfseries ROL: ADMINISTRADOR}\\[1cm]
+  {\color{oscuro}\LARGE\bfseries ROL: ADMINISTRADOR}\\[1cm]
   {\color{primario}\rule{\linewidth}{1pt}}\\[2cm]
-  {\color{gris}\large Versión 1.0 --- \today}\\[0.5cm]
+  {\color{gris}\large Versión 1.1 --- \today}\\[0.5cm]
   {\color{gris}\normalsize Sistema Administrativo Interno}
   \vfill
-  {\color{white}\small Documento confidencial --- Solo para uso interno}
+  {\color{oscuro}\small Documento confidencial --- Solo para uso interno}
 \end{titlepage}
 \nopagecolor
 
@@ -91,7 +90,7 @@
 Este manual está dirigido a los \textbf{Administradores} del sistema de MUYMUY Beauty Studio. El rol de administrador tiene acceso completo a todas las secciones del sistema, incluyendo las operativas (que también usa el empleado) y las de gestión y análisis.
 
 \begin{adminbox}
-El administrador tiene acceso a \textbf{todas} las secciones: Inicio, Agenda, Clientes, Asistencia, Venta Directa, Caja, \textbf{Análisis, Administración, Inventario} y \textbf{Marketing}.
+El administrador tiene acceso a \textbf{todas} las secciones: Inicio, Agenda, Clientes, Asistencia, Venta Directa, Caja, Vacaciones, \textbf{Análisis, Administración, Inventario} y \textbf{Marketing}.
 \end{adminbox}
 
 \begin{notabox}
@@ -400,6 +399,47 @@ Puedes configurar mensajes automáticos que el sistema envía sin intervención 
 
 % ════════════════════════════════════════════════════════════════
 \newpage
+\section{Gestión de Vacaciones}
+
+Como administrador, eres el responsable de aprobar o rechazar las solicitudes de tiempo libre del equipo.
+
+\subsection{Revisar Solicitudes}
+
+En la sección \textbf{Vacaciones} verás un listado de todas las solicitudes de tu sucursal. Las solicitudes pendientes aparecerán con botones de acción rápida.
+
+\begin{pasobox}{Aprobar una solicitud}
+\begin{enumerate}[leftmargin=*]
+  \item Busca la solicitud con estado \textbf{Pendiente}.
+  \item Revisa las fechas y las notas de la empleada.
+  \item Haz clic en \textbf{Aprobar}.
+  \item Opcionalmente, escribe una nota para la empleada.
+  \item Confirma. El sistema \textbf{creará automáticamente los bloqueos} en la agenda de la empleada para esas fechas.
+\end{enumerate}
+\end{pasobox}
+
+\begin{pasobox}{Rechazar una solicitud}
+\begin{enumerate}[leftmargin=*]
+  \item Haz clic en \textbf{Rechazar} en la solicitud correspondiente.
+  \item \textbf{Importante:} Escribe el motivo del rechazo en el campo de notas para que la empleada sepa la razón.
+  \item Confirma el rechazo.
+\end{enumerate}
+\end{pasobox}
+
+\subsection{Automatización con la Agenda}
+
+El módulo de vacaciones está integrado directamente con la agenda:
+\begin{itemize}[leftmargin=*]
+  \item Al aprobar una solicitud, se generan bloqueos de jornada completa (08:00 a 21:00) en todos los días del rango.
+  \item Si se aprueba una \textbf{Extensión}, se agregarán nuevos bloqueos para los días adicionales.
+  \item Esto garantiza que no se agenden citas accidentalmente mientras la profesional está fuera.
+\end{itemize}
+
+\begin{notabox}
+Los administradores actúan únicamente como aprobadores. El botón de ``Nueva Solicitud'' está oculto para el rol admin para evitar confusiones.
+\end{notabox}
+
+% ════════════════════════════════════════════════════════════════
+\newpage
 \section{Evaluaciones de Desempeño (Hoja)}
 
 El sistema permite registrar si cada empleada ``cumplió su hoja'' mensualmente. Esto afecta directamente el porcentaje de comisión que recibe.
@@ -441,7 +481,7 @@ El sistema permite registrar si cada empleada ``cumplió su hoja'' mensualmente.
 \vspace{2cm}
 \begin{center}
   \textcolor{gris}{\rule{0.5\linewidth}{0.4pt}}\\[0.3cm]
-  \textcolor{gris}{\small MUYMUY Beauty Studio --- Manual de Administrador v1.0}\\
+  \textcolor{gris}{\small MUYMUY Beauty Studio --- Manual de Administrador v1.1}\\
   \textcolor{primario}{\small Documento de uso interno y confidencial}
 \end{center}
 
