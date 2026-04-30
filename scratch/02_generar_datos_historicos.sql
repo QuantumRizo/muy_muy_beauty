@@ -22,7 +22,7 @@ DECLARE
   v_precio      numeric;
   v_nombre_svc  text;
   v_nombre_prod text;
-  v_folio       int;
+  v_folio       text;
   v_hora_inicio int;
   v_num_citas   int;
   v_sucursales  uuid[];

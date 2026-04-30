@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { 
   Trash2, X, Building2, MapPin, Phone, ShieldCheck, 
-  UserPlus, Sliders, Edit3, Calendar, CircleDollarSign, CheckCircle2 
+  UserPlus, Sliders, Edit3, Calendar, CircleDollarSign, CheckCircle2, Clock 
 } from 'lucide-react'
 import { useTodasEmpleadas } from '../../hooks/useEmpleadas'
 import { useSucursales } from '../../hooks/useSucursales'
@@ -47,7 +47,9 @@ export default function StaffTab() {
         num_cabinas: parseInt(editingSucursal.num_cabinas) || 0,
         rfc: editingSucursal.rfc || '',
         direccion: editingSucursal.direccion || '',
-        telefono: editingSucursal.telefono || ''
+        telefono: editingSucursal.telefono || '',
+        hora_apertura: editingSucursal.hora_apertura || '08:00:00',
+        hora_cierre: editingSucursal.hora_cierre || '21:00:00'
       })
       .eq('id', editingSucursal.id)
 
@@ -211,7 +213,7 @@ export default function StaffTab() {
 
           {/* Sub-table with Sucursal Details */}
           <div style={{ padding: '32px 24px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 20 }}>
               <div 
                 onClick={() => setEditingSucursal(sucursal)}
                 className="branch-detail-card-active"
@@ -253,6 +255,18 @@ export default function StaffTab() {
                   <Sliders size={12} /> Cabinas Extra
                 </label>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--accent)' }}>{sucursal.num_cabinas} <span style={{ fontSize: 11, fontWeight: 500 }}>disponibles</span></div>
+              </div>
+              <div 
+                onClick={() => setEditingSucursal(sucursal)}
+                className="branch-detail-card-active"
+                style={{ cursor: 'pointer', background: 'var(--surface)', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', transition: 'all 0.2s' }}
+              >
+                <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--text-3)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
+                  <Clock size={12} /> Horario
+                </label>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)' }}>
+                  {sucursal.hora_apertura?.substring(0, 5)} — {sucursal.hora_cierre?.substring(0, 5)}
+                </div>
               </div>
             </div>
           </div>
@@ -347,6 +361,27 @@ export default function StaffTab() {
               <div className="form-group">
                 <label className="stats-section-label">Dirección Física</label>
                 <input className="form-input" value={editingSucursal.direccion || ''} onChange={e => setEditingSucursal({ ...editingSucursal, direccion: e.target.value })} placeholder="Dirección completa" />
+              </div>
+
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="stats-section-label">Hora de Apertura</label>
+                  <input 
+                    type="time" 
+                    className="form-input" 
+                    value={editingSucursal.hora_apertura?.substring(0, 5) || '08:00'} 
+                    onChange={e => setEditingSucursal({ ...editingSucursal, hora_apertura: e.target.value + ':00' })} 
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="stats-section-label">Hora de Cierre</label>
+                  <input 
+                    type="time" 
+                    className="form-input" 
+                    value={editingSucursal.hora_cierre?.substring(0, 5) || '21:00'} 
+                    onChange={e => setEditingSucursal({ ...editingSucursal, hora_cierre: e.target.value + ':00' })} 
+                  />
+                </div>
               </div>
 
               <div className="form-group" style={{ background: 'var(--accent-light)', padding: 16, borderRadius: 12, border: '1px solid var(--accent)' }}>

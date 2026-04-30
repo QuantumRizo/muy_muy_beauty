@@ -283,23 +283,30 @@ El rol de \textbf{superadmin} tiene los mismos permisos que admin pero no puede 
 
 Puedes registrar o editar las sucursales del negocio:
 \begin{itemize}[leftmargin=*]
-  \item Nombre de la sucursal.
-  \item Dirección completa.
-  \item Teléfono.
-  \item RFC asociado.
-  \item Número de cabinas disponibles.
+  \item Nombre, Dirección, Teléfono y RFC.
+  \item \textbf{Capacidad de Agenda:} Número de columnas extra para citas sin profesional asignado.
+  \item \textbf{Horarios de Operación:} Define la hora de apertura y cierre. Esto ajustará automáticamente el rango visible en la Agenda Semanal.
 \end{itemize}
 
-\subsection{Gestión de Servicios}
+\begin{pasobox}{Cómo configurar el horario}
+\begin{enumerate}[leftmargin=*]
+  \item En \textbf{Administración} → \textbf{Sucursales y Staff}, busca la sucursal.
+  \item Haz clic en cualquiera de los cuadros de información (Dirección, Teléfono, Horario o Cabinas).
+  \item Ajusta las horas en la ventana emergente y guarda los cambios.
+\end{enumerate}
+\end{pasobox}
 
-Administra el catálogo de servicios del salón:
+\subsection{Gestión de Servicios \badge{Próximamente}}
+
+Por ahora, esta sección funciona como un catálogo de consulta para visualizar:
 \begin{itemize}[leftmargin=*]
-  \item Nombre del servicio.
-  \item Familia o categoría (Esmaltado Permanente, Uñas Esculpidas, Spa, etc.).
-  \item Precio.
-  \item Duración en slots (cada slot = 30 minutos).
-  \item Activar o desactivar servicios del catálogo.
+  \item Nombre del servicio y categoría.
+  \item Precio y duración configurada.
 \end{itemize}
+
+\begin{alertabox}
+La edición de precios y la creación de nuevos servicios desde el panel administrativo están actualmente en desarrollo. Por el momento, cualquier cambio debe ser solicitado al equipo técnico.
+\end{alertabox}
 
 \subsection{Configuración de Comisiones}
 

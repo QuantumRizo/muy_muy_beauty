@@ -8,6 +8,7 @@ import { useSucursales } from '../hooks/useSucursales'
 import { useToast } from '../components/Common/Toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { hoyMX, ahoraMX } from '../lib/dateUtils'
 
 type TipoAsistencia = 'Entrada' | 'Salida Comida' | 'Salida'
 
@@ -29,7 +30,7 @@ export default function AsistenciaPage() {
   const fetchTodayHistory = async () => {
     if (!selectedSucursalId) return
     setLoading(true)
-    const today = new Date().toISOString().split('T')[0]
+    const today = hoyMX()
     
     setFetchError(null)
     const { data, error } = await supabase
@@ -77,11 +78,11 @@ export default function AsistenciaPage() {
       // ── Bloqueo automático de comida ──────────────────────────
       if (tipo === 'Salida Comida') {
         // Calcular hora actual + 1 hora
-        const ahora = new Date()
+        const ahora = ahoraMX()
         const horaInicio = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:00`
         const unaHoraDespues = new Date(ahora.getTime() + 60 * 60 * 1000)
         const horaFin = `${String(unaHoraDespues.getHours()).padStart(2, '0')}:${String(unaHoraDespues.getMinutes()).padStart(2, '0')}:00`
-        const hoy = ahora.toISOString().split('T')[0]
+        const hoy = hoyMX()
 
         await supabase.from('bloqueos_agenda').insert({
           empleada_id: selectedEmpleadaId,
@@ -96,7 +97,7 @@ export default function AsistenciaPage() {
       if (tipo === 'Salida') {
         // Eliminar completamente el bloqueo de comida de hoy al finalizar el turno
         // para no dejar basura en la base de datos.
-        const hoy = new Date().toISOString().split('T')[0]
+        const hoy = hoyMX()
         await supabase
           .from('bloqueos_agenda')
           .delete()
@@ -110,7 +111,7 @@ export default function AsistenciaPage() {
       
       // Invalidar query de la agenda al instante para que quite el bloqueo si es Entrada
       if (tipo === 'Entrada') {
-        const hoy = new Date().toISOString().split('T')[0]
+        const hoy = hoyMX()
         queryClient.invalidateQueries({ queryKey: ['asistencia_hoy', hoy] })
       }
 

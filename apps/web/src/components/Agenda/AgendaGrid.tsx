@@ -5,39 +5,11 @@ import { CheckCircle2, User, Phone, ClipboardList, CalendarX, Move } from 'lucid
 
 import type { Cita, BloqueoAgenda, Empleada, Sucursal } from '../../types/database'
 
-// ─── Constants (Base) ──────────────────────────────────────────
-const HORA_INICIO  = 8        // 08:00
-const HORA_FIN     = 21       // 21:00
-const SLOTS_TOTAL  = (HORA_FIN - HORA_INICIO) * 4  // 52 slots
-// These will be dynamic now
-// const slotHeight  = 16       
-// const colWidth    = 30       
+// ─── Header Constants ──────────────────────────────────────────
 const HEADER_DAY_H = 44       
 const HEADER_EMP_H = 26       
 const HEADER_H     = HEADER_DAY_H + HEADER_EMP_H
 const CORNER_W     = 55       
-
-
-function timeToSlot(time: string): number {
-  const [h, m] = time.split(':').map(Number)
-  return (h - HORA_INICIO) * 4 + Math.floor(m / 15)
-}
-
-function generateSlots() {
-  const slots: { label: string; isHour: boolean }[] = []
-  for (let s = 0; s < SLOTS_TOTAL; s++) {
-    const totalMin = HORA_INICIO * 60 + s * 15
-    const hh = Math.floor(totalMin / 60).toString().padStart(2, '0')
-    const mm = (totalMin % 60).toString().padStart(2, '0')
-    slots.push({ label: `${hh}:${mm}`, isHour: mm === '00' })
-  }
-  return slots
-}
-
-const SLOTS = generateSlots()
-
-// Single color for all citas
-// (Removing unused constants)
 
 // Virtual "Disponible" column type — acts like an Empleada in the grid
 interface DisponibleCol {
@@ -69,6 +41,41 @@ export default function AgendaGrid({
   weekDates, empleadas, sucursal, isLoading, citas, bloqueos, empleadasConEntrada,
   onSlotClick, onCitaClick, onBloqueoClick,
 }: Props) {
+
+  // ─── Dynamic Hours Logic ──────────────────────────────────────
+  const HORA_INICIO = sucursal?.hora_apertura ? parseInt(sucursal.hora_apertura.split(':')[0]) : 8
+  const HORA_FIN    = sucursal?.hora_cierre   ? parseInt(sucursal.hora_cierre.split(':')[0]) : 21
+  const SLOTS_TOTAL = (HORA_FIN - HORA_INICIO) * 4
+
+  const timeToSlot = useCallback((time: string): number => {
+    const [h, m] = time.split(':').map(Number)
+    return (h - HORA_INICIO) * 4 + Math.floor(m / 15)
+  }, [HORA_INICIO])
+
+  const [slots] = useState(() => {
+    const res: { label: string; isHour: boolean }[] = []
+    for (let s = 0; s < SLOTS_TOTAL; s++) {
+      const totalMin = HORA_INICIO * 60 + s * 15
+      const hh = Math.floor(totalMin / 60).toString().padStart(2, '0')
+      const mm = (totalMin % 60).toString().padStart(2, '0')
+      res.push({ label: `${hh}:${mm}`, isHour: mm === '00' })
+    }
+    return res
+  })
+
+  // We need to regenerate slots if hours change
+  const [SLOTS, setSLOTS] = useState(slots)
+  useEffect(() => {
+    const res: { label: string; isHour: boolean }[] = []
+    for (let s = 0; s < SLOTS_TOTAL; s++) {
+      const totalMin = HORA_INICIO * 60 + s * 15
+      const hh = Math.floor(totalMin / 60).toString().padStart(2, '0')
+      const mm = (totalMin % 60).toString().padStart(2, '0')
+      res.push({ label: `${hh}:${mm}`, isHour: mm === '00' })
+    }
+    setSLOTS(res)
+  }, [HORA_INICIO, HORA_FIN, SLOTS_TOTAL])
+  // ─────────────────────────────────────────────────────────────
 
   // Build full column list: real employees + virtual "Disponible" columns
   // If loading, show a few placeholders to maintain width

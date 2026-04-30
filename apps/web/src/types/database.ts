@@ -18,6 +18,8 @@ export interface Sucursal {
   telefono: string | null
   rfc: string | null
   num_cabinas: number   // Cabinas/slots extra configurables por sucursal
+  hora_apertura: string
+  hora_cierre: string
 }
 
 export interface Empleada {

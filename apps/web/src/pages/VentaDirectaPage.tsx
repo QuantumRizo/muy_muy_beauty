@@ -16,6 +16,7 @@ import { useToast } from '../components/Common/Toast'
 import { useSucursalContext } from '../context/SucursalContext'
 import ConfirmDialog from '../components/Common/ConfirmDialog'
 import AjusteImporte from '../components/Common/AjusteImporte'
+import { hoyMX } from '../lib/dateUtils'
 
 export default function VentaDirectaPage() {
   const { data: sucursales = [] } = useSucursales()
@@ -240,7 +241,7 @@ export default function VentaDirectaPage() {
       cliente_id: null,
       empleada_id: vendedorId || null,
       sucursal_id: sucursalId,
-      fecha: new Date().toISOString().split('T')[0],
+      fecha: hoyMX(),
       bloque_inicio: '',
       estado: 'Finalizada',
       created_at: new Date().toISOString(),

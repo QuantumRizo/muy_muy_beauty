@@ -5,6 +5,7 @@ import { CATEGORIAS, INDICATOR_CONFIG, formatCell } from '../../lib/reportConfig
 import { runQuery } from '../../lib/reportQueries'
 import type { Sucursal } from '../../types/database'
 import { useToast } from '../Common/Toast'
+import { hoyMX, inicioMesMX } from '../../lib/dateUtils'
 
 export default function IndicadoresTab() {
   const toast = useToast()
@@ -16,11 +17,8 @@ export default function IndicadoresTab() {
   const [openCats, setOpenCats] = useState<string[]>([])
 
   // ─── Filters state ────────────────────────────────────────
-  const [fechaInicio, setFechaInicio] = useState(() => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-  })
-  const [fechaFin, setFechaFin] = useState(() => new Date().toISOString().split('T')[0])
+  const [fechaInicio, setFechaInicio] = useState(() => inicioMesMX())
+  const [fechaFin, setFechaFin] = useState(() => hoyMX())
   const [sucursalId, setSucursalId] = useState<string>('all')
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
   const [desglose, setDesglose] = useState<string>('sucursal')
