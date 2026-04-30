@@ -18,3 +18,7 @@ TRUNCATE TABLE
   turnos_caja,
   clientes
 CASCADE;
+
+-- Refrescar las vistas materializadas del dashboard para que muestren ceros
+-- (si no se hace, el dashboard seguirá mostrando los datos anteriores)
+SELECT refresh_dashboard_views();

@@ -1,13 +1,14 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { 
   X, Plus, Trash2, Calculator, 
-  Package, Percent, Search, Printer, Store
+  Package, Percent, Search, Printer, Store, UserSearch
 } from 'lucide-react'
 import { useEmpleadas } from '../hooks/useEmpleadas'
 import { useCrearTicketDirecto } from '../hooks/useTickets'
 import { useProductos } from '../hooks/useProductos'
 import { useServicios } from '../hooks/useServicios'
 import { useSucursales } from '../hooks/useSucursales'
+import { useClientes } from '../hooks/useClientes'
 import type { TicketItem, Pago, Producto, Servicio, Sucursal } from '../types/database'
 import PagoModal from '../components/Citas/PagoModal'
 import TicketPrintView from '../components/Citas/TicketPrintView'
@@ -25,7 +26,28 @@ export default function VentaDirectaPage() {
   const { data: empleadas = [] } = useEmpleadas(sucursalId || undefined)
   const [vendedorId, setVendedorId] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // ─ Cliente (busca en BD, permite walk-in anónimo) ──────────────
+  const [clienteQuery, setClienteQuery] = useState('')
+  const [clienteId, setClienteId] = useState<string | null>(null)
   const [clienteNombre, setClienteNombre] = useState('')
+  const [showClienteDropdown, setShowClienteDropdown] = useState(false)
+  const clienteRef = useRef<HTMLDivElement>(null)
+  const { data: clienteResults = [], isFetching: busandoCliente } = useClientes(clienteQuery)
+
+  const handleSelectCliente = (c: { id: string; nombre_completo: string }) => {
+    setClienteId(c.id)
+    setClienteNombre(c.nombre_completo)
+    setClienteQuery(c.nombre_completo)
+    setShowClienteDropdown(false)
+  }
+
+  const handleClearCliente = () => {
+    setClienteId(null)
+    setClienteNombre('')
+    setClienteQuery('')
+  }
+  // ─────────────────────────────────────────────
 
   const [items, setItems] = useState<TicketItem[]>([])
   const [pagos, setPagos] = useState<Pago[]>([])
@@ -139,7 +161,7 @@ export default function VentaDirectaPage() {
         const tData = await crearTicket.mutateAsync({
         ticket: {
           sucursal_id: sucursalId,
-          cliente_id: null,
+          cliente_id: clienteId,  // ✅ ahora se vincula al cliente real si se seleccionó
           vendedor_id: vendedorId || null,
           num_ticket: 'pending',
           fecha: new Date().toLocaleDateString('en-CA'),
@@ -203,7 +225,7 @@ export default function VentaDirectaPage() {
     setPagos([])
     setPropina(0)
     setDescuentoGlobal(0)
-    setClienteNombre('')
+    handleClearCliente()
     setVendedorId('')
     setTicketGuardado(false)
     setNumTicketFinal('')
@@ -273,14 +295,48 @@ export default function VentaDirectaPage() {
           </div>
           <div>
             <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 3 }}>Cliente (Opcional)</label>
-            <input
-              type="text"
-              className="form-input"
-              value={clienteNombre}
-              onChange={e => setClienteNombre(e.target.value)}
-              placeholder="Nombre del cliente..."
-              style={{ height: 34, fontSize: 13, minWidth: 180 }}
-            />
+            <div ref={clienteRef} style={{ position: 'relative', minWidth: 220 }}>
+              <UserSearch size={14} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--text-3)', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                className="form-input"
+                value={clienteQuery}
+                onChange={e => {
+                  setClienteQuery(e.target.value)
+                  setClienteId(null) // reset link if user types again
+                  setShowClienteDropdown(true)
+                }}
+                onFocus={() => setShowClienteDropdown(true)}
+                onBlur={() => setTimeout(() => setShowClienteDropdown(false), 180)}
+                placeholder="Buscar cliente..."
+                style={{ height: 34, fontSize: 13, paddingLeft: 30, paddingRight: clienteId ? 28 : 10 }}
+              />
+              {clienteId && (
+                <button onClick={handleClearCliente} style={{ position: 'absolute', right: 8, top: 9, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', padding: 0 }}>
+                  <X size={14} />
+                </button>
+              )}
+              {/* Autocomplete dropdown */}
+              {showClienteDropdown && clienteQuery.length >= 2 && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, zIndex: 50, boxShadow: 'var(--shadow-md)', maxHeight: 200, overflowY: 'auto', marginTop: 4 }}>
+                  {busandoCliente ? (
+                    <div style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-3)' }}>Buscando...</div>
+                  ) : clienteResults.length === 0 ? (
+                    <div style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-3)' }}>Sin resultados — se registrará como anónimo</div>
+                  ) : clienteResults.map((c: any) => (
+                    <div key={c.id} onMouseDown={() => handleSelectCliente(c)}
+                      style={{ padding: '9px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid var(--border)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <div style={{ fontWeight: 600 }}>{c.nombre_completo}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{c.telefono_cel || 'Sin teléfono'}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {clienteId && <div style={{ fontSize: 10, color: 'var(--success)', marginTop: 2, fontWeight: 600 }}>✓ Vinculado a cliente</div>}
           </div>
         </div>
       </div>

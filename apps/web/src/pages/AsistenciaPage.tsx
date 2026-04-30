@@ -21,6 +21,7 @@ export default function AsistenciaPage() {
   const [selectedEmpleadaId, setSelectedEmpleadaId] = useState('')
   const [history, setHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [registering, setRegistering] = useState(false)
 
   const activeSucursal = sucursales.find(s => s.id === selectedSucursalId)
@@ -30,6 +31,7 @@ export default function AsistenciaPage() {
     setLoading(true)
     const today = new Date().toISOString().split('T')[0]
     
+    setFetchError(null)
     const { data, error } = await supabase
       .from('asistencia')
       .select('*, empleada:perfiles_empleadas(nombre)')
@@ -37,8 +39,12 @@ export default function AsistenciaPage() {
       .gte('created_at', today)
       .order('created_at', { ascending: false })
 
-    if (error) console.error(error)
-    else setHistory(data || [])
+    if (error) {
+      console.error(error)
+      setFetchError('Error al cargar bitácora. Intenta recargar.')
+    } else {
+      setHistory(data || [])
+    }
     setLoading(false)
   }
 
@@ -308,6 +314,11 @@ export default function AsistenciaPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : fetchError ? (
+              <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--danger)' }}>
+                <p style={{ fontSize: 13, fontWeight: 600 }}>{fetchError}</p>
+                <button className="btn-secondary" style={{ marginTop: 12, fontSize: 12 }} onClick={fetchTodayHistory}>Reintentar</button>
               </div>
             ) : history.length === 0 ? (
               <div style={{ padding: '60px 40px', textAlign: 'center' }}>

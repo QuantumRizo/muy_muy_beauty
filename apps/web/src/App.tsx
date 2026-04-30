@@ -25,7 +25,7 @@ import AsistenciaPage from './pages/AsistenciaPage'
 import type { Cliente } from './types/database'
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 0 } },
+  defaultOptions: { queries: { retry: 1, staleTime: 60_000 } }, // 1 min — evita refetch innecesario al navegar entre páginas
 })
 
 // ─── ADMIN LAYOUT SHELL ──────────────────────────────────────────

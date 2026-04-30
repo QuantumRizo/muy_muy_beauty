@@ -5,6 +5,10 @@ import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
 export type TimeRange = 'today' | 'week' | 'month'
 
 // ─── Module-level cache (survives re-renders and navigation) ─────
+// NOTA: El dashboard usa este caché de módulo propio (no React Query) porque:
+// 1. Los datos del dashboard tienen 13 queries paralelas — queremos TTL propio de 3 min.
+// 2. React Query (staleTime: 60s) maneja el resto de la app (clientes, tickets, etc.).
+// Los dos sistemas NO se pisan — cada uno gestiona su dominio.
 const TTL_MS = 3 * 60 * 1000 // 3 minutes
 
 interface CacheEntry { data: any; timestamp: number }
