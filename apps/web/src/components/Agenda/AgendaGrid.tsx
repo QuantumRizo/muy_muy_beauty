@@ -46,6 +46,18 @@ export default function AgendaGrid({
   // Returns the start/end hour for a given Date, respecting weekday vs weekend
   const getHorasForDate = useCallback((date: Date) => {
     const dow = date.getDay() // 0=Dom, 6=Sáb
+    
+    // Si tenemos la configuración detallada por día, la usamos
+    if (sucursal?.horarios_por_dia && sucursal.horarios_por_dia[dow]) {
+      const config = sucursal.horarios_por_dia[dow]
+      if (config.cerrado) return { inicio: 12, fin: 12 } // Representación de cerrado (sin slots)
+      return {
+        inicio: parseInt(config.apertura.split(':')[0]),
+        fin:    parseInt(config.cierre.split(':')[0]),
+      }
+    }
+
+    // Fallback al esquema anterior (L-V vs Finde)
     const esFinde = dow === 0 || dow === 6
     const apertura = esFinde
       ? (sucursal?.hora_apertura_finde ?? sucursal?.hora_apertura ?? '08:00:00')

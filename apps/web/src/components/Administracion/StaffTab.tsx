@@ -52,6 +52,15 @@ export default function StaffTab() {
         hora_cierre: editingSucursal.hora_cierre || '21:00:00',
         hora_apertura_finde: editingSucursal.hora_apertura_finde || '09:00:00',
         hora_cierre_finde: editingSucursal.hora_cierre_finde || '18:00:00',
+        horarios_por_dia: editingSucursal.horarios_por_dia || {
+          "0": { "apertura": "09:00", "cierre": "18:00", "cerrado": false },
+          "1": { "apertura": "08:00", "cierre": "21:00", "cerrado": false },
+          "2": { "apertura": "08:00", "cierre": "21:00", "cerrado": false },
+          "3": { "apertura": "08:00", "cierre": "21:00", "cerrado": false },
+          "4": { "apertura": "08:00", "cierre": "21:00", "cerrado": false },
+          "5": { "apertura": "08:00", "cierre": "21:00", "cerrado": false },
+          "6": { "apertura": "09:00", "cierre": "18:00", "cerrado": false }
+        }
       })
       .eq('id', editingSucursal.id)
 
@@ -267,14 +276,34 @@ export default function StaffTab() {
                   <Clock size={12} /> Horarios
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-1)' }}>
-                    <span style={{ color: 'var(--text-3)', fontSize: 9, marginRight: 4 }}>L-V:</span>
-                    {sucursal.hora_apertura?.substring(0, 5)} — {sucursal.hora_cierre?.substring(0, 5)}
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-1)' }}>
-                    <span style={{ color: 'var(--text-3)', fontSize: 9, marginRight: 4 }}>S-D:</span>
-                    {sucursal.hora_apertura_finde?.substring(0, 5)} — {sucursal.hora_cierre_finde?.substring(0, 5)}
-                  </div>
+                  {(() => {
+                    const h = sucursal.horarios_por_dia || {};
+                    const lun = h["1"] || { apertura: '08:00', cierre: '21:00' };
+                    const sab = h["6"] || { apertura: '09:00', cierre: '18:00' };
+                    
+                    // Ver si el lunes es diferente al resto de la semana (Mar-Vie)
+                    const mar = h["2"] || lun;
+                    const esLunesEspecial = lun.apertura !== mar.apertura || lun.cierre !== mar.cierre;
+
+                    return (
+                      <>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-1)' }}>
+                          <span style={{ color: 'var(--text-3)', fontSize: 9, marginRight: 4 }}>{esLunesEspecial ? 'LUN:' : 'L-V:'}</span>
+                          {lun.apertura.substring(0, 5)} — {lun.cierre.substring(0, 5)}
+                        </div>
+                        {esLunesEspecial && (
+                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-1)' }}>
+                            <span style={{ color: 'var(--text-3)', fontSize: 9, marginRight: 4 }}>MAR-VIE:</span>
+                            {mar.apertura.substring(0, 5)} — {mar.cierre.substring(0, 5)}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-1)' }}>
+                          <span style={{ color: 'var(--text-3)', fontSize: 9, marginRight: 4 }}>S-D:</span>
+                          {sab.apertura.substring(0, 5)} — {sab.cierre.substring(0, 5)}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -350,12 +379,12 @@ export default function StaffTab() {
 
       {editingSucursal && (
         <div className="modal-overlay" onClick={() => setEditingSucursal(null)}>
-          <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
-            <div className="modal-header">
+          <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header" style={{ position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 10, borderBottom: '1px solid var(--border)' }}>
               <h2 className="modal-title">Configuración de Sucursal - {editingSucursal.nombre}</h2>
               <button onClick={() => setEditingSucursal(null)} className="btn-ghost"><X size={18} /></button>
             </div>
-            <form onSubmit={handleUpdateSucursal} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <form onSubmit={handleUpdateSucursal} style={{ padding: '16px 24px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div className="form-grid-2">
                 <div className="form-group">
                   <label className="stats-section-label">RFC de la Sucursal</label>
@@ -372,51 +401,58 @@ export default function StaffTab() {
                 <input className="form-input" value={editingSucursal.direccion || ''} onChange={e => setEditingSucursal({ ...editingSucursal, direccion: e.target.value })} placeholder="Dirección completa" />
               </div>
 
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="stats-section-label">Hora de Apertura</label>
-                  <input 
-                    type="time" 
-                    className="form-input" 
-                    value={editingSucursal.hora_apertura?.substring(0, 5) || '08:00'} 
-                    onChange={e => setEditingSucursal({ ...editingSucursal, hora_apertura: e.target.value + ':00' })} 
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="stats-section-label">Hora de Cierre</label>
-                  <input 
-                    type="time" 
-                    className="form-input" 
-                    value={editingSucursal.hora_cierre?.substring(0, 5) || '21:00'} 
-                    onChange={e => setEditingSucursal({ ...editingSucursal, hora_cierre: e.target.value + ':00' })} 
-                  />
-                </div>
-              </div>
-
-              {/* Horario Fin de Semana */}
+              {/* Horarios Detallados por Día */}
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>Sábado — Domingo</span>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12 }}>
+                  Configuración por día de la semana
                 </div>
-                <div className="form-grid-2">
-                  <div className="form-group">
-                    <label className="stats-section-label">Apertura Fin de Semana</label>
-                    <input 
-                      type="time" 
-                      className="form-input" 
-                      value={editingSucursal.hora_apertura_finde?.substring(0, 5) || '09:00'} 
-                      onChange={e => setEditingSucursal({ ...editingSucursal, hora_apertura_finde: e.target.value + ':00' })} 
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="stats-section-label">Cierre Fin de Semana</label>
-                    <input 
-                      type="time" 
-                      className="form-input" 
-                      value={editingSucursal.hora_cierre_finde?.substring(0, 5) || '18:00'} 
-                      onChange={e => setEditingSucursal({ ...editingSucursal, hora_cierre_finde: e.target.value + ':00' })} 
-                    />
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map((day, idx) => {
+                    const dow = ((idx + 1) % 7).toString() // 1=Lun, 2=Mar... 6=Sáb, 0=Dom
+                    const config = editingSucursal.horarios_por_dia?.[dow] || { apertura: '08:00:00', cierre: '21:00:00', cerrado: false }
+                    
+                    return (
+                      <div key={day} style={{ display: 'grid', gridTemplateColumns: '100px 1fr 1fr 60px', gap: 8, alignItems: 'center' }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>{day}</span>
+                        <input 
+                          type="time" 
+                          disabled={config.cerrado}
+                          className="form-input" 
+                          style={{ height: 32, fontSize: 12, padding: '0 8px' }}
+                          value={config.apertura.substring(0, 5)} 
+                          onChange={e => {
+                            const newH = { ...editingSucursal.horarios_por_dia }
+                            newH[dow] = { ...config, apertura: e.target.value + ':00' }
+                            setEditingSucursal({ ...editingSucursal, horarios_por_dia: newH })
+                          }}
+                        />
+                        <input 
+                          type="time" 
+                          disabled={config.cerrado}
+                          className="form-input" 
+                          style={{ height: 32, fontSize: 12, padding: '0 8px' }}
+                          value={config.cierre.substring(0, 5)} 
+                          onChange={e => {
+                            const newH = { ...editingSucursal.horarios_por_dia }
+                            newH[dow] = { ...config, cierre: e.target.value + ':00' }
+                            setEditingSucursal({ ...editingSucursal, horarios_por_dia: newH })
+                          }}
+                        />
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={config.cerrado} 
+                            onChange={e => {
+                              const newH = { ...editingSucursal.horarios_por_dia }
+                              newH[dow] = { ...config, cerrado: e.target.checked }
+                              setEditingSucursal({ ...editingSucursal, horarios_por_dia: newH })
+                            }}
+                          />
+                          <span style={{ fontSize: 10, color: config.cerrado ? 'var(--danger)' : 'var(--text-3)' }}>Cerrado</span>
+                        </label>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
 

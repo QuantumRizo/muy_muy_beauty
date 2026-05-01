@@ -20,8 +20,9 @@ export interface Sucursal {
   num_cabinas: number
   hora_apertura: string
   hora_cierre: string
-  hora_apertura_finde: string | null  // Sábado–Domingo, NULL = usa hora_apertura
-  hora_cierre_finde: string | null    // Sábado–Domingo, NULL = usa hora_cierre
+  hora_apertura_finde: string | null
+  hora_cierre_finde: string | null
+  horarios_por_dia?: Record<string, { apertura: string; cierre: string; cerrado: boolean }>
 }
 
 export interface Empleada {
