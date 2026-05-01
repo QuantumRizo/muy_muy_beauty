@@ -49,7 +49,9 @@ export default function StaffTab() {
         direccion: editingSucursal.direccion || '',
         telefono: editingSucursal.telefono || '',
         hora_apertura: editingSucursal.hora_apertura || '08:00:00',
-        hora_cierre: editingSucursal.hora_cierre || '21:00:00'
+        hora_cierre: editingSucursal.hora_cierre || '21:00:00',
+        hora_apertura_finde: editingSucursal.hora_apertura_finde || '09:00:00',
+        hora_cierre_finde: editingSucursal.hora_cierre_finde || '18:00:00',
       })
       .eq('id', editingSucursal.id)
 
@@ -262,10 +264,17 @@ export default function StaffTab() {
                 style={{ cursor: 'pointer', background: 'var(--surface)', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', transition: 'all 0.2s' }}
               >
                 <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--text-3)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
-                  <Clock size={12} /> Horario
+                  <Clock size={12} /> Horarios
                 </label>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)' }}>
-                  {sucursal.hora_apertura?.substring(0, 5)} — {sucursal.hora_cierre?.substring(0, 5)}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-1)' }}>
+                    <span style={{ color: 'var(--text-3)', fontSize: 9, marginRight: 4 }}>L-V:</span>
+                    {sucursal.hora_apertura?.substring(0, 5)} — {sucursal.hora_cierre?.substring(0, 5)}
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-1)' }}>
+                    <span style={{ color: 'var(--text-3)', fontSize: 9, marginRight: 4 }}>S-D:</span>
+                    {sucursal.hora_apertura_finde?.substring(0, 5)} — {sucursal.hora_cierre_finde?.substring(0, 5)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -383,6 +392,34 @@ export default function StaffTab() {
                   />
                 </div>
               </div>
+
+              {/* Horario Fin de Semana */}
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>Sábado — Domingo</span>
+                </div>
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="stats-section-label">Apertura Fin de Semana</label>
+                    <input 
+                      type="time" 
+                      className="form-input" 
+                      value={editingSucursal.hora_apertura_finde?.substring(0, 5) || '09:00'} 
+                      onChange={e => setEditingSucursal({ ...editingSucursal, hora_apertura_finde: e.target.value + ':00' })} 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="stats-section-label">Cierre Fin de Semana</label>
+                    <input 
+                      type="time" 
+                      className="form-input" 
+                      value={editingSucursal.hora_cierre_finde?.substring(0, 5) || '18:00'} 
+                      onChange={e => setEditingSucursal({ ...editingSucursal, hora_cierre_finde: e.target.value + ':00' })} 
+                    />
+                  </div>
+                </div>
+              </div>
+
 
               <div className="form-group" style={{ background: 'var(--accent-light)', padding: 16, borderRadius: 12, border: '1px solid var(--accent)' }}>
                 <label className="stats-section-label" style={{ color: 'var(--accent)', fontWeight: 800 }}>Capacidad de Agenda</label>

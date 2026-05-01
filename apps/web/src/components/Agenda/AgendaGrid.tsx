@@ -43,8 +43,25 @@ export default function AgendaGrid({
 }: Props) {
 
   // ─── Dynamic Hours Logic ──────────────────────────────────────
-  const HORA_INICIO = sucursal?.hora_apertura ? parseInt(sucursal.hora_apertura.split(':')[0]) : 8
-  const HORA_FIN    = sucursal?.hora_cierre   ? parseInt(sucursal.hora_cierre.split(':')[0]) : 21
+  // Returns the start/end hour for a given Date, respecting weekday vs weekend
+  const getHorasForDate = useCallback((date: Date) => {
+    const dow = date.getDay() // 0=Dom, 6=Sáb
+    const esFinde = dow === 0 || dow === 6
+    const apertura = esFinde
+      ? (sucursal?.hora_apertura_finde ?? sucursal?.hora_apertura ?? '08:00:00')
+      : (sucursal?.hora_apertura ?? '08:00:00')
+    const cierre = esFinde
+      ? (sucursal?.hora_cierre_finde ?? sucursal?.hora_cierre ?? '21:00:00')
+      : (sucursal?.hora_cierre ?? '21:00:00')
+    return {
+      inicio: parseInt(apertura.split(':')[0]),
+      fin:    parseInt(cierre.split(':')[0]),
+    }
+  }, [sucursal])
+
+  // Global grid uses the widest range across all days so all columns fit
+  const HORA_INICIO = Math.min(...weekDates.map(d => getHorasForDate(d).inicio))
+  const HORA_FIN    = Math.max(...weekDates.map(d => getHorasForDate(d).fin))
   const SLOTS_TOTAL = (HORA_FIN - HORA_INICIO) * 4
 
   const timeToSlot = useCallback((time: string): number => {

@@ -17,9 +17,11 @@ export interface Sucursal {
   direccion: string | null
   telefono: string | null
   rfc: string | null
-  num_cabinas: number   // Cabinas/slots extra configurables por sucursal
+  num_cabinas: number
   hora_apertura: string
   hora_cierre: string
+  hora_apertura_finde: string | null  // Sábado–Domingo, NULL = usa hora_apertura
+  hora_cierre_finde: string | null    // Sábado–Domingo, NULL = usa hora_cierre
 }
 
 export interface Empleada {
