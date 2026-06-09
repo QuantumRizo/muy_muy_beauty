@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { startOfWeek, addDays, addWeeks, subWeeks, format } from 'date-fns'
+import { hoyMX, minutosDelDiaMX } from '../lib/dateUtils'
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Calendar, CalendarPlus, X, AlertTriangle, LogIn, Users } from 'lucide-react'
 import AgendaGrid from '../components/Agenda/AgendaGrid'
@@ -67,7 +68,7 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected }: P
   const { data: bloqueos = [] }   = useBloqueosSemana(inicioStr, finStr)
 
   // ─── Asistencia hoy: qué empleadas registraron Entrada ──────
-  const hoy = format(new Date(), 'yyyy-MM-dd')
+  const hoy = hoyMX()
   const { data: asistenciaHoy = [] } = useQuery({
     queryKey: ['asistencia_hoy', hoy, activeSucursal],
     queryFn: async () => {
@@ -88,7 +89,7 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected }: P
   // Con margen de tolerancia de 10 min: solo se muestra el bloqueo si ya pasaron
   // 10 minutos desde la apertura de la sucursal
   const TOLERANCIA_MIN = 10
-  const ahoraMin = new Date().getHours() * 60 + new Date().getMinutes()
+  const ahoraMin = minutosDelDiaMX()
   const aperturaMin = (() => {
     const hoy = new Date()
     const dow = hoy.getDay()
@@ -378,7 +379,7 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected }: P
                       tipo: 'Entrada',
                     })
                     if (error) throw error
-                    const hoy = format(new Date(), 'yyyy-MM-dd')
+                    const hoy = hoyMX()
                     queryClient.invalidateQueries({ queryKey: ['asistencia_hoy', hoy, activeSucursal] })
                     toast(`Entrada registrada para ${modal.nombre}`, 'success')
                     closeModal()

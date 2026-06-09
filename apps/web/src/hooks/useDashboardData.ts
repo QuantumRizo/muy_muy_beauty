@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { runQuery } from '../lib/reportQueries'
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, format } from 'date-fns'
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
+import { ahoraMX, fechaMX, hoyMX } from '../lib/dateUtils'
 
 export type TimeRange = 'today' | 'week' | 'month'
 
@@ -21,19 +22,16 @@ export function invalidateDashboardCache() {
 // ─────────────────────────────────────────────────────────────────
 
 async function loadDashboardData(sucursalId: string, range: TimeRange): Promise<any> {
-  const now = new Date()
-  let fi: Date, ff: Date
+  const now = ahoraMX()
+  let sFi: string, sFf: string
 
   if (range === 'today') {
-    fi = startOfDay(now); ff = endOfDay(now)
+    sFi = hoyMX(); sFf = hoyMX()
   } else if (range === 'week') {
-    fi = startOfWeek(now, { weekStartsOn: 1 }); ff = endOfWeek(now, { weekStartsOn: 1 })
+    sFi = fechaMX(startOfWeek(now, { weekStartsOn: 1 })); sFf = fechaMX(endOfWeek(now, { weekStartsOn: 1 }))
   } else {
-    fi = startOfMonth(now); ff = endOfMonth(now)
+    sFi = fechaMX(startOfMonth(now)); sFf = fechaMX(endOfMonth(now))
   }
-
-  const sFi = format(fi, 'yyyy-MM-dd')
-  const sFf = format(ff, 'yyyy-MM-dd')
 
   const [
     revenue, appointments, newClients, attendance,

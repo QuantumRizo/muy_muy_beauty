@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import type { Sucursal } from '../../types/database'
 import { format } from 'date-fns'
 import { downloadResumenVentasCSV } from '../../lib/exportReports'
+import { hoyMX } from '../../lib/dateUtils'
 
 type SubTab = 'ventas' | 'aplazados' | 'cajas'
 
@@ -77,8 +78,8 @@ export default function VentasTab() {
 function VentasSubTab({ sucursales }: { sucursales: Sucursal[] }) {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [fechaInicio, setFechaInicio] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [fechaFin, setFechaFin] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [fechaInicio, setFechaInicio] = useState(hoyMX())
+  const [fechaFin, setFechaFin] = useState(hoyMX())
   const [sucursalId, setSucursalId] = useState('all')
 
   const fetchVentas = async () => {
@@ -253,8 +254,8 @@ function PagosAplazadosSubTab() {
 function CortesCajaSubTab() {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [fechaInicio, setFechaInicio] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [fechaFin, setFechaFin] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [fechaInicio, setFechaInicio] = useState(hoyMX())
+  const [fechaFin, setFechaFin] = useState(hoyMX())
   
   const fetchCortes = async () => {
     setLoading(true)

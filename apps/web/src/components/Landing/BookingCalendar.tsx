@@ -5,6 +5,7 @@ import {
   eachDayOfInterval, addMonths, subMonths, startOfDay
 } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { ahoraMX } from '../../lib/dateUtils'
 
 interface BookingCalendarProps {
   currentMonth: Date
@@ -28,12 +29,12 @@ export function BookingCalendar({ currentMonth, selectedDate, onSelectDate, onCh
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={() => onChangeMonth(subMonths(currentMonth, 1))}
-            disabled={isBefore(startOfMonth(subMonths(currentMonth, 0)), startOfMonth(new Date()))}
+            disabled={isBefore(startOfMonth(subMonths(currentMonth, 0)), startOfMonth(ahoraMX()))}
             style={{
               background: '#f5f5f7', border: 'none', width: 36, height: 36,
               borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer',
-              opacity: isBefore(startOfMonth(subMonths(currentMonth, 0)), startOfMonth(new Date())) ? 0.3 : 1
+              opacity: isBefore(startOfMonth(subMonths(currentMonth, 0)), startOfMonth(ahoraMX())) ? 0.3 : 1
             }}
           >
             <ChevronLeft size={18} />
@@ -59,7 +60,7 @@ export function BookingCalendar({ currentMonth, selectedDate, onSelectDate, onCh
         {days.map((day, i) => {
           const isSelected = selectedDate && isSameDay(day, selectedDate)
           const isOutside  = !isSameDay(startOfMonth(day), mStart)
-          const isPast     = isBefore(startOfDay(day), startOfDay(new Date()))
+          const isPast     = isBefore(startOfDay(day), startOfDay(ahoraMX()))
 
           return (
             <button

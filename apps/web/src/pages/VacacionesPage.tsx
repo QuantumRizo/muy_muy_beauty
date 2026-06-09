@@ -6,6 +6,7 @@ import { useSucursalContext } from '../context/SucursalContext'
 import { useToast } from '../components/Common/Toast'
 import { format, differenceInCalendarDays } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { hoyMX } from '../lib/dateUtils'
 import { Plus, CalendarRange, ChevronDown, User } from 'lucide-react'
 import type { SolicitudVacaciones, Empleada } from '../types/database'
 
@@ -36,7 +37,7 @@ function FormularioSolicitud({
 }) {
   const toast = useToast()
   const qc = useQueryClient()
-  const today = format(new Date(), 'yyyy-MM-dd')
+  const today = hoyMX()
   const minStart = padreHasta
     ? format(new Date(new Date(padreHasta).getTime() + 86_400_000), 'yyyy-MM-dd')
     : today

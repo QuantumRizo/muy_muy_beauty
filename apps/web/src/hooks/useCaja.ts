@@ -87,22 +87,21 @@ export function useCajaActiva(sucursalId: string) {
   })
 }
 
-import { format } from 'date-fns'
+import { hoyMX, ahoraMXHora } from '../lib/dateUtils'
 
 export function useAbrirCaja() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ sucursalId, montoEfectivo, empleadaId }: { sucursalId: string, montoEfectivo: number, empleadaId?: string }) => {
       
-      const now = new Date()
       const { data, error } = await supabase
         .from('turnos_caja')
         .insert({
           sucursal_id: sucursalId,
           empleada_abre_id: empleadaId || null,
           monto_apertura_efectivo: montoEfectivo,
-          fecha_apertura: format(now, 'yyyy-MM-dd'),
-          hora_apertura: format(now, 'HH:mm:ss'),
+          fecha_apertura: hoyMX(),
+          hora_apertura: ahoraMXHora(),
           estado: 'Abierta'
         })
         .select()
@@ -120,14 +119,13 @@ export function useCerrarCaja() {
   return useMutation({
     mutationFn: async ({ turnoId, resumen, montoReal, notas }: { turnoId: string, resumen: any, montoReal: number, notas: string }) => {
       const diferencia = montoReal - resumen.efectivoEsperado
-      const now = new Date()
 
       const { data, error } = await supabase
         .from('turnos_caja')
         .update({
           estado: 'Cerrada',
-          fecha_cierre: format(now, 'yyyy-MM-dd'),
-          hora_cierre: format(now, 'HH:mm:ss'),
+          fecha_cierre: hoyMX(),
+          hora_cierre: ahoraMXHora(),
           monto_cierre_efectivo_real: montoReal,
           total_ventas_efectivo: resumen.ventasEfectivo,
           total_ventas_tarjeta: resumen.ventasTarjeta,
@@ -150,13 +148,12 @@ export function useCrearMovimientoCaja() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (movimiento: Omit<MovimientoCaja, 'id' | 'empleada' | 'fecha' | 'hora'>) => {
-      const now = new Date()
       const { data, error } = await supabase
         .from('movimientos_caja')
         .insert({
           ...movimiento,
-          fecha: format(now, 'yyyy-MM-dd'),
-          hora: format(now, 'HH:mm:ss')
+          fecha: hoyMX(),
+          hora: ahoraMXHora()
         })
         .select()
         .single()

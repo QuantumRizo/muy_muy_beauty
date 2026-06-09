@@ -165,7 +165,7 @@ export default function VentaDirectaPage() {
           cliente_id: clienteId,  // ✅ ahora se vincula al cliente real si se seleccionó
           vendedor_id: vendedorId || null,
           num_ticket: 'pending',
-          fecha: new Date().toLocaleDateString('en-CA'),
+          fecha: hoyMX(),
           base_imponible: subtotal / 1.16,
           iva: subtotal - (subtotal / 1.16),
           total,

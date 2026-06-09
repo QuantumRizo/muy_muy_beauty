@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { MetodoPago, Pago } from '../../types/database'
 import { format } from 'date-fns'
+import { hoyMX, ahoraMXHora } from '../../lib/dateUtils'
 import { useToast } from '../Common/Toast'
 
 interface Props {
@@ -34,8 +35,8 @@ export default function PagoModal({ pendiente, onClose, onAddPago }: Props) {
       metodo_pago: metodo,
       importe,
       detalles: { entregado, cambio },
-      fecha: format(new Date(), 'yyyy-MM-dd'),
-      hora: format(new Date(), 'HH:mm:ss')
+      fecha: hoyMX(),
+      hora: ahoraMXHora()
     })
     onClose() // Cerrar tras confirmar
   }

@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router'
 import * as SecureStore from 'expo-secure-store'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
+import { fechaMX } from '../../lib/dateUtils'
 import {
   format, isSameDay, isToday, isBefore,
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
@@ -99,7 +100,7 @@ export default function ReservarScreen() {
     if (selectedDate && selectedSucursal && selectedServicios.length > 0 && perfiles.length > 0) {
       async function checkAvailability() {
         setFetchingSlots(true)
-        const dateStr = format(selectedDate!, 'yyyy-MM-dd')
+        const dateStr = fechaMX(selectedDate!)
         const totalDuration = selectedServicios.reduce((acc, s) => acc + s.duracion_slots, 0)
 
         try {
@@ -213,7 +214,7 @@ export default function ReservarScreen() {
         p_nombre:        clientInfo.nombre,
         p_email:         clientInfo.email || '',
         p_sucursal_id:   selectedSucursal.id,
-        p_fecha:         format(selectedDate, 'yyyy-MM-dd'),
+        p_fecha:         fechaMX(selectedDate),
         p_bloque_inicio: selectedTime,
         p_servicio_ids:  selectedServicios.map(s => s.id),
         p_notas:         clientInfo.notas_cliente || null

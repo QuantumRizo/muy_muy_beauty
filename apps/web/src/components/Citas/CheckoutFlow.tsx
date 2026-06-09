@@ -10,6 +10,7 @@ import TicketPrintView from './TicketPrintView'
 import { useToast } from '../Common/Toast'
 import ConfirmDialog from '../Common/ConfirmDialog'
 import AjusteImporte from '../Common/AjusteImporte'
+import { hoyMX } from '../../lib/dateUtils'
 
 interface ServicioConProfesional extends Servicio {
   profesional_id?: string
@@ -181,7 +182,7 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
             cliente_id: cita.cliente_id,
             vendedor_id: mainEmpleadaId,
             num_ticket: 'pending',
-            fecha: new Date().toLocaleDateString('en-CA'),
+            fecha: hoyMX(),
             base_imponible: subtotal / 1.16,
             iva: subtotal - (subtotal / 1.16),
             total,

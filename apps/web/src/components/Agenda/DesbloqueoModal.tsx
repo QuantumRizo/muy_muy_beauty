@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Unlock } from 'lucide-react'
 import { format } from 'date-fns'
+import { hoyMX } from '../../lib/dateUtils'
 import { useEliminarBloqueosMasivo } from '../../hooks/useCitas'
 import type { Empleada } from '../../types/database'
 import DatePicker from '../Common/DatePicker'
@@ -12,8 +13,8 @@ interface Props {
 }
 
 export default function DesbloqueoModal({ empleadas, onClose }: Props) {
-  const [fechaInicio, setFechaInicio] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [fechaFin, setFechaFin] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [fechaInicio, setFechaInicio] = useState(hoyMX())
+  const [fechaFin, setFechaFin] = useState(hoyMX())
   const [siempre, setSiempre] = useState(false)
   const [selectedEmpleadas, setSelectedEmpleadas] = useState<string[]>([])
   const [showConfirm, setShowConfirm] = useState(false)

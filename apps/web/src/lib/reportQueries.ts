@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { applySort } from './reportConfig'
 import { calcularPorcentaje, type CommissionThreshold } from './commissions'
+import { startOfDayMXIso, endOfDayMXIso, fechaMX } from './dateUtils'
 
 // ─── Result Types ─────────────────────────────────────────────
 
@@ -34,14 +35,12 @@ function pct(val: number, total: number): number {
 
 function startOfDayIso(dateStr: string): string {
   if (!dateStr) return ''
-  const [y, m, d] = dateStr.split('-').map(Number)
-  return new Date(y, m - 1, d, 0, 0, 0, 0).toISOString()
+  return startOfDayMXIso(dateStr)
 }
 
 function endOfDayIso(dateStr: string): string {
   if (!dateStr) return ''
-  const [y, m, d] = dateStr.split('-').map(Number)
-  return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString()
+  return endOfDayMXIso(dateStr)
 }
 
 // ─── Individual Indicator Queries ─────────────────────────────
@@ -565,7 +564,7 @@ async function q_facturacion_neta(desglose: string, sort: string, fi: string, ff
     const empId = a.empleada_id
     if (!empId) return
     if (!diasPorEmpleada[empId]) diasPorEmpleada[empId] = new Set()
-    diasPorEmpleada[empId].add(new Date(a.created_at).toISOString().split('T')[0])
+    diasPorEmpleada[empId].add(fechaMX(new Date(a.created_at)))
   })
 
   // Traer sueldos diarios de las empleadas
@@ -1036,7 +1035,7 @@ async function q_retention_rate(fi: string, ff: string): Promise<ReportResult> {
   // Check which of those clients had a prior visit in the 30 days before fi
   const prior30 = new Date(fi)
   prior30.setDate(prior30.getDate() - 30)
-  const prior30Str = prior30.toISOString().split('T')[0]
+  const prior30Str = fechaMX(prior30)
 
   const BATCH = 100
   const returningSet = new Set<string>()

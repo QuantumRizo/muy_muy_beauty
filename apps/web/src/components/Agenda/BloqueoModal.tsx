@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { X } from 'lucide-react'
 import { format } from 'date-fns'
+import { hoyMX } from '../../lib/dateUtils'
 import { useCrearBloqueos } from '../../hooks/useCitas'
 import type { Empleada } from '../../types/database'
 import DatePicker from '../Common/DatePicker'
@@ -22,7 +23,7 @@ const DIAS_SEMANA = [
 ]
 
 export default function BloqueoModal({ empleadas, onClose }: Props) {
-  const [fecha, setFecha] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [fecha, setFecha] = useState(hoyMX())
   const [horaInicio, setHoraInicio] = useState('09:00')
   const [horaFin, setHoraFin] = useState('10:00')
   const [selectedEmpleadas, setSelectedEmpleadas] = useState<string[]>([])

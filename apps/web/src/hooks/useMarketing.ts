@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { hoyMX, inicioMesMX } from '../lib/dateUtils'
 import type { MarketingConfig, MarketingCampana, MarketingPlatform } from '../types/database'
 
 // ─── Hook: useMarketing ────────────────────────────────────────────
@@ -223,9 +224,8 @@ export function useMarketing(sucursalId: string, platform: MarketingPlatform = '
     setError(null)
 
     try {
-      const today = new Date()
-      const from = dateRange?.from ?? new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
-      const to   = dateRange?.to   ?? today.toISOString().split('T')[0]
+      const from = dateRange?.from ?? inicioMesMX()
+      const to   = dateRange?.to   ?? hoyMX()
 
       // Meta Graph API endpoint for account insights
       const url = new URL(`https://graph.facebook.com/v19.0/act_${config.account_id}/insights`)

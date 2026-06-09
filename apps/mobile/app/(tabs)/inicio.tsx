@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { hoyMX } from '../../lib/dateUtils'
 import {
   View, Text, StyleSheet, ScrollView,
   ActivityIndicator, TouchableOpacity, Image, Dimensions, RefreshControl
@@ -85,7 +86,7 @@ export default function InicioScreen() {
       if (sucData) setCentros(sucData)
 
       if (id) {
-        const hoy = new Date().toISOString().split('T')[0]
+        const hoy = hoyMX()
         const { data } = await supabase
           .from('citas')
           .select('*, sucursal:sucursales(nombre), servicios:cita_servicios(servicio:servicios(nombre))')

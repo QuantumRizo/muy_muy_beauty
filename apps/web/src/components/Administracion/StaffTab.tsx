@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Empleada } from '../../types/database'
 import ConfirmDialog from '../Common/ConfirmDialog'
+import { hoyMX } from '../../lib/dateUtils'
 
 interface EmpleadaForm {
   id?: string
@@ -26,7 +27,7 @@ export default function StaffTab() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<EmpleadaForm>({
     nombre: '',
-    fecha_contratacion: new Date().toISOString().split('T')[0],
+    fecha_contratacion: hoyMX(),
     sueldo_diario: '',
     sucursal_id: '',
   })
@@ -97,7 +98,7 @@ export default function StaffTab() {
     setForm({
       id: emp.id,
       nombre: emp.nombre,
-      fecha_contratacion: emp.fecha_contratacion || new Date().toISOString().split('T')[0],
+      fecha_contratacion: emp.fecha_contratacion || hoyMX(),
       sueldo_diario: emp.sueldo_diario ? emp.sueldo_diario.toString() : '',
       sucursal_id: emp.sucursal_id || '',
     })
@@ -106,7 +107,7 @@ export default function StaffTab() {
   }
 
   const resetForm = () => {
-    setForm({ nombre: '', fecha_contratacion: new Date().toISOString().split('T')[0], sueldo_diario: '', sucursal_id: '' })
+    setForm({ nombre: '', fecha_contratacion: hoyMX(), sueldo_diario: '', sucursal_id: '' })
     setEditingId(null)
   }
 

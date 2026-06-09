@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { Ticket, TicketItem, Pago } from '../types/database'
-import { format } from 'date-fns'
+import { hoyMX, ahoraMXHora } from '../lib/dateUtils'
 
 /** Obtiene el siguiente folio, con reintentos en caso de colisión de clave duplicada */
 async function getFolioConRetry(sucursalId: string, maxIntentos = 3): Promise<string> {
@@ -54,9 +54,8 @@ export function useCrearTicket() {
       citaId: string
     }) => {
       
-      const now = new Date()
-      const fechaActual = format(now, 'yyyy-MM-dd')
-      const horaActual = format(now, 'HH:mm:ss')
+      const fechaActual = hoyMX()
+      const horaActual = ahoraMXHora()
 
       // 1. Crear el ticket (con retry en colisiones de folio)
       const tData = await insertTicketConRetry(
@@ -135,9 +134,8 @@ export function useCrearTicketDirecto() {
       pagos: Omit<Pago, 'id' | 'ticket_id' | 'fecha' | 'hora'>[],
     }) => {
       
-      const now = new Date()
-      const fechaActual = format(now, 'yyyy-MM-dd')
-      const horaActual = format(now, 'HH:mm:ss')
+      const fechaActual = hoyMX()
+      const horaActual = ahoraMXHora()
 
       // Crear el ticket (con retry en colisiones de folio)
       const tData = await insertTicketConRetry(ticket, fechaActual, horaActual)

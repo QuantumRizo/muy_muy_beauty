@@ -54,3 +54,46 @@ export function inicioMesMX(): string {
   const month = parseInt(d.toLocaleDateString('en-CA', { timeZone: TZ }).split('-')[1])
   return `${year}-${String(month).padStart(2, '0')}-01`
 }
+
+/**
+ * Dado un string 'YYYY-MM-DD' (fecha de México), devuelve el inicio del día
+ * en ISO/UTC para queries de columnas `timestamptz` (como created_at).
+ *
+ * Ejemplo: '2026-06-09' → '2026-06-09T06:00:00.000Z' (porque México es UTC-6)
+ */
+export function startOfDayMXIso(dateStr: string): string {
+  // Crear fecha a medianoche en México y convertir a UTC
+  const dt = new Date(dateStr + 'T00:00:00')
+  // Obtener el offset de México usando una comparación
+  const mxStr = dt.toLocaleString('en-CA', { timeZone: TZ, hour12: false })
+  const mxDate = new Date(mxStr)
+  const offsetMs = dt.getTime() - mxDate.getTime()
+  const midnight = new Date(dateStr + 'T00:00:00')
+  midnight.setTime(midnight.getTime() + offsetMs)
+  return midnight.toISOString()
+}
+
+/**
+ * Dado un string 'YYYY-MM-DD' (fecha de México), devuelve el final del día
+ * en ISO/UTC para queries de columnas `timestamptz`.
+ *
+ * Ejemplo: '2026-06-09' → '2026-06-10T05:59:59.999Z'
+ */
+export function endOfDayMXIso(dateStr: string): string {
+  const dt = new Date(dateStr + 'T23:59:59.999')
+  const mxStr = dt.toLocaleString('en-CA', { timeZone: TZ, hour12: false })
+  const mxDate = new Date(mxStr)
+  const offsetMs = dt.getTime() - mxDate.getTime()
+  const endOfDay = new Date(dateStr + 'T23:59:59.999')
+  endOfDay.setTime(endOfDay.getTime() + offsetMs)
+  return endOfDay.toISOString()
+}
+
+/**
+ * Devuelve los minutos desde medianoche en hora de México.
+ * Útil para calcular tolerancias de asistencia.
+ */
+export function minutosDelDiaMX(): number {
+  const parts = ahoraMXHora().split(':')
+  return parseInt(parts[0]) * 60 + parseInt(parts[1])
+}
