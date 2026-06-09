@@ -1,7 +1,7 @@
 import { useRef, useCallback, useState, useEffect } from 'react'
 import { format, isToday, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { CheckCircle2, User, Phone, ClipboardList, CalendarX, Move } from 'lucide-react'
+import { CheckCircle2, User, Phone, ClipboardList, CalendarX, Move, Clock } from 'lucide-react'
 
 import type { Cita, BloqueoAgenda, Empleada, Sucursal } from '../../types/database'
 
@@ -178,11 +178,12 @@ export default function AgendaGrid({
   }, [])
 
   // Helper: get citas for a specific employee + date
+  // Note: c.fecha may come as "2026-06-09T00:00:00Z" from the DB — normalize to "yyyy-MM-dd"
   const getCitas = (empId: string, date: Date) => {
     const fechaStr = format(date, 'yyyy-MM-dd')
-    return citas.filter((c) => 
-      c.empleada_id === empId && 
-      c.fecha === fechaStr
+    return citas.filter((c) =>
+      c.empleada_id === empId &&
+      (c.fecha ?? '').substring(0, 10) === fechaStr
       // We don't filter by status here anymore, the UI will decide how to render based on status
     )
   }
@@ -473,8 +474,15 @@ export default function AgendaGrid({
               <div className="tooltip-row">
                 <User size={16} />
                 <div className="tooltip-text">
-                  <span className="tooltip-main">{hoveredCita.cliente?.nombre_completo} ({hoveredCita.cliente?.num_cliente})</span>
+                  <span className="tooltip-main">{hoveredCita.cliente?.nombre_completo}</span>
                   <span className="tooltip-sub"><Phone size={10} /> {hoveredCita.cliente?.telefono_cel || 'Sin teléfono'}</span>
+                </div>
+              </div>
+              <div className="tooltip-divider" />
+              <div className="tooltip-row">
+                <Clock size={16} />
+                <div className="tooltip-text">
+                  <span className="tooltip-main">{hoveredCita.bloque_inicio?.substring(0, 5)}</span>
                 </div>
               </div>
               <div className="tooltip-divider" />
