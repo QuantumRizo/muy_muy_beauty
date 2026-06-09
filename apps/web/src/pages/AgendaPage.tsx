@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { startOfWeek, addDays, addWeeks, subWeeks, format } from 'date-fns'
-import { hoyMX, minutosDelDiaMX } from '../lib/dateUtils'
+import { hoyMX, minutosDelDiaMX, startOfDayMXIso, endOfDayMXIso } from '../lib/dateUtils'
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Calendar, CalendarPlus, X, AlertTriangle, LogIn, Users } from 'lucide-react'
 import AgendaGrid from '../components/Agenda/AgendaGrid'
@@ -75,8 +75,8 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected }: P
       let q = supabase
         .from('asistencia')
         .select('empleada_id, tipo')
-        .gte('created_at', `${hoy}T00:00:00`)
-        .lte('created_at', `${hoy}T23:59:59`)
+        .gte('created_at', startOfDayMXIso(hoy))
+        .lte('created_at', endOfDayMXIso(hoy))
       if (activeSucursal) q = q.eq('sucursal_id', activeSucursal)
       const { data } = await q
       return data ?? []
