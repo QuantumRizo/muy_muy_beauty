@@ -14,11 +14,7 @@ export default function PerfilScreen() {
   const loadData = useCallback(async () => {
     const clienteId = await SecureStore.getItemAsync('cliente_id')
     if (clienteId) {
-      const { data, error: err } = await supabase
-        .from('clientes')
-        .select('id, nombre_completo, telefono_cel, email, created_at, num_cliente')
-        .eq('id', clienteId)
-        .single()
+      const { data, error: err } = await supabase.rpc('obtener_perfil_cliente', { p_cliente_id: clienteId })
       if (err) {
         setError(true)
         Alert.alert('Error', 'No se pudo cargar tu perfil. Verifica tu conexión.')
