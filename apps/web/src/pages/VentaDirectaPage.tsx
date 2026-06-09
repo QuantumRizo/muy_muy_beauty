@@ -439,8 +439,13 @@ export default function VentaDirectaPage() {
             <div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', marginBottom: 8 }}>PAGOS REGISTRADOS</div>
               {pagos.map(p => (
-                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 12px', background: 'var(--surface-2)', borderRadius: 6, marginBottom: 4, fontSize: 13 }}>
-                  <span>{p.metodo_pago}</span>
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 12px', background: 'var(--surface-2)', borderRadius: 6, marginBottom: 4, fontSize: 13 }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span>{p.metodo_pago}</span>
+                    <button className="btn-icon danger" style={{ padding: 4 }} onClick={() => setPagos(pagos.filter(pago => pago.id !== p.id))} title="Eliminar pago">
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                   <span style={{ fontWeight: 600 }}>${p.importe.toFixed(2)}</span>
                 </div>
               ))}
