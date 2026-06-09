@@ -31,15 +31,16 @@ interface Props {
   isLoading?: boolean
   citas: Cita[]
   bloqueos: BloqueoAgenda[]
-  empleadasConEntrada?: Set<string>  // IDs de empleadas que llegaron hoy
+  empleadasConEntrada?: Set<string>  // IDs de empleadas SIN entrada hoy (nombre confuso heredado)
   onSlotClick: (empleadaId: string, hora: string, fecha: string) => void
   onCitaClick: (cita: Cita) => void
   onBloqueoClick?: (bloqueo: BloqueoAgenda) => void
+  onSinEntradaClick?: (empleadaId: string) => void
 }
 
 export default function AgendaGrid({
   weekDates, empleadas, sucursal, isLoading, citas, bloqueos, empleadasConEntrada,
-  onSlotClick, onCitaClick, onBloqueoClick,
+  onSlotClick, onCitaClick, onBloqueoClick, onSinEntradaClick,
 }: Props) {
 
   // ─── Dynamic Hours Logic ──────────────────────────────────────
@@ -332,33 +333,44 @@ export default function AgendaGrid({
                           )
                         })}
 
-                        {/* Overlay: sin entrada hoy (solo aplica al día de hoy) */}
-                        {isToday(date) && !isVirtual(col) && empleadasConEntrada && !empleadasConEntrada.has(col.id) && (
+                        {/* Overlay: sin entrada hoy — muestra S/E con fondo rojizo, citas quedan por encima */}
+                        {isToday(date) && !isVirtual(col) && empleadasConEntrada && empleadasConEntrada.has(col.id) && (
                           <div
                             style={{
                               position: 'absolute',
                               inset: 0,
-                              background: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(0,0,0,0.04) 4px, rgba(0,0,0,0.04) 8px)',
-                              backgroundColor: 'rgba(var(--surface-rgb, 255,255,255), 0.6)',
+                              background: 'repeating-linear-gradient(-45deg, transparent, transparent 6px, rgba(220,38,38,0.06) 6px, rgba(220,38,38,0.06) 12px)',
+                              backgroundColor: 'rgba(254,242,242,0.82)',
                               pointerEvents: 'all',
-                              cursor: 'not-allowed',
+                              cursor: 'pointer',
                               zIndex: 2,
                               display: 'flex',
                               alignItems: 'flex-start',
                               justifyContent: 'center',
-                              paddingTop: 8,
+                              paddingTop: 6,
                             }}
-                            title="Sin registro de entrada hoy"
-                            onClick={(e) => e.stopPropagation()}
+                            title="Sin registro de entrada hoy — Haz clic para registrar manualmente"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onSinEntradaClick?.(col.id)
+                            }}
                           >
-                            <span style={{ fontSize: 9, color: 'var(--text-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', background: 'var(--surface)', padding: '2px 4px', borderRadius: 3 }}>Sin entrada</span>
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: 3,
+                              background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.25)',
+                              borderRadius: 5, padding: '2px 5px',
+                            }}>
+                              <Clock size={9} color="#dc2626" />
+                              <span style={{ fontSize: 8, color: '#dc2626', fontWeight: 800, letterSpacing: '0.3px' }}>S/E</span>
+                            </div>
                           </div>
                         )}
 
-                        {/* Citas */}
+                        {/* Citas: zIndex 3 para que aparezcan por encima del overlay sin-entrada */}
                         {empCitas.map((cita) => {
                           const startSlot  = timeToSlot(cita.bloque_inicio)
                           const isCancelada  = cita.estado === 'Cancelada' || cita.estado === 'No asistió'
+                          const sinEntrada = isToday(date) && !isVirtual(col) && empleadasConEntrada?.has(col.id)
                           
                           if (isCancelada) {
                             return (
@@ -378,9 +390,9 @@ export default function AgendaGrid({
                                 style={{
                                   top: startSlot * slotHeight + (slotHeight / 2) - 4,
                                   left: 2,
+                                  zIndex: sinEntrada ? 4 : 1,
                                 }}
                               />
-
                             )
                           }
 
@@ -388,8 +400,6 @@ export default function AgendaGrid({
                             (sum: number, s: any) => sum + s.duracion_slots, 0
                           )) || 4
                           const isFinalizada = cita.estado === 'Finalizada'
-                          const bgColor     = 'var(--accent)'
-                          const borderColor = 'var(--accent)'
 
                           return (
                             <div
@@ -405,37 +415,47 @@ export default function AgendaGrid({
                               style={{
                                 top: startSlot * slotHeight,
                                 height: Math.max(totalSlots * slotHeight, 24),
-                                backgroundColor: bgColor,
-                                border: `1px solid ${borderColor}`,
+                                backgroundColor: sinEntrada ? '#f97316' : 'var(--accent)',
+                                border: `1px solid ${sinEntrada ? '#ea580c' : 'var(--accent)'}`,
                                 borderRadius: '4px',
                                 opacity: 1,
+                                zIndex: sinEntrada ? 4 : 1,
                               }}
                             >
-
-                                <div className="cita-block-inner">
-                                  {isFinalizada && (
-                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
-                                      <CheckCircle2 size={12} className="cita-check" color="#ffffff" />
-                                    </div>
-                                  )}
-                                  {cita.reagendada_por && (
-                                    <div style={{ 
-                                      position: 'absolute', 
-                                      bottom: 4, 
-                                      right: 4, 
-                                      background: 'rgba(255,255,255,0.2)', 
-                                      borderRadius: '50%', 
-                                      width: 14, 
-                                      height: 14, 
-                                      display: 'flex', 
-                                      alignItems: 'center', 
-                                      justifyContent: 'center' 
-                                    }}>
-                                      <Move size={8} color="#ffffff" />
-                                    </div>
-                                  )}
-                                </div>
+                              <div className="cita-block-inner">
+                                {sinEntrada && (
+                                  <div style={{
+                                    position: 'absolute', top: 2, right: 2,
+                                    background: 'rgba(0,0,0,0.2)', borderRadius: 3,
+                                    padding: '1px 3px', display: 'flex', alignItems: 'center', gap: 2
+                                  }}>
+                                    <Clock size={7} color="#fff" />
+                                    <span style={{ fontSize: 7, color: '#fff', fontWeight: 800 }}>S/E</span>
+                                  </div>
+                                )}
+                                {isFinalizada && (
+                                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
+                                    <CheckCircle2 size={12} className="cita-check" color="#ffffff" />
+                                  </div>
+                                )}
+                                {cita.reagendada_por && (
+                                  <div style={{ 
+                                    position: 'absolute', 
+                                    bottom: 4, 
+                                    right: 4, 
+                                    background: 'rgba(255,255,255,0.2)', 
+                                    borderRadius: '50%', 
+                                    width: 14, 
+                                    height: 14, 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center' 
+                                  }}>
+                                    <Move size={8} color="#ffffff" />
+                                  </div>
+                                )}
                               </div>
+                            </div>
                           )
                         })}
 

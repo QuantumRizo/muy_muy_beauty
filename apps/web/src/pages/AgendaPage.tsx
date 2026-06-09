@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { startOfWeek, addDays, addWeeks, subWeeks, format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Calendar, CalendarPlus, X, AlertTriangle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, CalendarPlus, X, AlertTriangle, LogIn, Users } from 'lucide-react'
 import AgendaGrid from '../components/Agenda/AgendaGrid'
 import BuscadorModal from '../components/Clientes/BuscadorModal'
 import FormularioCliente from '../components/Clientes/FormularioCliente'
@@ -15,7 +15,7 @@ import { useSucursalContext } from '../context/SucursalContext'
 import { useEmpleadas } from '../hooks/useEmpleadas'
 import { useSucursales } from '../hooks/useSucursales'
 import { useCitasSemana, useBloqueosSemana, useEliminarBloqueo } from '../hooks/useCitas'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import type { Cliente, Cita, SlotInfo, BloqueoAgenda } from '../types/database'
 import { useToast } from '../components/Common/Toast'
@@ -31,6 +31,7 @@ type Modal =
   | { type: 'desbloquear' }
   | { type: 'bloqueo-info'; bloqueo: BloqueoAgenda }
   | { type: 'checkout';     cita: Cita }
+  | { type: 'registrar-entrada'; empleadaId: string; nombre: string }
 
 function getWeekDates(weekStart: Date): Date[] {
   return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -51,6 +52,7 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected }: P
   const [modal, setModal] = useState<Modal>({ type: 'none' })
   const toast = useToast()
   const eliminarBloqueo = useEliminarBloqueo()
+  const queryClient = useQueryClient()
 
   const weekDates   = getWeekDates(weekStart)
   const inicioStr   = format(weekDates[0], 'yyyy-MM-dd')
@@ -83,9 +85,35 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected }: P
   })
 
   // Set de empleadas que registraron al menos una Entrada hoy
+  // Con margen de tolerancia de 10 min: solo se muestra el bloqueo si ya pasaron
+  // 10 minutos desde la apertura de la sucursal
+  const TOLERANCIA_MIN = 10
+  const ahoraMin = new Date().getHours() * 60 + new Date().getMinutes()
+  const aperturaMin = (() => {
+    const hoy = new Date()
+    const dow = hoy.getDay()
+    const hpd = activeSucursalObj?.horarios_por_dia
+    if (hpd && hpd[dow] && !hpd[dow].cerrado) {
+      const h = parseInt((hpd[dow].apertura as string).split(':')[0])
+      const m = parseInt((hpd[dow].apertura as string).split(':')[1] || '0')
+      return h * 60 + m
+    }
+    return 10 * 60 // fallback 10:00
+  })()
+  const dentroDeTolerancia = ahoraMin < aperturaMin + TOLERANCIA_MIN
+
   const empleadasConEntrada = new Set(
     asistenciaHoy.filter((a: any) => a.tipo === 'Entrada').map((a: any) => a.empleada_id)
   )
+
+  // Si aún estamos dentro del margen de tolerancia, no bloqueamos a nadie
+  const empleadasSinEntrada: Set<string> = dentroDeTolerancia
+    ? new Set()
+    : new Set(
+        empleadas
+          .filter(e => !empleadasConEntrada.has(e.id))
+          .map(e => e.id)
+      )
 
   const prevWeek  = () => setWeekStart((w) => subWeeks(w, 1))
   const nextWeek  = () => setWeekStart((w) => addWeeks(w, 1))
@@ -228,7 +256,11 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected }: P
         isLoading={isLoadingEmpleadas}
         citas={citas}
         bloqueos={bloqueos}
-        empleadasConEntrada={empleadasConEntrada}
+        empleadasConEntrada={empleadasSinEntrada}
+        onSinEntradaClick={(empleadaId) => {
+          const emp = empleadas.find(e => e.id === empleadaId)
+          if (emp) setModal({ type: 'registrar-entrada', empleadaId, nombre: emp.nombre })
+        }}
         onSlotClick={handleSlotClick}
         onCitaClick={(c) => setModal({ type: 'gestion', cita: c })}
         onBloqueoClick={(b) => setModal({ type: 'bloqueo-info', bloqueo: b })}
@@ -296,6 +328,70 @@ export default function AgendaPage({ preselectedCliente, onClearPreselected }: P
           onClose={closeModal}
           onDelete={handleDeleteBloqueo}
         />
+      )}
+
+      {/* Modal: Registrar Entrada Manual */}
+      {modal.type === 'registrar-entrada' && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={closeModal}
+        >
+          <div
+            style={{ background: 'var(--surface)', borderRadius: 20, padding: 32, maxWidth: 380, width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <div style={{ background: 'rgba(220,38,38,0.1)', borderRadius: 12, padding: 10 }}>
+                <LogIn size={22} color="var(--danger)" />
+              </div>
+              <div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-1)' }}>Registrar Entrada</div>
+                <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Registro manual desde la agenda</div>
+              </div>
+            </div>
+
+            <div style={{ background: 'var(--surface-2)', borderRadius: 12, padding: '14px 16px', margin: '20px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Users size={16} color="var(--text-3)" />
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)' }}>{modal.nombre}</span>
+            </div>
+
+            <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 24, lineHeight: 1.5 }}>
+              Esto registrará una entrada con la hora actual y desbloqueará la columna de la profesional en la agenda.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                className="btn-secondary"
+                style={{ flex: 1, padding: '12px' }}
+                onClick={closeModal}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn-primary"
+                style={{ flex: 1, padding: '12px', background: 'var(--success)', borderColor: 'var(--success)', gap: 8 }}
+                onClick={async () => {
+                  try {
+                    const { error } = await supabase.from('asistencia').insert({
+                      sucursal_id: activeSucursal,
+                      empleada_id: modal.empleadaId,
+                      tipo: 'Entrada',
+                    })
+                    if (error) throw error
+                    const hoy = format(new Date(), 'yyyy-MM-dd')
+                    queryClient.invalidateQueries({ queryKey: ['asistencia_hoy', hoy, activeSucursal] })
+                    toast(`Entrada registrada para ${modal.nombre}`, 'success')
+                    closeModal()
+                  } catch (err: any) {
+                    toast('Error al registrar: ' + err.message, 'error')
+                  }
+                }}
+              >
+                <LogIn size={16} /> Confirmar Entrada
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
