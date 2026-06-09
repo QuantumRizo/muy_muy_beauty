@@ -103,3 +103,24 @@ blockquote {
   color: #999;
   font-size: 14px;
 }
+
+/* Evitar saltos de página huérfanos y viudas en elementos clave */
+h1, h2, h3, h4, h5, h6 {
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+table, tr, td, th {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+blockquote {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+img {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}

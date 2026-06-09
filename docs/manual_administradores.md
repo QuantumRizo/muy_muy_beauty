@@ -19,39 +19,107 @@ A diferencia del rol de Empleado, tu cuenta cuenta con facultades exclusivas:
 
 # 2. Centro de Análisis
 
-El **Centro de Análisis** es tu panel financiero y de control. Aquí se consolida toda la información comercial de las sucursales del estudio.
+El **Centro de Análisis** es tu panel financiero y de control. Aquí se consolida y procesa toda la información comercial de las sucursales en tiempo real.
 
 ![Centro de Análisis](img/dashboard_metricas.png)
 
-Este centro se divide en tres pestañas principales:
+Este centro se divide en tres pestañas principales de trabajo:
+
+---
 
 ## 2.1 Ventas y Cajas
-Es la pestaña operativa para auditoría de dinero e historial de transacciones. Contiene tres sub-pestañas:
-- **Listado de ventas:** Muestra todas las ventas realizadas en un rango de fechas específico. Puedes filtrar por una sucursal en particular o ver "Todas las sucursales" en conjunto. Muestra el número de ticket, fecha, cliente, importe total y estado del pago (Pagado/Pendiente).
-- **Pagos aplazados:** Permite monitorear las cuentas pendientes de clientes a quienes se les fió o dejaron saldos pendientes, con la posibilidad de registrar los abonos.
-- **Buscador de cajas:** Permite auditar y consultar las aperturas y cierres de caja de días anteriores (quién abrió, monto inicial, ventas registradas, efectivo real declarado y diferencias).
+Es la pestaña operativa para auditar las transacciones diarias y verificar los cierres de caja. Cuenta con tres sub-pestañas internas:
 
-## 2.2 Estadísticas y Reportes
-Ofrece gráficas y resúmenes de rendimiento:
-- **Ingresos por Sucursal / Globales:** Reportes diarios y mensuales de facturación.
-- **Ventas por Categoría:** Desglose del porcentaje de ingresos proveniente de servicios vs. venta de productos.
-- **Servicios Más Solicitados:** Identificación de los tratamientos estrella del salón.
+### A) Listado de Ventas
+Permite visualizar e inspeccionar detalladamente todos los tickets cobrados en el sistema.
+- **Filtros de Búsqueda:** Puedes acotar los resultados usando un **Rango de Fechas** (Fecha Inicial y Fecha Final) y seleccionando una **Sucursal** específica (o elegir *"Todas las sucursales"* para una visión global).
+- **Acciones Disponibles:**
+  - **Buscar:** Recarga y actualiza los registros en base a tus filtros.
+  - **Resumen:** Descarga un reporte en formato CSV con el consolidado monetario de ingresos netos agrupados por sucursal.
+- **Columnas de la Tabla:**
+  - **Nº Venta:** El código del ticket o los primeros 8 caracteres de la transacción en la base de datos (ej: `TKT-12345` o `6C5BD3D`).
+  - **Fecha:** Fecha exacta de registro del ticket en formato `DD/MM/AAAA`.
+  - **Cliente:** Nombre completo del cliente registrado o *"Cliente General"* si fue una venta rápida directa.
+  - **Total:** Monto total facturado en pesos mexicanos (MXN).
+  - **Estado:** Mostrará el icono de candado verde junto con la palabra *"Cerrada"* para confirmar que el cobro fue completado de forma definitiva.
+
+### B) Pagos Aplazados
+Muestra un listado en tiempo real de los tickets con estatus **"Pendiente"** (deudores activos).
+- **Cálculo de Deuda:** El sistema calcula de manera dinámica el saldo adeudado mediante la fórmula: `Monto Pendiente = Total del Ticket - Suma de Abonos/Pagos Parciales Registrados`.
+- **Datos Mostrados:** Sucursal (Centro), Nº Fact/Ticket, Fecha de compra, Nombre del Cliente, Total de la venta y el **Monto Pendiente** en color rojo (alertando sobre el saldo que el cliente debe liquidar).
+
+### C) Buscador de Cajas (Auditoría de Turnos)
+Permite realizar auditorías históricas sobre las aperturas y cierres de los cajones de dinero.
+- **Datos Mostrados:**
+  - **Fecha y Hora de Apertura:** Cuándo inició el turno y el nombre de la empleada responsable de la apertura.
+  - **Clínica/Sucursal:** Ubicación física de la caja.
+  - **Facturado (Ventas):** Suma total de las ventas registradas por la sucursal durante el turno de caja (Efectivo + Tarjeta + Otros métodos).
+  - **Retirado (Cierre):** El dinero real declarado físicamente en caja por la empleada al hacer el corte.
+  - **Diferencia:** El desfase de dinero calculado automáticamente (`Efectivo Esperado - Efectivo Real`). Si falta dinero, el monto se tiñe de **rojo** (con signo negativo); si sobra, de **verde**; y si es exacto, se muestra neutral.
+  - **Estado:** Indica si el turno está *"abierto"* (activo) o *"cerrado"*.
+
+---
+
+## 2.2 Estadísticas y Reportes (Indicadores Clave)
+Esta pestaña te permite consultar y exportar una gran variedad de reportes analíticos agrupados de forma jerárquica.
+
+### Selector de Indicadores:
+Al hacer clic en el menú desplegable, puedes buscar o seleccionar indicadores categorizados en:
+1. **Clientes:**
+   - *1.1.1.- Nº Total de clientes nuevos:* Registros de clientes por primera vez en el sistema.
+   - *1.1.2.- Nº Total de primeras sesiones:* Conteo de clientes que toman un servicio por primera vez.
+   - *1.1.3.- Nº Total de primeras compras:* Registros y montos de las primeras transacciones de clientes nuevos.
+   - *1.2.- Desglose de ¿cómo nos ha conocido?:* Estadísticas sobre la procedencia de los clientes (ej: Instagram, recomendación) para evaluar campañas publicitarias.
+2. **Servicios:**
+   - *2.3.1.- Nº Total de clientes por tratamiento:* Clientes atendidos por cada tipo de servicio.
+   - *2.4.- Nº Medio de tratamientos por cliente:* Promedio de servicios realizados por cliente (ticket promedio de servicios).
+   - *2.5.- Tiempo medio de duración de tratamientos:* Duración real de los tratamientos en minutos y cantidad de sesiones totales realizadas.
+   - *2.6.- Desglose de sesiones asistidas por tratamiento.*
+   - *2.7.- Sesiones asistidas por profesional y tratamiento.*
+3. **Agenda:**
+   - *3.1.- Porcentaje de citas no asistidas (No-Show):* Tasa de inasistencias en general o desglosada por profesional.
+   - *3.5.- Desglose de citas no asistidas.*
+   - *3.7.- Desglose de citas en agenda:* Cantidad y porcentaje de citas agrupadas por su estado (Confirmada, Pendiente, Cancelada).
+4. **Facturación:**
+   - *4.0.- Facturación Neta (Ingresos - Gastos):* Reporte consolidado de ingresos, egresos de caja y el resultado neto de rentabilidad de la sucursal.
+   - *4.1.1.- Facturación total:* Facturación global expresada en pesos y porcentaje.
+   - *4.1.2.- Ventas totales:* Ventas de productos o ítems no asociados a citas.
+   - *4.4.1.- Desglose de facturación por tratamiento.*
+   - *4.5.1.- Desglose de facturación por profesional (ventas por colaboradora).*
+   - *4.6.1.- Desglose de facturación por familia de servicios.*
+   - *4.8.1.- Desglose de facturación por vendedor.*
+   - *4.9.1.- Desglose de facturación por producto.*
+   - *4.10.- Facturación estimada según agenda:* Proyecciones financieras según las citas programadas a futuro.
+   - *4.12.1.- Desglose de facturación por forma de pago (Efectivo vs. Tarjeta).*
+   - *4.16.1.- Desglose de tratamientos por unidades realizadas.*
+   - *4.17.1.- Desglose de facturación por hora:* Identifica las horas de mayor facturación del estudio.
+   - *4.18.- Reporte de ingresos generados por servicios.*
+
+### Filtros y Acciones:
+- **Filtros de Desglose:** Puedes agrupar los resultados según te convenga: *Por sucursal*, *Por mes*, *Por día* o *Por profesional*.
+- **Ordenar por:** Ordena la tabla alfabéticamente o por importes/cantidades de forma ascendente o descendente.
+- **Acción "Calcular":** Procesa la consulta en la base de datos y muestra los resultados en pantalla con paginación interactiva.
+- **Acción "Exportar a Excel":** Descarga un archivo CSV formateado adecuadamente para abrirse en Microsoft Excel de forma nativa.
+
+---
 
 <div class="page-break"></div>
 
 ## 2.3 Desempeño y Comisiones (Hoja de Comisiones)
-Esta pantalla es crucial para el cierre de mes, ya que calcula de manera exacta los honorarios del staff basándose en las ventas cobradas.
+Esta herramienta es indispensable para calcular la pre-nómina de comisiones de las profesionales de manera automática al cierre de cada mes.
 
 ### Lógica de Cálculo de Comisión:
-1. **Ventas Brutas:** El sistema suma el total de servicios cobrados (con IVA) por cada empleada durante el mes.
-2. **Identificación del Tramo (Umbral):** Se compara la venta bruta acumulada de la empleada con la tabla de comisiones vigente para encontrar el nivel de porcentaje correspondiente.
-3. **Aplicación de la Evaluación ("Cumplió Hoja"):** El administrador evalúa mensualmente si la colaboradora cumplió con su hoja de desempeño. Si cumplió, recibe el porcentaje preferencial (*Con Hoja*). Si no, recibe el porcentaje estándar (*Sin Hoja*).
-4. **Base Imponible:** La comisión final se calcula multiplicando el porcentaje correspondiente por la venta **neta (sin IVA)** de la empleada (Venta Bruta ÷ 1.16).
+1. **Suma de Ventas Brutas:** El sistema suma el total de servicios cobrados **(con IVA)** realizados por cada empleada en el mes seleccionado.
+2. **Determinación del Tramo (Umbral):** Se localiza en la tabla de comisiones el tramo de ingresos brutos que la colaboradora alcanzó.
+3. **Estatus de Evaluación ("Cumplió Hoja"):** El administrador evalúa en la sub-vista de *"Evaluación"* si la colaboradora cumplió con su hoja de metas del mes. Si cumplió (botón verde), se le asigna el porcentaje de la columna **Con Hoja**. Si no cumplió (botón gris), se le asigna el porcentaje de la columna **Sin Hoja**.
+4. **Base Imponible Neta:** El porcentaje de comisión obtenido se aplica directamente sobre las ventas **netas (sin IVA)** de la empleada. La fórmula es: `Comisión = (Ventas Brutas ÷ 1.16) × Porcentaje de Comisión`.
 
----
+### Sub-vistas Disponibles:
+- **Pestaña Evaluación:** Muestra la lista de empleadas activas. Puedes hacer clic en el botón de estado para cambiarlo a **"Cumplió"** (verde) o **"Sin Hoja"** (gris) y agregar notas opcionales. Recuerda presionar el botón **Guardar** arriba a la derecha para aplicar los cambios.
+- **Pestaña Comisiones:** Muestra el total a pagar del mes y una tabla analítica con el nombre de cada profesional, su estatus de hoja, sus ventas brutas totales, el porcentaje de comisión asignado y el pago final de comisión calculado.
 
-### Tabla de Comisiones Vigente
-A continuación se detallan los umbrales y porcentajes cargados en la base de datos para el cálculo de comisiones:
+### Tabla de Comisiones Oficial (Vigente en la Base de Datos)
+Los umbrales de ventas y porcentajes cargados en el sistema son los siguientes:
 
 | Umbral de Ventas Mensual (Con IVA) | % Comisión (Con Hoja) | % Comisión (Sin Hoja) |
 |------------------------------------|-----------------------|-----------------------|
@@ -67,10 +135,6 @@ A continuación se detallan los umbrales y porcentajes cargados en la base de da
 | **$72,000** o más                  | 8.0%                  | 6.0%                  |
 | **$78,000** o más                  | 8.5%                  | 6.5%                  |
 | **$84,000** o más                  | 9.0%                  | 7.0%                  |
-
----
-
-<div class="page-break"></div>
 
 # 3. Administración y Personal
 
