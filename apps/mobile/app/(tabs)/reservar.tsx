@@ -43,7 +43,7 @@ function getSucursalHours(sucursal: any, date: Date): { start: number; end: numb
   return { start: toHour(apertura) || 10, end: toHour(cierre) || 20 }
 }
 
-type Step = 'sucursal' | 'servicio' | 'fecha' | 'cliente' | 'confirmado'
+type Step = 'sucursal' | 'servicio' | 'profesional' | 'fecha' | 'cliente' | 'confirmado'
 
 export default function ReservarScreen() {
   const router = useRouter()
@@ -209,7 +209,8 @@ export default function ReservarScreen() {
 
   const goBack = () => {
     if (step === 'servicio') setStep('sucursal')
-    if (step === 'fecha') setStep('servicio')
+    if (step === 'profesional') setStep('servicio')
+    if (step === 'fecha') setStep('profesional')
     if (step === 'cliente') setStep('fecha')
   }
 
@@ -301,6 +302,7 @@ export default function ReservarScreen() {
             <Text style={styles.headerTitle}>
               {step === 'sucursal' && 'Sucursales'}
               {step === 'servicio' && 'Servicios'}
+              {step === 'profesional' && 'Profesional'}
               {step === 'fecha' && 'Fecha y Hora'}
               {step === 'cliente' && 'Tus Datos'}
             </Text>
@@ -311,7 +313,7 @@ export default function ReservarScreen() {
         {/* ProgressBar */}
         {step !== 'confirmado' && (
           <View style={styles.progressContainer}>
-            {(['sucursal', 'servicio', 'fecha', 'cliente'] as Step[]).map((s, i) => (
+            {(['sucursal', 'servicio', 'profesional', 'fecha', 'cliente'] as Step[]).map((s, i) => (
               <View key={s} style={[styles.progressDot, step === s && styles.progressDotActive]} />
             ))}
           </View>
@@ -380,33 +382,63 @@ export default function ReservarScreen() {
             </View>
           )}
 
+          {/* PROFESIONAL */}
+          {step === 'profesional' && (
+            <View style={styles.stepContainer}>
+              <Text style={styles.title}>¿Con quién prefieres atenderte?</Text>
+              <Text style={styles.subtitle}>Puedes elegir a alguien en específico o dejar que te mostremos la mayor disponibilidad.</Text>
+              
+              <View style={styles.listContainer}>
+                <TouchableOpacity
+                  onPress={() => { setSelectedProfesional(null); setSelectedDate(null); setSelectedTime(null); }}
+                  style={[styles.cardSelect, selectedProfesional === null && styles.serviceCardActive]}
+                >
+                  <View style={styles.cardIconBox}>
+                    <Ionicons name="sparkles-outline" size={22} color={ACCENT} />
+                  </View>
+                  <View style={styles.cardText}>
+                    <Text style={[styles.cardTitle, selectedProfesional === null && { color: ACCENT }]}>Cualquiera (Recomendado)</Text>
+                    <Text style={[styles.cardSubtitle, selectedProfesional === null && { color: ACCENT }]}>Te mostraremos la mayor cantidad de horarios disponibles.</Text>
+                  </View>
+                  {selectedProfesional === null ? (
+                    <Ionicons name="checkmark-circle" size={26} color={ACCENT} />
+                  ) : (
+                    <View style={styles.emptyCircle} />
+                  )}
+                </TouchableOpacity>
+
+                {perfiles.map(p => {
+                  const isSelected = selectedProfesional === p.id
+                  return (
+                    <TouchableOpacity
+                      key={p.id}
+                      onPress={() => { setSelectedProfesional(p.id); setSelectedDate(null); setSelectedTime(null); }}
+                      style={[styles.cardSelect, isSelected && styles.serviceCardActive]}
+                    >
+                      <View style={styles.cardIconBox}>
+                        <Ionicons name="person-outline" size={22} color={ACCENT} />
+                      </View>
+                      <View style={styles.cardText}>
+                        <Text style={[styles.cardTitle, isSelected && { color: ACCENT }]}>{p.nombre}</Text>
+                        <Text style={[styles.cardSubtitle, isSelected && { color: ACCENT }]}>Ver solo sus horarios libres.</Text>
+                      </View>
+                      {isSelected ? (
+                        <Ionicons name="checkmark-circle" size={26} color={ACCENT} />
+                      ) : (
+                        <View style={styles.emptyCircle} />
+                      )}
+                    </TouchableOpacity>
+                  )
+                })}
+              </View>
+            </View>
+          )}
+
           {/* FECHA Y HORA */}
           {step === 'fecha' && (
             <View style={styles.stepContainer}>
               <Text style={styles.title}>¿Cuándo vienes?</Text>
               <Text style={styles.subtitle}>Total: {totalTime} min en MUYMUY {selectedSucursal?.nombre}</Text>
-
-              {/* Profesional de preferencia */}
-              <View style={{ marginBottom: 24 }}>
-                <Text style={styles.timeTitle}>Profesional de preferencia (Opcional)</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
-                  <TouchableOpacity
-                    onPress={() => { setSelectedProfesional(null); setSelectedDate(null); setSelectedTime(null); }}
-                    style={[styles.profBtn, !selectedProfesional && styles.profBtnActive]}
-                  >
-                    <Text style={[styles.profBtnText, !selectedProfesional && styles.profBtnTextActive]}>Cualquiera</Text>
-                  </TouchableOpacity>
-                  {perfiles.map(p => (
-                    <TouchableOpacity
-                      key={p.id}
-                      onPress={() => { setSelectedProfesional(p.id); setSelectedDate(null); setSelectedTime(null); }}
-                      style={[styles.profBtn, selectedProfesional === p.id && styles.profBtnActive]}
-                    >
-                      <Text style={[styles.profBtnText, selectedProfesional === p.id && styles.profBtnTextActive]}>{p.nombre.split(' ')[0]}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
 
               {/* Calendario Custom */}
               <View style={styles.calendarCard}>
@@ -610,6 +642,19 @@ export default function ReservarScreen() {
             <View>
               <Text style={styles.floatTextTotal}>${totalPrice}</Text>
               <Text style={styles.floatTextTime}>{totalTime} min</Text>
+            </View>
+            <TouchableOpacity style={styles.btnPrimary} onPress={() => setStep('profesional')}>
+              <Text style={styles.btnPrimaryText}>Continuar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {step === 'profesional' && (
+          <View style={styles.floatingBar}>
+            <View>
+              <Text style={styles.floatTextTotal}>
+                {selectedProfesional ? (perfiles.find(p => p.id === selectedProfesional)?.nombre?.split(' ')[0] ?? 'Seleccionado') : 'Cualquiera'}
+              </Text>
+              <Text style={styles.floatTextTime}>Profesional preferido</Text>
             </View>
             <TouchableOpacity style={styles.btnPrimary} onPress={() => setStep('fecha')}>
               <Text style={styles.btnPrimaryText}>Continuar</Text>
