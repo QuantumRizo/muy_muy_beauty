@@ -96,8 +96,7 @@ export default function PerfilScreen() {
           {cliente.nombre_completo?.charAt(0).toUpperCase()}
         </Text>
       </View>
-      <Text style={styles.nombre}>{cliente.nombre_completo}</Text>
-      <Text style={styles.numCliente}>Cliente #{cliente.num_cliente}</Text>
+      <Text style={[styles.nombre, { marginBottom: 28 }]}>{cliente.nombre_completo}</Text>
 
       <View style={styles.card}>
         <InfoRow label="Telefono" value={cliente.telefono_cel ?? '—'} />
@@ -149,7 +148,6 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontSize: 30, fontWeight: '800', color: '#fff' },
   nombre: { fontSize: 20, fontWeight: '700', color: '#1d1d1f', marginBottom: 4 },
-  numCliente: { fontSize: 13, color: '#6e6e73', marginBottom: 28 },
   card: {
     backgroundColor: '#fff', borderRadius: 20,
     padding: 4, width: '100%',
