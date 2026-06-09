@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { runQuery } from '../lib/reportQueries'
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 import { ahoraMX, fechaMX, hoyMX } from '../lib/dateUtils'
 
 export type TimeRange = 'today' | 'week' | 'month'

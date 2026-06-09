@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { X, Unlock } from 'lucide-react'
-import { format } from 'date-fns'
 import { hoyMX } from '../../lib/dateUtils'
 import { useEliminarBloqueosMasivo } from '../../hooks/useCitas'
 import type { Empleada } from '../../types/database'

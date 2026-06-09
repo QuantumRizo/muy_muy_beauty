@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react'
 import { X } from 'lucide-react'
-import { format } from 'date-fns'
 import { hoyMX } from '../../lib/dateUtils'
 import { useCrearBloqueos } from '../../hooks/useCitas'
 import type { Empleada } from '../../types/database'

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { MetodoPago, Pago } from '../../types/database'
-import { format } from 'date-fns'
 import { hoyMX, ahoraMXHora } from '../../lib/dateUtils'
 import { useToast } from '../Common/Toast'
 
