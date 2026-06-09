@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native'
+import { useEffect, useState, useCallback } from 'react'
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import { useRouter } from 'expo-router'
 import { supabase } from '../../lib/supabase'
@@ -8,26 +8,39 @@ export default function CitasScreen() {
   const router = useRouter()
   const [citas, setCitas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState(false)
+
+  const loadData = useCallback(async () => {
+    const clienteId = await SecureStore.getItemAsync('cliente_id')
+    if (!clienteId) { router.replace('/(auth)/identificacion'); return }
+
+    const { data, error: err } = await supabase
+      .from('citas')
+      .select('*, sucursal:sucursales(nombre), servicios:cita_servicios(servicio:servicios(nombre))')
+      .eq('cliente_id', clienteId)
+      .order('fecha', { ascending: false })
+      .order('bloque_inicio', { ascending: false })
+      .limit(30)
+
+    if (err) {
+      setError(true)
+    } else {
+      setCitas(data ?? [])
+      setError(false)
+    }
+    setLoading(false)
+  }, [router])
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await loadData()
+    setRefreshing(false)
+  }, [loadData])
 
   useEffect(() => {
-    async function load() {
-      const clienteId = await SecureStore.getItemAsync('cliente_id')
-      if (!clienteId) { router.replace('/(auth)/identificacion'); return }
-
-      const hoy = new Date().toISOString().split('T')[0]
-      const { data } = await supabase
-        .from('citas')
-        .select('*, sucursal:sucursales(nombre), servicios:cita_servicios(servicio:servicios(nombre))')
-        .eq('cliente_id', clienteId)
-        .order('fecha', { ascending: false })
-        .order('bloque_inicio', { ascending: false })
-        .limit(30)
-
-      setCitas(data ?? [])
-      setLoading(false)
-    }
-    load()
-  }, [])
+    loadData()
+  }, [loadData])
 
   const estadoColor: Record<string, { bg: string; text: string }> = {
     'Programada':  { bg: '#e6f4ea', text: '#1e8e3e' },
@@ -37,12 +50,21 @@ export default function CitasScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#88B04B" />}
+    >
       <Text style={styles.pageTitle}>Mis Citas</Text>
       <Text style={styles.pageSub}>Tus reservas vigentes y anteriores</Text>
 
       {loading ? (
         <ActivityIndicator color="#88B04B" style={{ marginTop: 40 }} />
+      ) : error ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>No se pudo cargar tus citas.</Text>
+          <Text style={[styles.emptyText, { color: '#88B04B', marginTop: 4 }]}>Desliza hacia abajo para reintentar.</Text>
+        </View>
       ) : citas.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyText}>No tienes citas registradas aún.</Text>

@@ -37,6 +37,7 @@ export default function IdentificacionScreen() {
       if (existing) {
         await SecureStore.setItemAsync('cliente_id', existing.id)
         await SecureStore.setItemAsync('cliente_nombre', existing.nombre_completo)
+        await SecureStore.setItemAsync('cliente_telefono', tel) // 🔧 BUG FIX: Persist phone so reservar.tsx can read it
         router.replace('/(tabs)/inicio')
       } else {
         setPaso('registro')
@@ -70,6 +71,7 @@ export default function IdentificacionScreen() {
 
       await SecureStore.setItemAsync('cliente_id', nuevo.id)
       await SecureStore.setItemAsync('cliente_nombre', nuevo.nombre_completo)
+      await SecureStore.setItemAsync('cliente_telefono', telefono.trim()) // 🔧 BUG FIX: Persist phone so reservar.tsx can read it
       router.replace('/(tabs)/inicio')
     } catch {
       Alert.alert('Error', 'No pudimos crear tu perfil. Intentalo de nuevo.')

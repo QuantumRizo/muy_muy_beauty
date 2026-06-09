@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import {
   View, Text, StyleSheet, ScrollView,
-  ActivityIndicator, TouchableOpacity, Image, Dimensions
+  ActivityIndicator, TouchableOpacity, Image, Dimensions, RefreshControl
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import * as SecureStore from 'expo-secure-store'
@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabase'
 
 const { width } = Dimensions.get('window')
 
+// SERVICIOS remain as static marketing cards with curated images and descriptions
 const SERVICIOS = [
   { 
     title: 'Esmaltado Permanente', 
@@ -58,29 +59,6 @@ const SERVICIOS = [
   },
 ]
 
-const CENTROS = [
-  {
-    nombre: "Homero",
-    direccion: "Av. Homero 1629, Polanco I Secc",
-    telefono: "55 2703 2830"
-  },
-  {
-    nombre: "Newton",
-    direccion: "Av. Isaac Newton 215, Polanco V Secc",
-    telefono: "56 1901 1318"
-  },
-  {
-    nombre: "Euler",
-    direccion: "Euler 152, Polanco V Secc",
-    telefono: "55 4939 5929"
-  },
-  {
-    nombre: "Campos Elíseos",
-    direccion: "Campos Elíseos 169, Polanco V Secc",
-    telefono: "55 4453 3065"
-  }
-]
-
 const ACCENT = '#88B04B'
 
 export default function InicioScreen() {
@@ -88,14 +66,23 @@ export default function InicioScreen() {
   const [nombre, setNombre] = useState<string | null>(null)
   const [clienteId, setClienteId] = useState<string | null>(null)
   const [citas, setCitas] = useState<any[]>([])
+  const [centros, setCentros] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
-  useEffect(() => {
-    async function load() {
+  const loadData = useCallback(async () => {
+    try {
       const id = await SecureStore.getItemAsync('cliente_id')
       const nom = await SecureStore.getItemAsync('cliente_nombre')
       setClienteId(id)
       setNombre(nom ? nom.split(' ')[0] : null)
+
+      // Load sucursales from DB — replaces hardcoded CENTROS
+      const { data: sucData } = await supabase
+        .from('sucursales')
+        .select('nombre, direccion, telefono')
+        .order('nombre')
+      if (sucData) setCentros(sucData)
 
       if (id) {
         const hoy = new Date().toISOString().split('T')[0]
@@ -109,14 +96,30 @@ export default function InicioScreen() {
           .limit(5)
         setCitas((data as any[]) ?? [])
       }
+    } catch {
+      // Non-blocking — static content still renders even if DB is unreachable
+    } finally {
       setLoading(false)
     }
-    load()
   }, [])
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await loadData()
+    setRefreshing(false)
+  }, [loadData])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   return (
     <View style={styles.outerContainer}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#88B04B" />}
+      >
 
         {/* Logo / Header */}
         <View style={styles.logoRow}>
@@ -207,17 +210,19 @@ export default function InicioScreen() {
         </View>
 
         <View style={styles.centrosGrid}>
-          {CENTROS.map((centro, i) => (
+          {centros.map((centro, i) => (
             <View key={i} style={styles.centroCard}>
               <View style={styles.centroHeader}>
                 <Ionicons name="location-sharp" size={18} color={ACCENT} />
                 <Text style={styles.centroNombre}>{centro.nombre}</Text>
               </View>
-              <Text style={styles.centroDireccion}>{centro.direccion}</Text>
-              <TouchableOpacity style={styles.centroTelRow}>
-                <Ionicons name="call" size={14} color="#6e6e73" />
-                <Text style={styles.centroTelefono}>{centro.telefono}</Text>
-              </TouchableOpacity>
+              <Text style={styles.centroDireccion}>{centro.direccion?.split(',')[0]}</Text>
+              {centro.telefono ? (
+                <TouchableOpacity style={styles.centroTelRow}>
+                  <Ionicons name="call" size={14} color="#6e6e73" />
+                  <Text style={styles.centroTelefono}>{centro.telefono}</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           ))}
         </View>

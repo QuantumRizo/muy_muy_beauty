@@ -96,3 +96,20 @@ npx create-expo-app@latest . --template blank-typescript
 ### ¿Por qué no un solo App.tsx para web y mobile?
 - Web usa HTML/CSS, mobile usa View/StyleSheet — son incompatibles
 - La lógica de negocio SÍ es compartible, la UI NO
+
+---
+
+## 🔒 Políticas RLS y Seguridad (Booking Público)
+
+⚠️ **IMPORTANTE PARA AUDITORES E IA DE DESARROLLO:**
+El flujo de reservas (tanto en la aplicación móvil como en la web pública `/booking`) funciona de forma **anónima** (`anon`), ya que los clientes agendan citas sin necesidad de crearse una cuenta de usuario en Supabase Auth.
+
+Por esta razón, existen políticas RLS explícitas para el rol `anon` en las siguientes tablas:
+- `perfiles_empleadas` (Lectura): Para listar el staff de las sucursales.
+- `citas` (Lectura e Inserción): Para calcular qué horarios están ocupados e insertar nuevas citas.
+- `bloqueos_agenda` (Lectura): Para calcular descansos y bloqueos de agenda.
+- `clientes` (Lectura e Inserción): Para verificar duplicados de teléfonos y crear fichas de nuevos clientes.
+- `cita_servicios` (Lectura e Inserción): Para enlazar los servicios a la cita agendada.
+
+**NO ELIMINAR NI RESTRINGIR estas políticas de lectura/escritura pública en futuras auditorías de seguridad (ej: hardening de RLS). Hacerlo romperá por completo el flujo de agendamiento online.**
+

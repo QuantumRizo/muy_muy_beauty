@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react'
 import {
   Megaphone, Target, BarChart2, Plus, ExternalLink, Activity,
-  Users, DollarSign, Eye, MousePointerClick, TrendingUp,
-  TrendingDown, Settings, CheckCircle, AlertCircle, RefreshCw,
-  Trash2, Edit3, Pause, Play, X, Key, Zap, ChevronRight,
-  ArrowUpRight, Info
+  Users, DollarSign, Eye, MousePointerClick,
+  Settings, CheckCircle, AlertCircle, RefreshCw,
+  X, Key, Zap, ChevronRight, ArrowUpRight
 } from 'lucide-react'
 import { useMarketing } from '../hooks/useMarketing'
 import { useSucursales } from '../hooks/useSucursales'
 import type { MarketingCampana } from '../types/database'
+import { KpiCard } from '../components/Marketing/KpiCard'
+import { ConfigForm } from '../components/Marketing/ConfigForm'
+import { CampanaModal } from '../components/Marketing/CampanaModal'
+import { CampanaRow, PLATFORM_COLORS, ESTADO_STYLES } from '../components/Marketing/CampanaRow'
 
 // ─── Helpers ────────────────────────────────────────────────────
 const fmt = (n: number, decimals = 2) =>
@@ -21,439 +24,6 @@ const fmtBig = (n: number) => {
   if (n >= 1_000_000) return `${fmt(n / 1_000_000, 1)}M`
   if (n >= 1_000)     return `${fmt(n / 1_000, 1)}K`
   return fmt(n, 0)
-}
-
-const PLATFORM_COLORS: Record<string, { bg: string; color: string; label: string }> = {
-  meta:   { bg: '#1877F2', color: '#fff', label: 'Meta Ads'    },
-  google: { bg: '#EA4335', color: '#fff', label: 'Google Ads'  },
-  otro:   { bg: '#6b7280', color: '#fff', label: 'Otro'        },
-}
-
-const ESTADO_STYLES: Record<string, { bg: string; color: string }> = {
-  activa:     { bg: 'rgba(22,163,74,0.1)',  color: 'var(--kpi)' },
-  pausada:    { bg: 'var(--accent-light)', color: 'var(--accent)' },
-  finalizada: { bg: 'rgba(107,114,128,0.1)', color: '#6b7280' },
-}
-
-// ─── KPI Card Component ──────────────────────────────────────────
-interface KpiCardProps {
-  icon: React.ReactNode
-  label: string
-  value: string
-  sub?: string
-  gradient?: string
-  positive?: boolean
-  loading?: boolean
-}
-
-function KpiCard({ icon, label, value, sub, gradient, positive, loading }: KpiCardProps) {
-  return (
-    <div style={{
-      background: gradient ?? 'var(--surface)',
-      borderRadius: 'var(--radius-lg)',
-      border: gradient ? 'none' : '1px solid var(--border)',
-      padding: '18px 20px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 8,
-      boxShadow: gradient ? '0 4px 20px rgba(0,0,0,0.1)' : 'var(--shadow-sm)',
-      position: 'relative',
-      overflow: 'hidden',
-      transition: 'transform 0.2s, box-shadow 0.2s',
-    }}
-    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = gradient ? '0 8px 28px rgba(162, 181, 92, 0.25)' : 'var(--shadow-md)' }}
-    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = gradient ? '0 4px 20px rgba(162, 181, 92, 0.2)' : 'var(--shadow-sm)' }}
-    >
-      {/* Decorative circle */}
-      {gradient && (
-        <div style={{
-          position: 'absolute', right: -20, top: -20,
-          width: 100, height: 100, borderRadius: '50%',
-          background: 'rgba(255,255,255,0.08)'
-        }} />
-      )}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 10,
-          background: gradient ? 'rgba(255,255,255,0.2)' : 'var(--surface-2)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: gradient ? '#fff' : 'var(--text-2)'
-        }}>
-          {icon}
-        </div>
-        {sub && positive !== undefined && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 600,
-            color: positive ? 'var(--kpi)' : '#dc2626'
-          }}>
-            {positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-            {sub}
-          </div>
-        )}
-      </div>
-      <div>
-        <div style={{
-          fontSize: 22, fontWeight: 700,
-          color: gradient ? '#fff' : 'var(--text-1)',
-          letterSpacing: '-0.5px'
-        }}>
-          {loading ? (
-            <div style={{ height: 28, width: 80, borderRadius: 4, background: gradient ? 'rgba(255,255,255,0.2)' : 'var(--border)', animation: 'pulse 1.5s infinite' }} />
-          ) : value}
-        </div>
-        <div style={{
-          fontSize: 12, marginTop: 2,
-          color: gradient ? 'rgba(255,255,255,0.75)' : 'var(--text-2)'
-        }}>
-          {label}
-        </div>
-      </div>
-      {sub && positive === undefined && (
-        <div style={{ fontSize: 11, color: gradient ? 'rgba(255,255,255,0.65)' : 'var(--text-3)' }}>
-          {sub}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── API Config Form ─────────────────────────────────────────────
-interface ConfigFormProps {
-  currentApiKey?: string
-  currentAccountId?: string
-  onSave: (apiKey: string, accountId: string) => Promise<boolean>
-  saving: boolean
-  onClose: () => void
-}
-
-function ConfigForm({ currentApiKey, currentAccountId, onSave, saving, onClose }: ConfigFormProps) {
-  const [apiKey, setApiKey]         = useState(currentApiKey ?? '')
-  const [accountId, setAccountId]   = useState(currentAccountId ?? '')
-  const [showKey, setShowKey]       = useState(false)
-  const [success, setSuccess]       = useState(false)
-
-  async function handleSave() {
-    if (!apiKey.trim() || !accountId.trim()) return
-    const ok = await onSave(apiKey.trim(), accountId.trim())
-    if (ok) setSuccess(true)
-  }
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0,
-      background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 200, padding: 16
-    }}>
-      <div style={{
-        background: 'var(--surface)',
-        borderRadius: 'var(--radius-lg)',
-        width: '100%', maxWidth: 480,
-        boxShadow: 'var(--shadow-lg)',
-        overflow: 'hidden',
-        animation: 'modalIn 0.18s ease'
-      }}>
-        {/* Header */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Key size={15} color="#fff" />
-            </div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)' }}>Configurar Meta Ads</div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Conecta tu cuenta publicitaria</div>
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', padding: 4, borderRadius: 4 }}>
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Info box */}
-          <div style={{ background: 'var(--accent-light)', border: '1px solid var(--accent-mid)', borderRadius: 'var(--radius-md)', padding: 12, display: 'flex', gap: 10 }}>
-            <Info size={15} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }} />
-            <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6 }}>
-              Obtén tu <strong style={{ color: 'var(--accent)' }}>Access Token</strong> desde el{' '}
-              <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>
-                Explorador de la API de Meta
-              </a>{' '}
-              y el <strong>Ad Account ID</strong> desde tu Business Manager (Ej: <code>1234567890</code>).
-            </div>
-          </div>
-
-          {/* Access Token */}
-          <div className="form-group">
-            <label className="form-label">Access Token *</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showKey ? 'text' : 'password'}
-                className="form-input"
-                value={apiKey}
-                onChange={e => setApiKey(e.target.value)}
-                placeholder="EAABsbCS0cBA..."
-                style={{ fontFamily: showKey ? 'monospace' : 'inherit', fontSize: 12, paddingRight: 80 }}
-              />
-              <button
-                onClick={() => setShowKey(v => !v)}
-                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-3)', fontFamily: 'inherit' }}
-              >
-                {showKey ? 'Ocultar' : 'Mostrar'}
-              </button>
-            </div>
-          </div>
-
-          {/* Account ID */}
-          <div className="form-group">
-            <label className="form-label">Ad Account ID *</label>
-            <input
-              type="text"
-              className="form-input"
-              value={accountId}
-              onChange={e => setAccountId(e.target.value)}
-              placeholder="act_1234567890"
-            />
-            <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Puedes incluir "act_" o solo los números.</span>
-          </div>
-
-          {success && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--success-bg)', borderRadius: 'var(--radius-md)', color: 'var(--success)', fontSize: 13 }}>
-              <CheckCircle size={15} />
-              ¡Configuración guardada correctamente!
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button className="btn-secondary" onClick={onClose}>Cancelar</button>
-          <button
-            className="btn-primary"
-            onClick={handleSave}
-            disabled={saving || !apiKey.trim() || !accountId.trim()}
-            style={{ minWidth: 120 }}
-          >
-            {saving ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-            {saving ? 'Guardando...' : 'Guardar'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Campaign Modal ──────────────────────────────────────────────
-interface CampanaModalProps {
-  initial?: Partial<MarketingCampana>
-  onSave: (data: Partial<MarketingCampana>) => Promise<boolean>
-  saving: boolean
-  onClose: () => void
-}
-
-function CampanaModal({ initial, onSave, saving, onClose }: CampanaModalProps) {
-  const [form, setForm] = useState<Partial<MarketingCampana>>({
-    nombre: '', platform: 'meta', estado: 'activa',
-    presupuesto: 0, gasto: 0, impresiones: 0, clics: 0, leads: 0,
-    ...initial
-  })
-
-  const set = (k: keyof MarketingCampana, v: any) => setForm(f => ({ ...f, [k]: v }))
-
-  async function handleSave() {
-    if (!form.nombre?.trim()) return
-    const ok = await onSave(form)
-    if (ok) onClose()
-  }
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0,
-      background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 200, padding: 16
-    }}>
-      <div style={{
-        background: 'var(--surface)', borderRadius: 'var(--radius-lg)',
-        width: '100%', maxWidth: 500,
-        boxShadow: 'var(--shadow-lg)', overflow: 'hidden',
-        animation: 'modalIn 0.18s ease'
-      }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)' }}>
-            {initial ? 'Editar campaña' : 'Nueva campaña'}
-          </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)' }}><X size={18} /></button>
-        </div>
-
-        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14, maxHeight: '65vh', overflowY: 'auto' }}>
-          <div className="form-group">
-            <label className="form-label">Nombre de la campaña *</label>
-            <input className="form-input" value={form.nombre ?? ''} onChange={e => set('nombre', e.target.value)} placeholder="Ej: Verano 2026 - Descuentos" />
-          </div>
-
-          <div className="form-grid-2">
-            <div className="form-group">
-              <label className="form-label">Plataforma</label>
-              <select className="form-input" value={form.platform ?? 'meta'} onChange={e => set('platform', e.target.value)}>
-                <option value="meta">Meta Ads</option>
-                <option value="google">Google Ads</option>
-                <option value="otro">Otro</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Estado</label>
-              <select className="form-input" value={form.estado ?? 'activa'} onChange={e => set('estado', e.target.value)}>
-                <option value="activa">Activa</option>
-                <option value="pausada">Pausada</option>
-                <option value="finalizada">Finalizada</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="form-grid-2">
-            <div className="form-group">
-              <label className="form-label">Fecha inicio</label>
-              <input type="date" className="form-input" value={form.fecha_inicio ?? ''} onChange={e => set('fecha_inicio', e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Fecha fin</label>
-              <input type="date" className="form-input" value={form.fecha_fin ?? ''} onChange={e => set('fecha_fin', e.target.value)} />
-            </div>
-          </div>
-
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 4 }}>
-            Métricas
-          </div>
-
-          <div className="form-grid-2">
-            <div className="form-group">
-              <label className="form-label">Presupuesto ($)</label>
-              <input type="number" className="form-input" value={form.presupuesto ?? 0} onChange={e => set('presupuesto', parseFloat(e.target.value) || 0)} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Gasto real ($)</label>
-              <input type="number" className="form-input" value={form.gasto ?? 0} onChange={e => set('gasto', parseFloat(e.target.value) || 0)} />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-            <div className="form-group">
-              <label className="form-label">Impresiones</label>
-              <input type="number" className="form-input" value={form.impresiones ?? 0} onChange={e => set('impresiones', parseInt(e.target.value) || 0)} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Clics</label>
-              <input type="number" className="form-input" value={form.clics ?? 0} onChange={e => set('clics', parseInt(e.target.value) || 0)} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Leads</label>
-              <input type="number" className="form-input" value={form.leads ?? 0} onChange={e => set('leads', parseInt(e.target.value) || 0)} />
-            </div>
-          </div>
-        </div>
-
-        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button className="btn-secondary" onClick={onClose}>Cancelar</button>
-          <button className="btn-primary" onClick={handleSave} disabled={saving || !form.nombre?.trim()}>
-            {saving ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-            {saving ? 'Guardando...' : 'Guardar'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Campaign Row ─────────────────────────────────────────────────
-function CampanaRow({ c, onEdit, onDelete, onToggle }: {
-  c: MarketingCampana
-  onEdit: () => void
-  onDelete: () => void
-  onToggle: () => void
-}) {
-  const pStyle = PLATFORM_COLORS[c.platform] ?? PLATFORM_COLORS['otro']
-  const eStyle = ESTADO_STYLES[c.estado] ?? ESTADO_STYLES['finalizada']
-  const cpl = c.leads > 0 ? c.gasto / c.leads : null
-  const ctr = c.impresiones > 0 ? (c.clics / c.impresiones) * 100 : null
-
-  return (
-    <div style={{
-      background: 'var(--surface)',
-      border: '1px solid var(--border)',
-      borderRadius: 'var(--radius-md)',
-      padding: '14px 18px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 16,
-      transition: 'border-color 0.15s, box-shadow 0.15s',
-    }}
-    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-2)'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)' }}
-    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.boxShadow = 'none' }}
-    >
-      {/* Platform Icon */}
-      <div style={{ width: 38, height: 38, borderRadius: 10, background: pStyle.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        {c.platform === 'meta' ? <Target size={18} color={pStyle.color} /> : <BarChart2 size={18} color={pStyle.color} />}
-      </div>
-
-      {/* Name & badges */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {c.nombre}
-          </span>
-          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: eStyle.bg, color: eStyle.color, flexShrink: 0 }}>
-            {c.estado.charAt(0).toUpperCase() + c.estado.slice(1)}
-          </span>
-        </div>
-        <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
-          {pStyle.label}
-          {c.fecha_inicio && ` · ${c.fecha_inicio}`}
-          {c.fecha_fin && ` → ${c.fecha_fin}`}
-        </div>
-      </div>
-
-      {/* Metrics */}
-      <div style={{ display: 'flex', gap: 24, flexShrink: 0 }}>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 2 }}>Inversión</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)' }}>{fmtMoney(c.gasto)}</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 2 }}>Leads</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)' }}>{fmtBig(c.leads)}</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 2 }}>CPL</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: cpl !== null ? 'var(--success)' : 'var(--text-3)' }}>
-            {cpl !== null ? fmtMoney(cpl) : '—'}
-          </div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 2 }}>CTR</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)' }}>
-            {ctr !== null ? `${fmt(ctr, 2)}%` : '—'}
-          </div>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-        <button onClick={onToggle} title={c.estado === 'activa' ? 'Pausar' : 'Activar'}
-          style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>
-          {c.estado === 'activa' ? <Pause size={13} /> : <Play size={13} />}
-        </button>
-        <button onClick={onEdit}
-          style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>
-          <Edit3 size={13} />
-        </button>
-        <button onClick={onDelete}
-          style={{ width: 30, height: 30, borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--danger)' }}>
-          <Trash2 size={13} />
-        </button>
-      </div>
-    </div>
-  )
 }
 
 // ─── Main Page ───────────────────────────────────────────────────
@@ -496,7 +66,7 @@ export default function MarketingPage() {
     cpc:         summaryFromCampanas.clics > 0 ? summaryFromCampanas.gasto / summaryFromCampanas.clics : 0,
   }
 
-  const activeCampanas  = campanas.filter(c => c.estado === 'activa').length
+  const activeCampanas   = campanas.filter(c => c.estado === 'activa').length
   const presupuestoTotal = campanas.reduce((s, c) => s + c.presupuesto, 0)
 
   const tabs: { id: Tab; label: string }[] = [
@@ -619,46 +189,12 @@ export default function MarketingPage() {
 
             {/* KPI Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
-              <KpiCard
-                icon={<DollarSign size={16} />}
-                label="Inversión Total"
-                value={fmtMoney(displayInsights.spend)}
-                gradient="linear-gradient(135deg, var(--accent) 0%, #7a8a43 100%)"
-                loading={loadingInsights}
-              />
-              <KpiCard
-                icon={<Users size={16} />}
-                label="Leads Generados"
-                value={fmtBig(displayInsights.leads)}
-                gradient="linear-gradient(135deg, var(--kpi) 0%, #0f7a35 100%)"
-                loading={loadingInsights}
-              />
-              <KpiCard
-                icon={<Activity size={16} />}
-                label="Costo por Lead (CPL)"
-                value={displayInsights.cpl > 0 ? fmtMoney(displayInsights.cpl) : '—'}
-                loading={loadingInsights}
-              />
-              <KpiCard
-                icon={<Eye size={16} />}
-                label="Impresiones"
-                value={fmtBig(displayInsights.impressions)}
-                loading={loadingInsights}
-              />
-              <KpiCard
-                icon={<MousePointerClick size={16} />}
-                label="Clics"
-                value={fmtBig(displayInsights.clicks)}
-                sub={displayInsights.ctr > 0 ? `CTR ${fmt(displayInsights.ctr, 2)}%` : undefined}
-                loading={loadingInsights}
-              />
-              <KpiCard
-                icon={<Target size={16} />}
-                label="Campañas Activas"
-                value={String(activeCampanas)}
-                sub={presupuestoTotal > 0 ? `Presupuesto: ${fmtMoney(presupuestoTotal)}` : undefined}
-                loading={loading}
-              />
+              <KpiCard icon={<DollarSign size={16} />} label="Inversión Total"       value={fmtMoney(displayInsights.spend)}                                                     gradient="linear-gradient(135deg, var(--accent) 0%, #7a8a43 100%)" loading={loadingInsights} />
+              <KpiCard icon={<Users size={16} />}       label="Leads Generados"       value={fmtBig(displayInsights.leads)}                                                       gradient="linear-gradient(135deg, var(--kpi) 0%, #0f7a35 100%)"    loading={loadingInsights} />
+              <KpiCard icon={<Activity size={16} />}    label="Costo por Lead (CPL)"  value={displayInsights.cpl > 0 ? fmtMoney(displayInsights.cpl) : '—'}                      loading={loadingInsights} />
+              <KpiCard icon={<Eye size={16} />}         label="Impresiones"           value={fmtBig(displayInsights.impressions)}                                                  loading={loadingInsights} />
+              <KpiCard icon={<MousePointerClick size={16} />} label="Clics"           value={fmtBig(displayInsights.clicks)} sub={displayInsights.ctr > 0 ? `CTR ${fmt(displayInsights.ctr, 2)}%` : undefined} loading={loadingInsights} />
+              <KpiCard icon={<Target size={16} />}      label="Campañas Activas"      value={String(activeCampanas)} sub={presupuestoTotal > 0 ? `Presupuesto: ${fmtMoney(presupuestoTotal)}` : undefined} loading={loading} />
             </div>
 
             {/* Resumen de campañas */}
@@ -673,7 +209,7 @@ export default function MarketingPage() {
                 <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {campanas.slice(0, 3).map(c => {
                     const pStyle = PLATFORM_COLORS[c.platform] ?? PLATFORM_COLORS['otro']
-                    const eStyle = ESTADO_STYLES[c.estado] ?? ESTADO_STYLES['finalizada']
+                    const eStyle = ESTADO_STYLES[c.estado]     ?? ESTADO_STYLES['finalizada']
                     return (
                       <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 6px', borderRadius: 'var(--radius-sm)' }}>
                         <div style={{ width: 28, height: 28, borderRadius: 8, background: pStyle.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

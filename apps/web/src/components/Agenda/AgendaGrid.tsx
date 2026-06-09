@@ -133,6 +133,7 @@ export default function AgendaGrid({
 
   // ─── Tooltip State ──────────────────────────────────────────
   const [hoveredCita, setHoveredCita] = useState<Cita | null>(null)
+  const [hoveredSinEntrada, setHoveredSinEntrada] = useState<Column | null>(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
 
 
@@ -205,6 +206,13 @@ export default function AgendaGrid({
       </div>
     )
   }
+
+  // Tooltip dynamic positioning calculation (flip) to prevent screen overflow
+  const isNearRightEdge = window.innerWidth - mousePos.x < 320
+  const isNearBottomEdge = window.innerHeight - mousePos.y < 280
+
+  const tooltipLeft = Math.max(10, isNearRightEdge ? mousePos.x - 300 : mousePos.x + 15)
+  const tooltipTop = Math.max(10, isNearBottomEdge ? mousePos.y - 250 : mousePos.y + 15)
 
   return (
     <div className="agenda-grid-shell">
@@ -349,7 +357,12 @@ export default function AgendaGrid({
                               justifyContent: 'center',
                               paddingTop: 6,
                             }}
-                            title="Sin registro de entrada hoy — Haz clic para registrar manualmente"
+                            onMouseEnter={(e) => {
+                              setHoveredSinEntrada(col)
+                              setMousePos({ x: e.clientX, y: e.clientY })
+                            }}
+                            onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
+                            onMouseLeave={() => setHoveredSinEntrada(null)}
                             onClick={(e) => {
                               e.stopPropagation()
                               onSinEntradaClick?.(col.id)
@@ -424,11 +437,14 @@ export default function AgendaGrid({
                             >
                               <div className="cita-block-inner">
                                 {sinEntrada && (
-                                  <div style={{
-                                    position: 'absolute', top: 2, right: 2,
-                                    background: 'rgba(0,0,0,0.2)', borderRadius: 3,
-                                    padding: '1px 3px', display: 'flex', alignItems: 'center', gap: 2
-                                  }}>
+                                  <div 
+                                    title="La profesional asignada no ha registrado su entrada hoy"
+                                    style={{
+                                      position: 'absolute', top: 2, right: 2,
+                                      background: 'rgba(0,0,0,0.2)', borderRadius: 3,
+                                      padding: '1px 3px', display: 'flex', alignItems: 'center', gap: 2
+                                    }}
+                                  >
                                     <Clock size={7} color="#fff" />
                                     <span style={{ fontSize: 7, color: '#fff', fontWeight: 800 }}>S/E</span>
                                   </div>
@@ -469,13 +485,12 @@ export default function AgendaGrid({
         </div>
       </div>
 
-      {/* ── Custom Tooltip ──────────────────────────────────── */}
       {hoveredCita && (
         <div 
           className="agenda-tooltip"
           style={{ 
-            left: mousePos.x + 15, 
-            top: mousePos.y + 15,
+            left: tooltipLeft, 
+            top: tooltipTop,
             visibility: mousePos.x === 0 ? 'hidden' : 'visible'
           }}
         >
@@ -537,6 +552,46 @@ export default function AgendaGrid({
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {hoveredSinEntrada && !hoveredCita && (
+        <div 
+          className="agenda-tooltip"
+          style={{ 
+            left: tooltipLeft, 
+            top: tooltipTop,
+            visibility: mousePos.x === 0 ? 'hidden' : 'visible',
+            borderLeft: '4px solid #dc2626'
+          }}
+        >
+          <div className="tooltip-active">
+            <div className="tooltip-row">
+              <User size={16} />
+              <div className="tooltip-text">
+                <span className="tooltip-main" style={{ textTransform: 'capitalize' }}>
+                  {hoveredSinEntrada.nombre}
+                </span>
+                <span className="tooltip-sub" style={{ color: '#dc2626', fontWeight: 600 }}>
+                  Sin registro de entrada
+                </span>
+              </div>
+            </div>
+            
+            <div className="tooltip-divider" />
+            
+            <div className="tooltip-row">
+              <Clock size={16} color="#dc2626" style={{ marginTop: '1px' }} />
+              <div className="tooltip-text">
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-2)', lineHeight: '1.4' }}>
+                  Esta profesional no ha registrado su entrada el día de hoy.
+                </p>
+                <p style={{ margin: '8px 0 0 0', fontSize: 11, color: 'var(--text-3)', fontStyle: 'italic' }}>
+                  Haz clic en la columna para registrar su entrada manualmente.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

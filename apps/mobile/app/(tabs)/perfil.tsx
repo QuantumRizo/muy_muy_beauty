@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
+import { useEffect, useState, useCallback } from 'react'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import { useRouter } from 'expo-router'
 import { supabase } from '../../lib/supabase'
@@ -8,22 +8,37 @@ export default function PerfilScreen() {
   const router = useRouter()
   const [cliente, setCliente] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState(false)
+
+  const loadData = useCallback(async () => {
+    const clienteId = await SecureStore.getItemAsync('cliente_id')
+    if (clienteId) {
+      const { data, error: err } = await supabase
+        .from('clientes')
+        .select('id, nombre_completo, telefono_cel, email, created_at, num_cliente')
+        .eq('id', clienteId)
+        .single()
+      if (err) {
+        setError(true)
+        Alert.alert('Error', 'No se pudo cargar tu perfil. Verifica tu conexión.')
+      } else {
+        setCliente(data)
+        setError(false)
+      }
+    }
+    setLoading(false)
+  }, [])
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await loadData()
+    setRefreshing(false)
+  }, [loadData])
 
   useEffect(() => {
-    async function load() {
-      const clienteId = await SecureStore.getItemAsync('cliente_id')
-      if (clienteId) {
-        const { data } = await supabase
-          .from('clientes')
-          .select('id, nombre_completo, telefono_cel, email, created_at, num_cliente')
-          .eq('id', clienteId)
-          .single()
-        setCliente(data)
-      }
-      setLoading(false)
-    }
-    load()
-  }, [])
+    loadData()
+  }, [loadData])
 
   async function handleLogout() {
     Alert.alert(
@@ -37,6 +52,7 @@ export default function PerfilScreen() {
           onPress: async () => {
             await SecureStore.deleteItemAsync('cliente_id')
             await SecureStore.deleteItemAsync('cliente_nombre')
+            await SecureStore.deleteItemAsync('cliente_telefono') // 🔧 BUG FIX: Clear all stored keys on logout
             setCliente(null)
           }
         }
@@ -72,7 +88,11 @@ export default function PerfilScreen() {
   )
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#88B04B" />}
+    >
       <Text style={styles.pageTitle}>Mi perfil</Text>
 
       <View style={styles.avatar}>

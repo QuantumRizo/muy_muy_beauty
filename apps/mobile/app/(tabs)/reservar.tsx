@@ -50,33 +50,45 @@ export default function ReservarScreen() {
   // 1. Initial Load
   useEffect(() => {
     async function fetchData() {
-      // Check if logged in
-      const id = await SecureStore.getItemAsync('cliente_id')
-      if (id) {
-        setStoredClienteId(id)
-        const nom = await SecureStore.getItemAsync('cliente_nombre')
-        const tel = await SecureStore.getItemAsync('cliente_telefono')
-        setClientInfo({ nombre: nom || '', telefono: tel || '', email: '' })
-      }
+      try {
+        // Check if logged in
+        const id = await SecureStore.getItemAsync('cliente_id')
+        if (id) {
+          setStoredClienteId(id)
+          const nom = await SecureStore.getItemAsync('cliente_nombre')
+          const tel = await SecureStore.getItemAsync('cliente_telefono')
+          setClientInfo({ nombre: nom || '', telefono: tel || '', email: '', notas_cliente: '' })
+        }
 
-      const [resSuc, resSer] = await Promise.all([
-        supabase.from('sucursales').select('*').order('nombre'),
-        supabase.from('servicios').select('*').eq('activo', true).order('nombre')
-      ])
-      if (resSuc.data) setSucursales(resSuc.data)
-      if (resSer.data) setServicios(resSer.data)
-      setLoading(false)
+        const [resSuc, resSer] = await Promise.all([
+          supabase.from('sucursales').select('*').order('nombre'),
+          supabase.from('servicios').select('*').eq('activo', true).order('nombre')
+        ])
+        if (resSuc.error) throw resSuc.error
+        if (resSer.error) throw resSer.error
+        if (resSuc.data) setSucursales(resSuc.data)
+        if (resSer.data) setServicios(resSer.data)
+      } catch {
+        Alert.alert('Error', 'No se pudo cargar la información. Verifica tu conexión e intenta de nuevo.')
+      } finally {
+        setLoading(false)
+      }
     }
     fetchData()
   }, [])
 
-  // 2. Load Professionals based on Branch
+  // 2. Load Professionals based on Branch — filtered by sucursal_id
   useEffect(() => {
     if (selectedSucursal) {
       supabase.from('perfiles_empleadas')
         .select('*')
         .eq('activo', true)
-        .then(({ data }) => {
+        .eq('sucursal_id', selectedSucursal.id) // 🔧 BUG FIX: Only load employees from selected branch
+        .then(({ data, error }) => {
+          if (error) {
+            Alert.alert('Error', 'No se pudo cargar el personal de esta sucursal.')
+            return
+          }
           if (data) setPerfiles(data)
         })
     }
@@ -91,14 +103,18 @@ export default function ReservarScreen() {
         const totalDuration = selectedServicios.reduce((acc, s) => acc + s.duracion_slots, 0)
 
         try {
+          // 🔧 BUG FIX: Filter citas and bloqueos by sucursal_id to avoid cross-branch conflicts
+          const empleadaIds = perfiles.map(p => p.id)
           const [resCitas, resBloqueos] = await Promise.all([
             supabase.from('citas')
               .select('bloque_inicio, duracion_manual_slots, empleada_id')
               .eq('fecha', dateStr)
+              .eq('sucursal_id', selectedSucursal.id)
               .neq('estado', 'Cancelada'),
             supabase.from('bloqueos_agenda')
               .select('hora_inicio, hora_fin, empleada_id')
               .eq('fecha', dateStr)
+              .in('empleada_id', empleadaIds)
           ])
 
           const citas = resCitas.data || []
@@ -134,8 +150,8 @@ export default function ReservarScreen() {
             }
           })
           setAvailableSlots(Array.from(slotsFound).sort())
-        } catch (err) {
-          console.error(err)
+        } catch {
+          Alert.alert('Error', 'No se pudo verificar la disponibilidad. Intenta de nuevo.')
         } finally {
           setFetchingSlots(false)
         }
@@ -144,12 +160,12 @@ export default function ReservarScreen() {
     }
   }, [selectedDate, selectedSucursal, selectedServicios, perfiles])
 
-  // 4. Check Existing Client
+  // 4. Check Existing Client (via RPC — no expone datos directamente)
   useEffect(() => {
     if (clientInfo.telefono.length === 10 && !storedClienteId) {
-      supabase.from('clientes').select('nombre_completo, email').eq('telefono_cel', clientInfo.telefono).maybeSingle()
+      supabase.rpc('verificar_cliente_por_telefono', { p_telefono: clientInfo.telefono })
         .then(({ data }) => {
-          if (data) {
+          if (data?.existe) {
             setClientInfo(prev => ({ ...prev, nombre: data.nombre_completo, email: data.email || prev.email }))
             setIsExistingClient(true)
           } else {
@@ -184,72 +200,32 @@ export default function ReservarScreen() {
 
     setSubmitting(true)
     try {
-      let clientId = storedClienteId
-      if (!clientId) {
-        const { data: existing } = await supabase.from('clientes').select('id').eq('telefono_cel', clientInfo.telefono).maybeSingle()
-        if (existing) {
-          clientId = existing.id
-        } else {
-          const { data: nuevo, error: e1 } = await supabase.from('clientes').insert({
-            nombre_completo: clientInfo.nombre,
-            telefono_cel: clientInfo.telefono,
-            email: clientInfo.email,
-            sucursal_id: selectedSucursal.id,
-            datos_extra: {}
-          }).select().single()
-          if (e1) throw e1
-          clientId = nuevo.id
-        }
-      }
+      // Si el usuario ya está identificado en SecureStore, usamos su teléfono almacenado.
+      // De lo contrario, el flujo pasa por la RPC que busca/crea el cliente server-side.
+      const telefonoFinal = storedClienteId
+        ? (await SecureStore.getItemAsync('cliente_telefono')) || clientInfo.telefono
+        : clientInfo.telefono
 
-      const dateStr = format(selectedDate, 'yyyy-MM-dd')
-      const totalDuration = selectedServicios.reduce((acc, s) => acc + s.duracion_slots, 0)
-      const startTime = selectedTime
-      const startIdx = parseInt(startTime.split(':')[0]) * 4 + parseInt(startTime.split(':')[1]) / 15
-      let targetEmpleadaId = ''
+      // ── Todo el flujo de reserva corre server-side via RPC SECURITY DEFINER.
+      // ── El rol anon nunca toca directamente las tablas clientes/citas/cita_servicios.
+      const { data, error } = await supabase.rpc('crear_reserva_publica', {
+        p_telefono:      telefonoFinal,
+        p_nombre:        clientInfo.nombre,
+        p_email:         clientInfo.email || '',
+        p_sucursal_id:   selectedSucursal.id,
+        p_fecha:         format(selectedDate, 'yyyy-MM-dd'),
+        p_bloque_inicio: selectedTime,
+        p_servicio_ids:  selectedServicios.map(s => s.id),
+        p_notas:         clientInfo.notas_cliente || null
+      })
 
-      const { data: citas } = await supabase.from('citas').select('*').eq('fecha', dateStr).neq('estado', 'Cancelada')
-      const { data: bloqueos } = await supabase.from('bloqueos_agenda').select('*').eq('fecha', dateStr)
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
 
-      for (const emp of perfiles) {
-        const occupied = new Array(96).fill(false)
-        citas?.filter(c => c.empleada_id === emp.id).forEach(c => {
-          const s = Math.floor(parseInt(c.bloque_inicio.split(':')[0]) * 4 + parseInt(c.bloque_inicio.split(':')[1]) / 15)
-          const d = c.duracion_manual_slots || 4
-          for (let i = 0; i < d; i++) if (s + i < 96) occupied[s + i] = true
-        })
-        bloqueos?.filter(b => b.empleada_id === emp.id).forEach(b => {
-          const s = Math.floor(parseInt(b.hora_inicio.split(':')[0]) * 4 + parseInt(b.hora_inicio.split(':')[1]) / 15)
-          const e = Math.floor(parseInt(b.hora_fin.split(':')[0]) * 4 + parseInt(b.hora_fin.split(':')[1]) / 15)
-          for (let i = s; i < e; i++) if (i < 96) occupied[i] = true
-        })
-        let fits = true
-        for (let i = 0; i < totalDuration; i++) {
-          if (startIdx + i >= 96 || occupied[startIdx + i]) { fits = false; break; }
-        }
-        if (fits) { targetEmpleadaId = emp.id; break; }
-      }
-      if (!targetEmpleadaId) targetEmpleadaId = perfiles[0]?.id
-
-      const { data: cita, error: e2 } = await supabase.from('citas').insert({
-        cliente_id: clientId,
-        sucursal_id: selectedSucursal.id,
-        empleada_id: targetEmpleadaId,
-        fecha: dateStr,
-        bloque_inicio: startTime,
-        estado: 'Programada',
-        duracion_manual_slots: totalDuration,
-        notas_cliente: clientInfo.notas_cliente || null
-      }).select().single()
-
-      if (e2) throw e2
-      if (cita) {
-        await supabase.from('cita_servicios').insert(selectedServicios.map(s => ({ cita_id: cita.id, servicio_id: s.id })))
-      }
       setStep('confirmado')
-    } catch (err: any) {
-      console.error(err)
-      Alert.alert('Error', 'Hubo un error al agendar la cita. Intenta de nuevo.')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Hubo un error al agendar la cita. Intenta de nuevo.'
+      Alert.alert('Error', message)
     } finally {
       setSubmitting(false)
     }
