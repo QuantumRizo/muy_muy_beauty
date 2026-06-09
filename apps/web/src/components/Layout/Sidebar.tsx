@@ -66,6 +66,10 @@ export default function Sidebar() {
   // Derive active section from the current URL path
   const currentPath = location.pathname
 
+  const displaySucursales = profile?.rol === 'empleado' && profile?.sucursal_id
+    ? sucursales.filter(s => s.id === profile.sucursal_id)
+    : sucursales
+
   return (
     <nav className="sidebar">
       <div style={{ padding: '24px 20px 10px', textAlign: 'center' }}>
@@ -85,6 +89,7 @@ export default function Sidebar() {
         <select
           value={selectedSucursalId}
           onChange={(e) => setSelectedSucursalId(e.target.value)}
+          disabled={displaySucursales.length <= 1}
           style={{
             width: '100%',
             background: 'var(--surface-2)',
@@ -95,13 +100,14 @@ export default function Sidebar() {
             fontWeight: 600,
             color: 'var(--text-1)',
             outline: 'none',
-            cursor: 'pointer',
+            cursor: displaySucursales.length <= 1 ? 'default' : 'pointer',
+            opacity: displaySucursales.length <= 1 ? 0.7 : 1,
             transition: 'all 0.2s'
           }}
           onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
           onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
         >
-          {sucursales.map(s => (
+          {displaySucursales.map(s => (
             <option key={s.id} value={s.id}>{s.nombre}</option>
           ))}
         </select>
