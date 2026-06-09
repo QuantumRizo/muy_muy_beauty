@@ -23,6 +23,26 @@ const ACCENT = '#88B04B'
 
 const sanitizePhone = (val: string) => val.replace(/\D/g, '').slice(0, 10)
 
+function getSucursalHours(sucursal: any, date: Date): { start: number; end: number } {
+  const dow = date.getDay() // 0=Dom, 6=Sáb
+  const hpd = sucursal?.horarios_por_dia
+  if (hpd && hpd[dow] && !hpd[dow].cerrado) {
+    return {
+      start: parseInt(hpd[dow].apertura.split(':')[0]),
+      end:   parseInt(hpd[dow].cierre.split(':')[0]),
+    }
+  }
+  const toHour = (val: any): number => {
+    if (typeof val === 'string') return parseInt(val.split(':')[0])
+    if (typeof val === 'number') return Math.floor(val / 3_600_000_000_000)
+    return 10
+  }
+  const esFinde = dow === 0 || dow === 6
+  const apertura = esFinde ? (sucursal?.hora_apertura_finde ?? sucursal?.hora_apertura) : sucursal?.hora_apertura
+  const cierre   = esFinde ? (sucursal?.hora_cierre_finde   ?? sucursal?.hora_cierre)   : sucursal?.hora_cierre
+  return { start: toHour(apertura) || 10, end: toHour(cierre) || 20 }
+}
+
 type Step = 'sucursal' | 'servicio' | 'fecha' | 'cliente' | 'confirmado'
 
 export default function ReservarScreen() {
@@ -35,6 +55,7 @@ export default function ReservarScreen() {
 
   const [selectedSucursal, setSelectedSucursal] = useState<any | null>(null)
   const [selectedServicios, setSelectedServicios] = useState<any[]>([])
+  const [selectedProfesional, setSelectedProfesional] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
@@ -102,27 +123,27 @@ export default function ReservarScreen() {
         setFetchingSlots(true)
         const dateStr = fechaMX(selectedDate!)
         const totalDuration = selectedServicios.reduce((acc, s) => acc + s.duracion_slots, 0)
+        
+        const { start: START_HOUR, end: END_HOUR } = getSucursalHours(selectedSucursal, selectedDate!)
 
         try {
-          // 🔧 BUG FIX: Filter citas and bloqueos by sucursal_id to avoid cross-branch conflicts
-          const empleadaIds = perfiles.map(p => p.id)
           const [resCitas, resBloqueos] = await Promise.all([
             supabase.from('citas')
               .select('bloque_inicio, duracion_manual_slots, empleada_id')
               .eq('fecha', dateStr)
-              .eq('sucursal_id', selectedSucursal.id)
               .neq('estado', 'Cancelada'),
             supabase.from('bloqueos_agenda')
               .select('hora_inicio, hora_fin, empleada_id')
               .eq('fecha', dateStr)
-              .in('empleada_id', empleadaIds)
           ])
 
           const citas = resCitas.data || []
           const bloqueos = resBloqueos.data || []
           const slotsFound = new Set<string>()
 
-          perfiles.forEach(emp => {
+          const perfilesToCheck = selectedProfesional ? perfiles.filter(p => p.id === selectedProfesional) : perfiles
+
+          perfilesToCheck.forEach(emp => {
             const occupied = new Array(96).fill(false)
             citas.filter(c => c.empleada_id === emp.id).forEach(c => {
               const start = Math.floor(parseInt(c.bloque_inicio.split(':')[0]) * 4 + parseInt(c.bloque_inicio.split(':')[1]) / 15)
@@ -159,7 +180,7 @@ export default function ReservarScreen() {
       }
       checkAvailability()
     }
-  }, [selectedDate, selectedSucursal, selectedServicios, perfiles])
+  }, [selectedDate, selectedSucursal, selectedServicios, perfiles, selectedProfesional])
 
   // 4. Check Existing Client (via RPC — no expone datos directamente)
   useEffect(() => {
@@ -217,7 +238,8 @@ export default function ReservarScreen() {
         p_fecha:         fechaMX(selectedDate),
         p_bloque_inicio: selectedTime,
         p_servicio_ids:  selectedServicios.map(s => s.id),
-        p_notas:         clientInfo.notas_cliente || null
+        p_notas:         clientInfo.notas_cliente || null,
+        p_empleada_id:   selectedProfesional || null
       })
 
       if (error) throw error
@@ -363,6 +385,28 @@ export default function ReservarScreen() {
             <View style={styles.stepContainer}>
               <Text style={styles.title}>¿Cuándo vienes?</Text>
               <Text style={styles.subtitle}>Total: {totalTime} min en MUYMUY {selectedSucursal?.nombre}</Text>
+
+              {/* Profesional de preferencia */}
+              <View style={{ marginBottom: 24 }}>
+                <Text style={styles.timeTitle}>Profesional de preferencia (Opcional)</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => { setSelectedProfesional(null); setSelectedDate(null); setSelectedTime(null); }}
+                    style={[styles.profBtn, !selectedProfesional && styles.profBtnActive]}
+                  >
+                    <Text style={[styles.profBtnText, !selectedProfesional && styles.profBtnTextActive]}>Cualquiera</Text>
+                  </TouchableOpacity>
+                  {perfiles.map(p => (
+                    <TouchableOpacity
+                      key={p.id}
+                      onPress={() => { setSelectedProfesional(p.id); setSelectedDate(null); setSelectedTime(null); }}
+                      style={[styles.profBtn, selectedProfesional === p.id && styles.profBtnActive]}
+                    >
+                      <Text style={[styles.profBtnText, selectedProfesional === p.id && styles.profBtnTextActive]}>{p.nombre.split(' ')[0]}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
 
               {/* Calendario Custom */}
               <View style={styles.calendarCard}>
@@ -668,6 +712,12 @@ const styles = StyleSheet.create({
   calDayBtnContainer: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   calDayBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   calTodayDot: { position: 'absolute', bottom: 4, width: 4, height: 4, borderRadius: 2, backgroundColor: ACCENT },
+
+  /* Profesional Select */
+  profBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: '#efefef', marginRight: 8, backgroundColor: '#fff' },
+  profBtnActive: { borderColor: ACCENT, backgroundColor: ACCENT },
+  profBtnText: { fontSize: 13, color: '#6e6e73', fontWeight: '600' },
+  profBtnTextActive: { color: '#fff' },
 
   /* Times */
   timeSection: { marginTop: 24 },
