@@ -4,6 +4,7 @@
     "slug": "muymuy-beauty",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
     "scheme": "muymuy",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,12 +14,21 @@
       "buildNumber": "1"
     },
     "android": {
-      "package": "com.muymuy.beauty"
+      "package": "com.muymuy.beauty",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
+    },
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
     },
     "plugins": [
       [

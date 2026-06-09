@@ -580,10 +580,22 @@ export default function ReservarScreen() {
                   </View>
                 </>
               ) : (
-                <View style={styles.formCard}>
-                  <Text style={{ fontSize: 16, fontWeight: '700', color: ACCENT, marginBottom: 4 }}>Hola, {clientInfo.nombre}</Text>
-                  <Text style={{ fontSize: 14, color: '#6e6e73' }}>Ya tenemos tus datos guardados.</Text>
-                </View>
+                <>
+                  <View style={styles.formCard}>
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: ACCENT, marginBottom: 4 }}>Hola, {clientInfo.nombre}</Text>
+                    <Text style={{ fontSize: 14, color: '#6e6e73' }}>Ya tenemos tus datos guardados.</Text>
+                  </View>
+                  <View style={styles.formCard}>
+                    <Text style={styles.inputLabel}>¿Deseas agregar una nota para esta cita? (Opcional)</Text>
+                    <TextInput
+                      style={[styles.input, { height: 80, textAlignVertical: 'top', paddingTop: 8 }]}
+                      placeholder="Ej: Alergias, detalles del servicio..."
+                      multiline
+                      value={clientInfo.notas_cliente}
+                      onChangeText={t => setClientInfo(prev => ({ ...prev, notas_cliente: t }))}
+                    />
+                  </View>
+                </>
               )}
 
               {/* Summary */}

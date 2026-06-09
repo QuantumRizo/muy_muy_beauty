@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, TextInput } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import { useRouter } from 'expo-router'
 import { supabase } from '../../lib/supabase'
@@ -10,6 +10,10 @@ export default function PerfilScreen() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editNombre, setEditNombre] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [saving, setSaving] = useState(false)
 
   const loadData = useCallback(async () => {
     const clienteId = await SecureStore.getItemAsync('cliente_id')
@@ -20,6 +24,8 @@ export default function PerfilScreen() {
         Alert.alert('Error', 'No se pudo cargar tu perfil. Verifica tu conexión.')
       } else {
         setCliente(data)
+        setEditNombre(data.nombre_completo || '')
+        setEditEmail(data.email || '')
         setError(false)
       }
     }
@@ -35,6 +41,30 @@ export default function PerfilScreen() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  async function handleSave() {
+    if (!editNombre.trim()) {
+      Alert.alert('Error', 'El nombre no puede estar vacío')
+      return
+    }
+    setSaving(true)
+    try {
+      const { data, error } = await supabase.rpc('actualizar_perfil_cliente', {
+        p_cliente_id: cliente.id,
+        p_nombre_completo: editNombre.trim(),
+        p_email: editEmail.trim()
+      })
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+      
+      setIsEditing(false)
+      loadData()
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'No se pudo actualizar el perfil')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function handleLogout() {
     Alert.alert(
@@ -89,23 +119,69 @@ export default function PerfilScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#88B04B" />}
     >
-      <Text style={styles.pageTitle}>Mi perfil</Text>
-
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>
-          {cliente.nombre_completo?.charAt(0).toUpperCase()}
-        </Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 24 }}>
+        <Text style={[styles.pageTitle, { marginBottom: 0 }]}>Mi perfil</Text>
+        {isEditing ? (
+          <TouchableOpacity onPress={handleSave} disabled={saving}>
+            {saving ? <ActivityIndicator color="#88B04B" /> : <Text style={styles.editBtn}>Guardar</Text>}
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={() => setIsEditing(true)}>
+            <Text style={styles.editBtn}>Editar</Text>
+          </TouchableOpacity>
+        )}
       </View>
-      <Text style={[styles.nombre, { marginBottom: 28 }]}>{cliente.nombre_completo}</Text>
 
-      <View style={styles.card}>
-        <InfoRow label="Telefono" value={cliente.telefono_cel ?? '—'} />
-        <InfoRow label="Correo" value={cliente.email ?? 'No registrado'} />
-        <InfoRow
-          label="Miembro desde"
-          value={new Date(cliente.created_at).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}
-        />
-      </View>
+      {isEditing ? (
+        <View style={styles.editCard}>
+          <Text style={styles.editLabel}>Nombre completo</Text>
+          <TextInput
+            style={styles.editInput}
+            value={editNombre}
+            onChangeText={setEditNombre}
+            placeholder="Tu nombre"
+          />
+          <Text style={styles.editLabel}>Correo electrónico (opcional)</Text>
+          <TextInput
+            style={styles.editInput}
+            value={editEmail}
+            onChangeText={setEditEmail}
+            placeholder="tu@email.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <Text style={styles.editHint}>Por seguridad, tu número de teléfono no se puede cambiar aquí ya que es tu método de acceso. Si cambiaste de número, repórtalo en recepción en tu próxima visita.</Text>
+          
+          <TouchableOpacity style={styles.cancelBtn} onPress={() => {
+            setIsEditing(false)
+            setEditNombre(cliente.nombre_completo || '')
+            setEditEmail(cliente.email || '')
+          }}>
+            <Text style={styles.cancelText}>Cancelar</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {cliente.nombre_completo?.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <Text style={[styles.nombre, { marginBottom: 28 }]}>{cliente.nombre_completo}</Text>
+
+          <View style={styles.card}>
+            <InfoRow label="Telefono" value={cliente.telefono_cel ?? '—'} />
+            <InfoRow label="Correo" value={cliente.email ?? 'No registrado'} />
+            <InfoRow
+              label="Miembro desde"
+              value={(() => {
+                const d = new Date(cliente.created_at)
+                return `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+              })()}
+            />
+          </View>
+        </>
+      )}
 
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <Text style={styles.logoutText}>Cerrar sesion</Text>
@@ -153,6 +229,13 @@ const styles = StyleSheet.create({
     padding: 4, width: '100%',
     borderWidth: 1, borderColor: '#f0f0f0', marginBottom: 24,
   },
+  editBtn: { fontSize: 16, fontWeight: '700', color: '#88B04B' },
+  editCard: { width: '100%', marginBottom: 24 },
+  editLabel: { fontSize: 13, fontWeight: '600', color: '#1d1d1f', marginBottom: 8, marginTop: 12 },
+  editInput: { borderWidth: 1.5, borderColor: '#e5e7eb', borderRadius: 14, padding: 14, fontSize: 16, backgroundColor: '#fafafa', color: '#1d1d1f' },
+  editHint: { fontSize: 12, color: '#b0b0b0', marginTop: 16, lineHeight: 18, textAlign: 'center' },
+  cancelBtn: { marginTop: 24, alignItems: 'center' },
+  cancelText: { fontSize: 15, color: '#ff3b30', fontWeight: '600' },
   logoutBtn: {
     paddingVertical: 14, paddingHorizontal: 32,
     borderRadius: 14, borderWidth: 1.5, borderColor: '#ff3b30',

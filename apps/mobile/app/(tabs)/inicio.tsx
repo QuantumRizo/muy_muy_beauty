@@ -2,9 +2,9 @@ import { useEffect, useState, useCallback } from 'react'
 import { hoyMX } from '../../lib/dateUtils'
 import {
   View, Text, StyleSheet, ScrollView,
-  ActivityIndicator, TouchableOpacity, Image, Dimensions, RefreshControl
+  ActivityIndicator, TouchableOpacity, Image, Dimensions, RefreshControl, Alert
 } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useRouter, useFocusEffect } from 'expo-router'
 import * as SecureStore from 'expo-secure-store'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
@@ -110,9 +110,77 @@ export default function InicioScreen() {
     setRefreshing(false)
   }, [loadData])
 
-  useEffect(() => {
-    loadData()
-  }, [loadData])
+  useFocusEffect(
+    useCallback(() => {
+      loadData()
+    }, [loadData])
+  )
+
+  const confirmCancel = (citaId: string) => {
+    Alert.alert(
+      'Cancelar Cita',
+      '¿Estás segura de que deseas cancelar esta cita?',
+      [
+        { text: 'No, mantener', style: 'cancel' },
+        {
+          text: 'Sí, cancelar',
+          style: 'destructive',
+          onPress: async () => {
+            const clienteIdLocal = await SecureStore.getItemAsync('cliente_id')
+            if (!clienteIdLocal) return
+            
+            setLoading(true)
+            try {
+              const { data, error } = await supabase.rpc('cancelar_cita_cliente', {
+                p_cita_id: citaId,
+                p_cliente_id: clienteIdLocal
+              })
+              
+              if (error) throw error
+              if (data?.error) throw new Error(data?.error)
+              
+              Alert.alert('Cita cancelada', 'Tu cita ha sido cancelada exitosamente.')
+              loadData()
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'No se pudo cancelar la cita')
+              setLoading(false)
+            }
+          }
+        }
+      ]
+    )
+  }
+
+  const handlePressCita = (cita: any) => {
+    const serviciosStr = cita.servicios?.map((s: any) => s.servicio?.nombre).filter(Boolean).join('\n• ') || 'Sin servicios registrados'
+    const notasStr = cita.notas_cliente ? `\n\nNotas que dejaste:\n"${cita.notas_cliente}"` : ''
+    const fechaDate = new Date(cita.fecha + 'T12:00:00')
+    const fechaStr = fechaDate.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    const sucursalStr = cita.sucursal?.nombre || 'MUYMUY'
+    
+    const detalleMsg = `Servicios:\n• ${serviciosStr}${notasStr}\n\nCuándo: ${fechaStr} a las ${cita.bloque_inicio}\nDónde: ${sucursalStr}\n\n¿Qué deseas hacer con esta cita?`
+
+    if (cita.estado === 'Programada') {
+      Alert.alert(
+        'Detalles de tu cita',
+        detalleMsg,
+        [
+          { text: 'Cancelar Cita', style: 'destructive', onPress: () => confirmCancel(cita.id) },
+          { text: 'Reagendar', onPress: () => Alert.alert('Reagendar', 'Para reagendar, por favor cancela esta cita y elige un nuevo horario en la pestaña Reservar.') },
+          { text: 'Cerrar', style: 'cancel' }
+        ]
+      )
+    } else {
+      Alert.alert(
+        'Detalles de la cita',
+        `Esta cita está ${cita.estado}.\n\nServicios:\n• ${serviciosStr}\n\nPara volver a agendar, dirígete a la pestaña de Reservar.`,
+        [
+          { text: 'Ir a Reservar', onPress: () => router.push('/(tabs)/reservar') },
+          { text: 'Cerrar', style: 'cancel' }
+        ]
+      )
+    }
+  }
 
   return (
     <View style={styles.outerContainer}>
@@ -165,7 +233,7 @@ export default function InicioScreen() {
               </View>
             ) : (
               citas.map((cita) => (
-                <View key={cita.id} style={styles.citaCard}>
+                <TouchableOpacity key={cita.id} style={styles.citaCard} onPress={() => handlePressCita(cita)} activeOpacity={0.7}>
                   <View style={styles.citaDateBadge}>
                     <Text style={styles.citaDay}>{new Date(cita.fecha + 'T12:00:00').getDate()}</Text>
                     <Text style={styles.citaMes}>
@@ -179,7 +247,7 @@ export default function InicioScreen() {
                       {cita.servicios?.map((s: any) => s.servicio?.nombre).filter(Boolean).join(', ') || 'Servicio'}
                     </Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))
             )}
           </>
