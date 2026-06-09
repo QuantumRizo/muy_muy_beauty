@@ -28,13 +28,11 @@ export default function IdentificacionScreen() {
     }
     setLoading(true)
     try {
-      const { data: existing } = await supabase
-        .from('clientes')
-        .select('id, nombre_completo')
-        .eq('telefono_cel', tel)
-        .maybeSingle()
+      const { data: existing, error } = await supabase.rpc('verificar_cliente_por_telefono', { p_telefono: tel })
 
-      if (existing) {
+      if (error) throw error
+
+      if (existing?.existe && existing.id) {
         await SecureStore.setItemAsync('cliente_id', existing.id)
         await SecureStore.setItemAsync('cliente_nombre', existing.nombre_completo)
         await SecureStore.setItemAsync('cliente_telefono', tel) // 🔧 BUG FIX: Persist phone so reservar.tsx can read it
@@ -132,7 +130,7 @@ export default function IdentificacionScreen() {
           </>
         ) : (
           <>
-            <Text style={styles.title}>Nueva clienta</Text>
+            <Text style={styles.title}>Nuevo cliente</Text>
             <Text style={styles.subtitle}>
               Es tu primera vez. Solo necesitamos unos datos basicos.
             </Text>
