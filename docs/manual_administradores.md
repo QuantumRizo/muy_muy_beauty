@@ -136,11 +136,35 @@ Los umbrales de ventas y porcentajes cargados en el sistema son los siguientes:
 | **$78,000** o más                  | 8.5%                  | 6.5%                  |
 | **$84,000** o más                  | 9.0%                  | 7.0%                  |
 
-# 3. Administración y Personal
+# 3. Panel de Administración (Configuración)
 
-En la sección de **Administración**, puedes monitorear y gestionar los perfiles de tu staff y su calendario de inasistencias.
+Desde el panel de **Administración** (ubicado en el menú de Configuración), puedes auditar la infraestructura de tus sedes, descargar documentos internos y actualizar tus claves. 
 
-![Gestión de Staff](img/administracion_staff.png)
+Este panel se compone de tres pestañas principales:
+
+## 3.1 Sucursales y Staff
+Muestra la lista de sucursales activas y el personal asignado a cada una de ellas.
+
+![Gestión de Staff y Sucursales](img/administracion_staff.png)
+
+### Edición de Sucursales (Configuración de Sedes):
+Al hacer clic en el botón de configuración de una sucursal, podrás gestionar y modificar la información operativa de la misma:
+- **Cabinas Disponibles:** Administra el número total de **cabinas libres/disponibles** de la sucursal (`num_cabinas`), lo cual controla el límite de citas simultáneas que requieren cabina.
+- **Horarios Comerciales:** Configura de forma detallada la hora de apertura y cierre para cada día de la semana (Lunes a Domingo), definiendo horarios diferenciados para fines de semana o marcando días como cerrados.
+- **Datos Fiscales e Información de Contacto:** Actualiza la dirección, el teléfono de la sede y el RFC de facturación.
+
+---
+
+## 3.2 Seguridad
+Esta pestaña está destinada para la gestión del **Acceso Personal**.
+- Permite actualizar de forma segura tu contraseña actual de acceso al sistema (mínimo 6 caracteres).
+
+---
+
+## 3.3 Documentos (Repositorio Digital)
+Un archivero en la nube exclusivo para la administración del negocio.
+- **Gestión de Archivos:** Permite subir (`Upload`) y eliminar (`Delete`) archivos en formato PDF, imágenes o documentos legales (como contratos de personal, licencias comerciales o manuales de procedimientos).
+- **Acceso:** Cualquier administrador de cualquier sucursal puede descargar (`Download`) estos archivos de manera instantánea.
 
 > [!IMPORTANT]
 > **Políticas de Alta de Perfiles y Modificación de Comisiones:**
@@ -161,7 +185,16 @@ Para inhabilitar horarios del staff de forma masiva (por ejemplo, para capacitac
 
 ---
 
-# 5. Inventario
+# 5. Vacaciones y Ausencias (Operaciones)
+
+El calendario de inasistencias **no se encuentra en Configuración**, sino en la pestaña de **Vacaciones** (bajo la categoría de *Operaciones* del menú lateral).
+
+- **Gestión de Fechas Libres:** Registra de forma anticipada los días de vacaciones aprobados, ausencias justificadas o incapacidades médicas del personal.
+- **Bloqueo Automático:** Al registrar una ausencia en esta sección, el sistema bloquea inmediatamente la agenda de esa colaboradora para las fechas seleccionadas, impidiendo que tanto clientes desde el portal de reservas como empleadas desde la recepción puedan agendar citas en sus días de descanso.
+
+---
+
+# 6. Inventario
 
 Llevar el control de tus insumos y productos de venta directa.
 
