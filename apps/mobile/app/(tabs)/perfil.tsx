@@ -75,7 +75,7 @@ export default function PerfilScreen() {
 
         <TouchableOpacity
           style={styles.loginBtn}
-          onPress={() => router.push('/(auth)/identificacion')}
+          onPress={() => router.push('/(auth)/identificacion?returnTo=perfil')}
         >
           <Text style={styles.loginBtnText}>Identificarme con mi telefono</Text>
         </TouchableOpacity>

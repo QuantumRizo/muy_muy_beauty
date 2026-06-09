@@ -13,7 +13,7 @@ export default function CitasScreen() {
 
   const loadData = useCallback(async () => {
     const clienteId = await SecureStore.getItemAsync('cliente_id')
-    if (!clienteId) { router.replace('/(auth)/identificacion'); return }
+    if (!clienteId) { router.replace('/(auth)/identificacion?returnTo=citas'); return }
 
     const { data, error: err } = await supabase
       .from('citas')

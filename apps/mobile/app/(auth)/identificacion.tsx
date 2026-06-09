@@ -4,7 +4,7 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform,
   ActivityIndicator, Alert
 } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useRouter, useLocalSearchParams } from 'expo-router'
 import * as SecureStore from 'expo-secure-store'
 import { supabase } from '../../lib/supabase'
 
@@ -12,6 +12,15 @@ type Paso = 'telefono' | 'registro'
 
 export default function IdentificacionScreen() {
   const router = useRouter()
+  const params = useLocalSearchParams()
+  const returnTo = params.returnTo as string
+
+  function navigateBack() {
+    if (returnTo === 'citas') router.replace('/(tabs)/citas')
+    else if (returnTo === 'perfil') router.replace('/(tabs)/perfil')
+    else router.replace('/(tabs)/inicio')
+  }
+
   const [paso, setPaso] = useState<Paso>('telefono')
   const [loading, setLoading] = useState(false)
   const [telefono, setTelefono] = useState('')
@@ -36,7 +45,7 @@ export default function IdentificacionScreen() {
         await SecureStore.setItemAsync('cliente_id', existing.id)
         await SecureStore.setItemAsync('cliente_nombre', existing.nombre_completo)
         await SecureStore.setItemAsync('cliente_telefono', tel) // 🔧 BUG FIX: Persist phone so reservar.tsx can read it
-        router.replace('/(tabs)/inicio')
+        navigateBack()
       } else {
         setPaso('registro')
       }
@@ -70,7 +79,7 @@ export default function IdentificacionScreen() {
       await SecureStore.setItemAsync('cliente_id', nuevo.id)
       await SecureStore.setItemAsync('cliente_nombre', nuevo.nombre_completo)
       await SecureStore.setItemAsync('cliente_telefono', telefono.trim()) // 🔧 BUG FIX: Persist phone so reservar.tsx can read it
-      router.replace('/(tabs)/inicio')
+      navigateBack()
     } catch {
       Alert.alert('Error', 'No pudimos crear tu perfil. Intentalo de nuevo.')
     } finally {

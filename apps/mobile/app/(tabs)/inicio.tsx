@@ -131,10 +131,9 @@ export default function InicioScreen() {
           />
         </View>
 
-        {/* Saludo personalizado si esta identificada */}
         {nombre && (
           <View style={styles.greetingBanner}>
-            <Text style={styles.greetingText}>Bienvenida, {nombre}</Text>
+            <Text style={styles.greetingText}>Hola, {nombre}</Text>
           </View>
         )}
 
