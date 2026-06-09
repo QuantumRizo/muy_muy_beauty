@@ -353,8 +353,19 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
         </div>
 
         {pagos.map(p => (
-          <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--accent-light)', color: 'var(--accent)', borderRadius: 10, marginTop: 8, fontSize: 13, fontWeight: 600 }}>
-            <span>{p.metodo_pago}</span><span>${p.importe.toFixed(2)}</span>
+          <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--accent-light)', color: 'var(--accent)', borderRadius: 10, marginTop: 8, fontSize: 13, fontWeight: 600 }}>
+            <span>{p.metodo_pago}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span>${p.importe.toFixed(2)}</span>
+              <button 
+                className="btn-icon danger" 
+                style={{ border: 'none', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
+                onClick={() => setPagos(prev => prev.filter(item => item.id !== p.id))}
+                title="Eliminar pago"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
           </div>
         ))}
       </div>
