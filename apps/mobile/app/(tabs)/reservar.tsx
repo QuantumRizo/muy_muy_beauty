@@ -14,6 +14,8 @@ import {
 } from 'date-fns'
 import { es } from 'date-fns/locale'
 
+import { useCatalogStore } from '../../lib/useCatalogStore'
+
 const { width } = Dimensions.get('window')
 
 const START_HOUR = 9
@@ -47,9 +49,9 @@ type Step = 'sucursal' | 'servicio' | 'profesional' | 'fecha' | 'cliente' | 'con
 export default function ReservarScreen() {
   const router = useRouter()
   
+  const { sucursales, servicios, categorias, fetchCatalog } = useCatalogStore()
+
   const [step, setStep] = useState<Step>('sucursal')
-  const [sucursales, setSucursales] = useState<any[]>([])
-  const [servicios, setServicios] = useState<any[]>([])
   const [perfiles, setPerfiles] = useState<any[]>([])
 
   const [selectedSucursal, setSelectedSucursal] = useState<any | null>(null)
@@ -72,23 +74,28 @@ export default function ReservarScreen() {
   useEffect(() => {
     async function fetchData() {
       try {
+        await fetchCatalog()
+
         // Check if logged in
-        const id = await SecureStore.getItemAsync('cliente_id')
-        if (id) {
-          setStoredClienteId(id)
-          const nom = await SecureStore.getItemAsync('cliente_nombre')
-          const tel = await SecureStore.getItemAsync('cliente_telefono')
-          setClientInfo({ nombre: nom || '', telefono: tel || '', email: '', notas_cliente: '' })
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const { data: cliente } = await supabase
+            .from('clientes')
+            .select('id, nombre_completo, telefono_cel, email')
+            .eq('auth_user_id', session.user.id)
+            .single()
+            
+          if (cliente) {
+            setStoredClienteId(cliente.id)
+            setClientInfo({
+              nombre: cliente.nombre_completo || '',
+              telefono: cliente.telefono_cel || '',
+              email: cliente.email || '',
+              notas_cliente: ''
+            })
+          }
         }
 
-        const [resSuc, resSer] = await Promise.all([
-          supabase.from('sucursales').select('*').order('nombre'),
-          supabase.from('servicios').select('*').eq('activo', true).order('nombre')
-        ])
-        if (resSuc.error) throw resSuc.error
-        if (resSer.error) throw resSer.error
-        if (resSuc.data) setSucursales(resSuc.data)
-        if (resSer.data) setServicios(resSer.data)
       } catch {
         Alert.alert('Error', 'No se pudo cargar la información. Verifica tu conexión e intenta de nuevo.')
       } finally {
@@ -222,11 +229,9 @@ export default function ReservarScreen() {
 
     setSubmitting(true)
     try {
-      // Si el usuario ya está identificado en SecureStore, usamos su teléfono almacenado.
+      // Si el usuario ya está identificado en la sesión, usamos su teléfono almacenado en clientInfo.
       // De lo contrario, el flujo pasa por la RPC que busca/crea el cliente server-side.
-      const telefonoFinal = storedClienteId
-        ? (await SecureStore.getItemAsync('cliente_telefono')) || clientInfo.telefono
-        : clientInfo.telefono
+      const telefonoFinal = clientInfo.telefono
 
       // ── Todo el flujo de reserva corre server-side via RPC SECURITY DEFINER.
       // ── El rol anon nunca toca directamente las tablas clientes/citas/cita_servicios.
@@ -281,8 +286,11 @@ export default function ReservarScreen() {
   const eDate = endOfWeek(mEnd)
   const calendarDays = eachDayOfInterval({ start: sDate, end: eDate })
 
-  // Groups families
-  const familias = [...new Set(servicios.map(s => s.familia))]
+  // Groups families using the new categorias from the store
+  // Only include categories that actually have active services
+  const activeCategorias = categorias.filter(cat => 
+    servicios.some(s => s.categoria_id === cat.id)
+  )
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -353,10 +361,10 @@ export default function ReservarScreen() {
               <Text style={styles.title}>Selecciona tus servicios</Text>
               <Text style={styles.subtitle}>Puedes elegir más de uno para tu sesión.</Text>
               
-              {familias.map(family => (
-                <View key={family} style={styles.familyGroup}>
-                  <Text style={styles.familyTitle}>{family}</Text>
-                  {servicios.filter(s => s.familia === family).map(s => {
+              {activeCategorias.map(cat => (
+                <View key={cat.id} style={styles.familyGroup}>
+                  <Text style={styles.familyTitle}>{cat.nombre}</Text>
+                  {servicios.filter(s => s.categoria_id === cat.id).map(s => {
                     const isSelected = selectedServicios.some(item => item.id === s.id)
                     return (
                       <TouchableOpacity

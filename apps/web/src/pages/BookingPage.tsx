@@ -76,7 +76,7 @@ export default function BookingPage() {
     async function fetchData() {
       const [resSuc, resSer] = await Promise.all([
         supabase.from('sucursales').select('*').order('nombre'),
-        supabase.from('servicios').select('*').eq('activo', true).order('nombre')
+        supabase.from('servicios').select('*, categoria:categorias_servicio(nombre)').eq('activo', true).order('nombre')
       ])
       if (resSuc.data) setSucursales(resSuc.data)
       if (resSer.data) setServicios(resSer.data)
@@ -312,11 +312,11 @@ export default function BookingPage() {
               <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8, letterSpacing: '-0.5px' }}>Selecciona tus servicios</h1>
               <p style={{ color: '#6e6e73', marginBottom: 32 }}>Puedes elegir más de uno para tu sesión.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-                {[...new Set(servicios.map(s => s.familia))].map(family => (
+                {[...new Set(servicios.map(s => s.categoria?.nombre || 'Otros'))].map(family => (
                   <div key={family}>
                     <h3 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: '#86868b', marginBottom: 12, letterSpacing: '1px' }}>{family}</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {servicios.filter(s => s.familia === family).map(s => {
+                      {servicios.filter(s => (s.categoria?.nombre || 'Otros') === family).map(s => {
                         const isSelected = selectedServicios.some(item => item.id === s.id)
                         return (
                           <button key={s.id} onClick={() => toggleServicio(s)} style={{ padding: 16, borderRadius: 14, background: isSelected ? 'var(--primary-light)' : '#fff', border: isSelected ? '1px solid var(--primary)' : '1px solid #efefef', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s' }}>

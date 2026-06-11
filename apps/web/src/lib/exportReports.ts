@@ -20,12 +20,14 @@ export async function downloadComisionesCSV(fechaInicio: string, fechaFin: strin
   const { data, error } = await query
   if (error) throw error
 
-  // 2. Fetch servicios to get "familia" mappings
-  const { data: serviciosData } = await supabase.from('servicios').select('nombre, familia')
+  // 2. Fetch servicios to get "familia" mappings (now from categoria)
+  const { data: serviciosData } = await supabase.from('servicios').select('nombre, categoria:categorias_servicio(nombre)')
   const familiaMap: Record<string, string> = {}
-  serviciosData?.forEach(s => {
-    familiaMap[s.nombre] = s.familia || '(Sin familia)'
-  })
+  if (serviciosData) {
+    serviciosData.forEach(s => {
+      familiaMap[s.nombre] = (s.categoria as any)?.nombre || '(Sin familia)'
+    })
+  }
 
   // 3. Process data into Pivot matrix
   // rows: record of Tratamiento -> { familia, [vendedor_nombre]: cantidad }

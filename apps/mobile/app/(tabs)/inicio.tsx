@@ -2,88 +2,50 @@ import { useEffect, useState, useCallback } from 'react'
 import { hoyMX } from '../../lib/dateUtils'
 import {
   View, Text, StyleSheet, ScrollView,
-  ActivityIndicator, TouchableOpacity, Image, Dimensions, RefreshControl, Alert
+  ActivityIndicator, TouchableOpacity, Image, RefreshControl, Alert, SafeAreaView
 } from 'react-native'
 import { useRouter, useFocusEffect } from 'expo-router'
-import * as SecureStore from 'expo-secure-store'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 
-const { width } = Dimensions.get('window')
-
-// SERVICIOS remain as static marketing cards with curated images and descriptions
-const SERVICIOS = [
-  { 
-    title: 'Esmaltado Permanente', 
-    image: require('../../assets/esmaltado_permanente.webp'),
-    desc: 'La novedosa técnica que ha revolucionado el mundo de las uñas: el único esmaltado permanente de larga duración y 20Free.' 
-  },
-  { 
-    title: 'Uñas Esculpidas', 
-    image: require('../../assets/unas_esculpidas.webp'),
-    desc: 'Uñas esculpidas con las mejores técnicas del mercado: uñas de gel, uñas en acrílico... ¡Ponte en buenas manos!' 
-  },
-  { 
-    title: 'Manicura & Spa', 
-    image: require('../../assets/manicura.webp'),
-    desc: '¡Tus manos hablan de ti! Cuídalas con nuestros servicios de manicura: limar y esmaltar, manicura básica, spa, etc.' 
-  },
-  { 
-    title: 'Cuidado Facial', 
-    image: require('../../assets/facial.webp'),
-    desc: 'Protocolos de higiene profunda y tratamientos personalizados para una piel luminosa, sana y revitalizada.' 
-  },
-  { 
-    title: 'Masajes Terapéuticos', 
-    image: require('../../assets/masaje.webp'),
-    desc: 'Un refugio para el estrés. Sesiones de relajación profunda y reflexología para restaurar tu equilibrio corporal y mental.' 
-  },
-  { 
-    title: 'Pedicura Avanzada', 
-    image: require('../../assets/pedicura.webp'),
-    desc: 'Salud y estética integral para tus pies. Desde relajantes sesiones spa hasta pedicuras técnicas especializadas.' 
-  },
-  { 
-    title: 'Eyes & Brows', 
-    image: require('../../assets/eyes_beauty.webp'),
-    desc: 'Realzamos tu mirada. Diseños de cejas y elevación de pestañas que enmarcan tu rostro con elegancia y naturalidad.' 
-  },
-  { 
-    title: 'Depilación Premium', 
-    image: require('../../assets/depilacion.webp'),
-    desc: 'Suavidad duradera con técnicas delicadas y efectivas. Una experiencia de depilación profesional en un ambiente de confort.' 
-  },
-  { 
-    title: 'Nail Art & Diseño', 
-    image: require('../../assets/nail_art.webp'),
-    desc: 'El toque artístico final. Decoraciones exclusivas y diseños personalizados para que tus uñas sean una obra de arte.' 
-  },
-]
-
 const ACCENT = '#88B04B'
+
+import { useCatalogStore } from '../../lib/useCatalogStore'
 
 export default function InicioScreen() {
   const router = useRouter()
   const [nombre, setNombre] = useState<string | null>(null)
   const [clienteId, setClienteId] = useState<string | null>(null)
   const [citas, setCitas] = useState<any[]>([])
-  const [centros, setCentros] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
+  const { categorias, sucursales: centros, fetchCatalog } = useCatalogStore()
+
   const loadData = useCallback(async () => {
     try {
-      const id = await SecureStore.getItemAsync('cliente_id')
-      const nom = await SecureStore.getItemAsync('cliente_nombre')
+      let id = null
+      let nom = null
+
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        const { data: cliente } = await supabase
+          .from('clientes')
+          .select('id, nombre_completo')
+          .eq('auth_user_id', session.user.id)
+          .single()
+        
+        if (cliente) {
+          id = cliente.id
+          nom = cliente.nombre_completo
+        }
+      }
+
       setClienteId(id)
       setNombre(nom ? nom.split(' ')[0] : null)
 
-      // Load sucursales from DB — replaces hardcoded CENTROS
-      const { data: sucData } = await supabase
-        .from('sucursales')
-        .select('nombre, direccion, telefono')
-        .order('nombre')
-      if (sucData) setCentros(sucData)
+      // Fetch global catalog (only runs API call if stale)
+      await fetchCatalog()
 
       if (id) {
         const hoy = hoyMX()
@@ -94,11 +56,11 @@ export default function InicioScreen() {
           .gte('fecha', hoy)
           .eq('estado', 'Programada')
           .order('fecha', { ascending: true })
-          .limit(5)
+          .limit(1)
         setCitas((data as any[]) ?? [])
       }
     } catch {
-      // Non-blocking — static content still renders even if DB is unreachable
+      // Non-blocking
     } finally {
       setLoading(false)
     }
@@ -106,9 +68,10 @@ export default function InicioScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
+    await fetchCatalog(true)
     await loadData()
     setRefreshing(false)
-  }, [loadData])
+  }, [loadData, fetchCatalog])
 
   useFocusEffect(
     useCallback(() => {
@@ -126,14 +89,13 @@ export default function InicioScreen() {
           text: 'Sí, cancelar',
           style: 'destructive',
           onPress: async () => {
-            const clienteIdLocal = await SecureStore.getItemAsync('cliente_id')
-            if (!clienteIdLocal) return
+            if (!clienteId) return
             
             setLoading(true)
             try {
               const { data, error } = await supabase.rpc('cancelar_cita_cliente', {
                 p_cita_id: citaId,
-                p_cliente_id: clienteIdLocal
+                p_cliente_id: clienteId
               })
               
               if (error) throw error
@@ -160,121 +122,147 @@ export default function InicioScreen() {
     
     const detalleMsg = `Servicios:\n• ${serviciosStr}${notasStr}\n\nCuándo: ${fechaStr} a las ${cita.bloque_inicio}\nDónde: ${sucursalStr}\n\n¿Qué deseas hacer con esta cita?`
 
-    if (cita.estado === 'Programada') {
-      Alert.alert(
-        'Detalles de tu cita',
-        detalleMsg,
-        [
-          { text: 'Cancelar Cita', style: 'destructive', onPress: () => confirmCancel(cita.id) },
-          { text: 'Reagendar', onPress: () => Alert.alert('Reagendar', 'Para reagendar, por favor cancela esta cita y elige un nuevo horario en la pestaña Reservar.') },
-          { text: 'Cerrar', style: 'cancel' }
-        ]
-      )
-    } else {
-      Alert.alert(
-        'Detalles de la cita',
-        `Esta cita está ${cita.estado}.\n\nServicios:\n• ${serviciosStr}\n\nPara volver a agendar, dirígete a la pestaña de Reservar.`,
-        [
-          { text: 'Ir a Reservar', onPress: () => router.push('/(tabs)/reservar') },
-          { text: 'Cerrar', style: 'cancel' }
-        ]
-      )
-    }
+    Alert.alert(
+      'Detalles de tu cita',
+      detalleMsg,
+      [
+        { text: 'Cancelar Cita', style: 'destructive', onPress: () => confirmCancel(cita.id) },
+        { text: 'Reagendar', onPress: () => Alert.alert('Reagendar', 'Para reagendar, cancela esta cita y elige un nuevo horario.') },
+        { text: 'Cerrar', style: 'cancel' }
+      ]
+    )
   }
 
   return (
-    <View style={styles.outerContainer}>
+    <SafeAreaView style={styles.outerContainer}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#88B04B" />}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} />}
       >
 
-        {/* Logo / Header */}
-        <View style={styles.logoRow}>
+        {/* Header */}
+        <View style={styles.headerContainer}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.greetingLight}>Hola{nombre ? ',' : ''}</Text>
+            {nombre && <Text style={styles.greetingBold}>{nombre}</Text>}
+          </View>
           <Image 
             source={require('../../assets/logo.jpeg')} 
-            style={styles.logoImage} 
+            style={styles.headerLogo} 
             resizeMode="contain" 
           />
+          <TouchableOpacity style={styles.headerRight}>
+            <Ionicons name="notifications-outline" size={24} color="#1d1d1f" />
+          </TouchableOpacity>
         </View>
 
-        {nombre && (
-          <View style={styles.greetingBanner}>
-            <Text style={styles.greetingText}>Hola, {nombre}</Text>
-          </View>
-        )}
-
-        {/* CTA Reservar */}
+        {/* Hero Card Reservar */}
         <TouchableOpacity
-          style={styles.ctaCard}
+          style={styles.heroCard}
           onPress={() => router.push('/(tabs)/reservar')}
           activeOpacity={0.85}
         >
-          <View style={styles.ctaTextContainer}>
-            <Text style={styles.ctaTitle}>Agenda tu cita</Text>
-            <Text style={styles.ctaSub}>Elige sucursal, servicio y horario</Text>
+          <View style={styles.heroIconContainer}>
+            <Ionicons name="calendar" size={24} color={ACCENT} />
           </View>
-          <View style={styles.ctaArrow}>
-            <Text style={styles.ctaArrowText}>→</Text>
+          <View style={styles.heroTextContainer}>
+            <Text style={styles.heroTitle}>Reserva tu cita</Text>
+            <Text style={styles.heroSub}>Elige servicio, sucursal y horario</Text>
+          </View>
+          <View style={styles.heroArrow}>
+            <Ionicons name="arrow-forward" size={20} color={ACCENT} />
           </View>
         </TouchableOpacity>
 
-        {/* Proximas citas */}
-        {clienteId && (
-          <>
-            <Text style={styles.sectionTitle}>Tus próximas citas</Text>
-            {loading ? (
-              <ActivityIndicator color={ACCENT} style={{ marginBottom: 32 }} />
-            ) : citas.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyText}>No tienes citas próximas.</Text>
-                <Text style={styles.emptyHint}>Agenda una ahora.</Text>
+        {/* Proximas Citas */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Tus próximas citas</Text>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/citas')}>
+            <Text style={styles.seeAllText}>Ver todas</Text>
+          </TouchableOpacity>
+        </View>
+
+        {loading ? (
+          <ActivityIndicator color={ACCENT} style={{ marginVertical: 20 }} />
+        ) : citas.length === 0 ? (
+          <View style={styles.emptyCitaCard}>
+            <View style={styles.emptyCitaIcon}>
+              <Ionicons name="calendar-outline" size={24} color={ACCENT} />
+            </View>
+            <View style={styles.emptyCitaText}>
+              <Text style={styles.emptyCitaTitle}>No tienes citas próximas</Text>
+              <Text style={styles.emptyCitaSub}>¡Agenda tu próxima visita!</Text>
+            </View>
+          </View>
+        ) : (
+          citas.map((cita) => (
+            <TouchableOpacity key={cita.id} style={styles.activeCitaCard} onPress={() => handlePressCita(cita)} activeOpacity={0.7}>
+              <View style={styles.citaDateBadge}>
+                <Text style={styles.citaDay}>{new Date(cita.fecha + 'T12:00:00').getDate()}</Text>
+                <Text style={styles.citaMes}>
+                  {new Date(cita.fecha + 'T12:00:00').toLocaleString('es-MX', { month: 'short' }).toUpperCase()}
+                </Text>
               </View>
-            ) : (
-              citas.map((cita) => (
-                <TouchableOpacity key={cita.id} style={styles.citaCard} onPress={() => handlePressCita(cita)} activeOpacity={0.7}>
-                  <View style={styles.citaDateBadge}>
-                    <Text style={styles.citaDay}>{new Date(cita.fecha + 'T12:00:00').getDate()}</Text>
-                    <Text style={styles.citaMes}>
-                      {new Date(cita.fecha + 'T12:00:00').toLocaleString('es-MX', { month: 'short' }).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={styles.citaInfo}>
-                    <Text style={styles.citaSucursal}>{cita.sucursal?.nombre ?? 'MUYMUY'}</Text>
-                    <Text style={styles.citaHora}>{cita.bloque_inicio} hrs</Text>
-                    <Text style={styles.citaServicio} numberOfLines={1}>
-                      {cita.servicios?.map((s: any) => s.servicio?.nombre).filter(Boolean).join(', ') || 'Servicio'}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))
-            )}
-          </>
+              <View style={styles.citaInfo}>
+                <Text style={styles.citaSucursal}>{cita.sucursal?.nombre ?? 'MUYMUY'}</Text>
+                <Text style={styles.citaHora}>{cita.bloque_inicio} hrs</Text>
+                <Text style={styles.citaServicio} numberOfLines={1}>
+                  {cita.servicios?.map((s: any) => s.servicio?.nombre).filter(Boolean).join(', ') || 'Servicio'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))
         )}
 
-        {/* Sección de servicios */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Nuestros Servicios</Text>
-          <Text style={styles.sectionSub}>Redefiniendo el cuidado y la belleza</Text>
+        {/* Categorías de servicios */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Categorías de servicios</Text>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/servicios')}>
+            <Text style={styles.seeAllText}>Ver todas</Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.serviciosGrid}>
-          {SERVICIOS.map((s, i) => (
-            <View key={i} style={styles.servicioCard}>
-              <Image source={s.image} style={styles.servicioImage} resizeMode="cover" />
-              <View style={styles.servicioInfo}>
-                <Text style={styles.servicioTitle}>{s.title}</Text>
-                <Text style={styles.servicioDesc}>{s.desc}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriasScroll}
+        >
+          {loading ? (
+            <ActivityIndicator color={ACCENT} style={{ marginLeft: 20 }} />
+          ) : categorias.map((cat, i) => {
+            const count = cat.servicios?.[0]?.count || 0;
+            return (
+              <TouchableOpacity 
+                key={cat.id} 
+                style={styles.categoriaCard} 
+                activeOpacity={0.8}
+                onPress={() => router.push({ pathname: '/(tabs)/servicios', params: { categoria_id: cat.id } })}
+              >
+                <View style={styles.categoriaImageContainer}>
+                  {cat.imagen_url ? (
+                    <Image source={{ uri: cat.imagen_url }} style={styles.categoriaImage} />
+                  ) : (
+                    <View style={[styles.categoriaImage, { backgroundColor: '#e0e0e0' }]} />
+                  )}
+                  {/* Circular icon overlapping */}
+                  <View style={styles.categoriaIconCircle}>
+                    <Ionicons name="sparkles-outline" size={20} color={ACCENT} />
+                  </View>
+                </View>
+                <View style={styles.categoriaTextContainer}>
+                  <Text style={styles.categoriaTitle} numberOfLines={2}>{cat.nombre}</Text>
+                  <Text style={styles.categoriaCount}>{count} servicios</Text>
+                </View>
+              </TouchableOpacity>
+            )
+          })}
+        </ScrollView>
 
         {/* Sección de centros */}
-        <View style={styles.sectionHeader}>
+        <View style={[styles.sectionHeaderRow, { marginTop: 32 }]}>
           <Text style={styles.sectionTitle}>Nuestros Centros</Text>
-          <Text style={styles.sectionSub}>Visítanos en Polanco</Text>
         </View>
 
         <View style={styles.centrosGrid}>
@@ -302,156 +290,218 @@ export default function InicioScreen() {
           <Text style={styles.footerSub}>Lun–Sab 10:00–20:00  ·  Dom 11:00–18:00</Text>
           <Text style={styles.footerCopyright}>© 2026 MUYMUY. Todos los derechos reservados.</Text>
         </View>
-
       </ScrollView>
-    </View>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  outerContainer: { flex: 1, backgroundColor: '#ffffff' },
+  outerContainer: { flex: 1, backgroundColor: '#fcfcfc' },
   container: { flex: 1 },
-  content: { paddingBottom: 0 }, // Conectado al tab bar
+  content: { paddingBottom: 20 }, 
 
-  /* Logo */
-  logoRow: {
-    backgroundColor: '#ffffff',
-    paddingTop: 64,
+  /* Header */
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 10,
     paddingBottom: 20,
+  },
+  headerLeft: { flex: 1 },
+  greetingLight: { fontSize: 16, color: '#6e6e73' },
+  greetingBold: { fontSize: 20, fontWeight: '800', color: ACCENT },
+  headerLogo: { width: 120, height: 40 },
+  headerRight: { flex: 1, alignItems: 'flex-end' },
+
+  /* Hero Card */
+  heroCard: {
+    backgroundColor: ACCENT,
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    elevation: 4,
+    shadowColor: ACCENT,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    marginBottom: 30,
+  },
+  heroIconContainer: {
+    width: 44, height: 44,
+    borderRadius: 22,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 14,
   },
-  logoImage: {
-    width: 180,
-    height: 60,
+  heroTextContainer: { flex: 1 },
+  heroTitle: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 2 },
+  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.85)' },
+  heroArrow: {
+    width: 32, height: 32,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
   },
 
-  /* Greeting */
-  greetingBanner: {
-    backgroundColor: '#f0f7e6',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0efcc',
+  /* Sections */
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 16,
   },
-  greetingText: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1d1d1f',
+  },
+  seeAllText: {
     fontSize: 14,
     fontWeight: '600',
     color: ACCENT,
   },
 
-  /* CTA */
-  ctaCard: {
-    backgroundColor: ACCENT,
-    margin: 20,
-    borderRadius: 20,
-    padding: 22,
+  /* Empty Cita */
+  emptyCitaCard: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    marginBottom: 30,
   },
-  ctaTextContainer: { flex: 1 },
-  ctaTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  ctaSub: { fontSize: 13, color: 'rgba(255,255,255,0.75)', maxWidth: '90%' },
-  ctaArrow: {
-    width: 36, height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  emptyCitaIcon: {
+    width: 44, height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f0f7e6',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 10,
+    marginRight: 14,
   },
-  ctaArrowText: { color: '#fff', fontSize: 18, fontWeight: '700' },
-
-  /* Citas */
-  sectionHeader: { marginTop: 32, marginBottom: 16 },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#1d1d1f',
-    marginHorizontal: 20,
-    letterSpacing: -0.5,
-  },
-  sectionSub: {
-    fontSize: 14,
-    color: '#6e6e73',
-    marginHorizontal: 20,
-    marginTop: 2,
-  },
-  emptyCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 20,
-    borderRadius: 14,
-    padding: 24,
-    alignItems: 'center',
+  emptyCitaText: { flex: 1 },
+  emptyCitaTitle: { fontSize: 14, fontWeight: '700', color: '#1d1d1f', marginBottom: 2 },
+  emptyCitaSub: { fontSize: 12, color: '#6e6e73' },
+  btnReservarOutline: {
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: ACCENT,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
-  emptyText: { fontSize: 14, color: '#6e6e73' },
-  emptyHint: { fontSize: 13, color: ACCENT, fontWeight: '600', marginTop: 4 },
-  citaCard: {
-    backgroundColor: '#fff',
+  btnReservarOutlineText: {
+    color: ACCENT,
+    fontSize: 12,
+    fontWeight: '600'
+  },
+
+  /* Active Cita */
+  activeCitaCard: {
+    backgroundColor: '#ffffff',
     marginHorizontal: 20,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 8,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 30,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#f0f0f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   citaDateBadge: {
-    width: 48, height: 48, borderRadius: 12,
+    width: 50, height: 50, borderRadius: 12,
     backgroundColor: '#f0f7e6',
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   citaDay: { fontSize: 18, fontWeight: '800', color: ACCENT },
   citaMes: { fontSize: 10, fontWeight: '700', color: ACCENT },
   citaInfo: { flex: 1 },
-  citaSucursal: { fontSize: 14, fontWeight: '700', color: '#1d1d1f' },
-  citaHora: { fontSize: 13, color: '#6e6e73', marginTop: 1 },
-  citaServicio: { fontSize: 12, color: '#6e6e73', marginTop: 1 },
+  citaSucursal: { fontSize: 15, fontWeight: '700', color: '#1d1d1f' },
+  citaHora: { fontSize: 13, color: '#6e6e73', marginTop: 2 },
+  citaServicio: { fontSize: 13, color: '#6e6e73', marginTop: 2 },
 
-  /* Servicios grid */
-  serviciosGrid: {
-    marginHorizontal: 20,
-    gap: 20,
+  /* Categorías */
+  categoriasScroll: {
+    paddingLeft: 20,
+    paddingRight: 10,
   },
-  servicioCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    overflow: 'hidden',
+  categoriaCard: {
+    backgroundColor: '#ffffff',
+    width: 140,
+    borderRadius: 16,
+    marginRight: 14,
     borderWidth: 1,
-    borderColor: '#eee',
-    elevation: 2,
+    borderColor: '#f0f0f0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
+    elevation: 2,
+    overflow: 'visible',
   },
-  servicioImage: {
+  categoriaImageContainer: {
+    position: 'relative',
+    height: 120,
+  },
+  categoriaImage: {
     width: '100%',
-    height: 180,
+    height: 100,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
-  servicioInfo: {
-    padding: 16,
+  categoriaIconCircle: {
+    position: 'absolute',
+    bottom: 0,
+    alignSelf: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  servicioTitle: {
-    fontSize: 18,
+  categoriaTextContainer: {
+    padding: 12,
+    paddingTop: 8,
+    alignItems: 'center',
+  },
+  categoriaTitle: {
+    fontSize: 13,
     fontWeight: '700',
     color: '#1d1d1f',
-    marginBottom: 6,
+    textAlign: 'center',
+    marginBottom: 4,
   },
-  servicioDesc: {
-    fontSize: 14,
-    color: '#6e6e73',
-    lineHeight: 20,
+  categoriaCount: {
+    fontSize: 11,
+    color: ACCENT,
+    fontWeight: '600'
   },
 
   /* Centros grid */
@@ -461,11 +511,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   centroCard: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#f0f0f0',
   },
   centroHeader: {
     flexDirection: 'row',
@@ -506,5 +556,5 @@ const styles = StyleSheet.create({
   },
   footerTitle: { fontSize: 18, fontWeight: '800', color: ACCENT, marginBottom: 4 },
   footerSub: { fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' },
-  footerCopyright: { fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 20 },
+  footerCopyright: { fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 20 }
 })

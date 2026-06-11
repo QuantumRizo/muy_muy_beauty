@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, TextInput } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import { useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 
 export default function PerfilScreen() {
@@ -16,18 +17,24 @@ export default function PerfilScreen() {
   const [saving, setSaving] = useState(false)
 
   const loadData = useCallback(async () => {
-    const clienteId = await SecureStore.getItemAsync('cliente_id')
-    if (clienteId) {
-      const { data, error: err } = await supabase.rpc('obtener_perfil_cliente', { p_cliente_id: clienteId })
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.user) {
+      const { data, error: err } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('auth_user_id', session.user.id)
+        .single()
       if (err) {
         setError(true)
         Alert.alert('Error', 'No se pudo cargar tu perfil. Verifica tu conexión.')
-      } else {
+      } else if (data) {
         setCliente(data)
         setEditNombre(data.nombre_completo || '')
         setEditEmail(data.email || '')
         setError(false)
       }
+    } else {
+      setCliente(null)
     }
     setLoading(false)
   }, [])
@@ -49,13 +56,15 @@ export default function PerfilScreen() {
     }
     setSaving(true)
     try {
-      const { data, error } = await supabase.rpc('actualizar_perfil_cliente', {
-        p_cliente_id: cliente.id,
-        p_nombre_completo: editNombre.trim(),
-        p_email: editEmail.trim()
-      })
+      const { error } = await supabase
+        .from('clientes')
+        .update({
+          nombre_completo: editNombre.trim(),
+          email: editEmail.trim() || null
+        })
+        .eq('id', cliente.id)
+
       if (error) throw error
-      if (data?.error) throw new Error(data.error)
       
       setIsEditing(false)
       loadData()
@@ -68,17 +77,15 @@ export default function PerfilScreen() {
 
   async function handleLogout() {
     Alert.alert(
-      'Cerrar sesion',
-      'Deseas salir de tu cuenta?',
+      'Cerrar sesión',
+      '¿Deseas salir de tu cuenta?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Salir',
           style: 'destructive',
           onPress: async () => {
-            await SecureStore.deleteItemAsync('cliente_id')
-            await SecureStore.deleteItemAsync('cliente_nombre')
-            await SecureStore.deleteItemAsync('cliente_telefono') // 🔧 BUG FIX: Clear all stored keys on logout
+            await supabase.auth.signOut()
             setCliente(null)
           }
         }

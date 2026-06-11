@@ -5,10 +5,9 @@ import {
   ActivityIndicator, Alert
 } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
-import * as SecureStore from 'expo-secure-store'
 import { supabase } from '../../lib/supabase'
 
-type Paso = 'telefono' | 'registro'
+type Paso = 'telefono' | 'registro' | 'codigo'
 
 export default function IdentificacionScreen() {
   const router = useRouter()
@@ -26,36 +25,39 @@ export default function IdentificacionScreen() {
   const [telefono, setTelefono] = useState('')
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
+  const [codigo, setCodigo] = useState('')
+  const [isExisting, setIsExisting] = useState(true)
 
   const sanitize = (val: string) => val.replace(/\D/g, '').slice(0, 10)
 
+  // 1. Verificamos si existe y mandamos OTP
   async function handleContinuar() {
     const tel = telefono.trim()
     if (tel.length < 10) {
-      Alert.alert('Telefono invalido', 'Ingresa un numero de 10 digitos.')
+      Alert.alert('Teléfono inválido', 'Ingresa un número de 10 dígitos.')
       return
     }
     setLoading(true)
     try {
+      // Checar si ya existe en nuestra tabla pública
       const { data: existing, error } = await supabase.rpc('verificar_cliente_por_telefono', { p_telefono: tel })
-
       if (error) throw error
 
       if (existing?.existe && existing.id) {
-        await SecureStore.setItemAsync('cliente_id', existing.id)
-        await SecureStore.setItemAsync('cliente_nombre', existing.nombre_completo)
-        await SecureStore.setItemAsync('cliente_telefono', tel) // 🔧 BUG FIX: Persist phone so reservar.tsx can read it
-        navigateBack()
+        setIsExisting(true)
+        await enviarOtp(tel)
       } else {
+        setIsExisting(false)
         setPaso('registro')
       }
     } catch {
-      Alert.alert('Error', 'No pudimos verificar tu numero. Intentalo de nuevo.')
+      Alert.alert('Error', 'No pudimos verificar tu número. Inténtalo de nuevo.')
     } finally {
       setLoading(false)
     }
   }
 
+  // 2. Si no existe, pedimos sus datos y luego mandamos OTP
   async function handleRegistrar() {
     if (!nombre.trim()) {
       Alert.alert('Falta tu nombre', 'Por favor ingresa tu nombre completo.')
@@ -63,25 +65,58 @@ export default function IdentificacionScreen() {
     }
     setLoading(true)
     try {
-      const { data: nuevo, error } = await supabase
-        .from('clientes')
-        .insert({
-          nombre_completo: nombre.trim(),
-          telefono_cel: telefono.trim(),
-          email: email.trim() || null,
-          datos_extra: {},
-        })
-        .select('id, nombre_completo')
-        .single()
-
-      if (error) throw error
-
-      await SecureStore.setItemAsync('cliente_id', nuevo.id)
-      await SecureStore.setItemAsync('cliente_nombre', nuevo.nombre_completo)
-      await SecureStore.setItemAsync('cliente_telefono', telefono.trim()) // 🔧 BUG FIX: Persist phone so reservar.tsx can read it
-      navigateBack()
+      await enviarOtp(telefono.trim())
     } catch {
-      Alert.alert('Error', 'No pudimos crear tu perfil. Intentalo de nuevo.')
+      Alert.alert('Error', 'No pudimos enviar el código. Inténtalo de nuevo.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Llama a Supabase Auth para enviar el SMS
+  async function enviarOtp(tel: string) {
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: '+52' + tel,
+    })
+    if (error) {
+      Alert.alert('Error', 'No se pudo enviar el SMS: ' + error.message)
+      return
+    }
+    setPaso('codigo')
+  }
+
+  // 3. Verificamos el código OTP
+  async function handleVerificarCodigo() {
+    if (codigo.length < 6) {
+      Alert.alert('Código incompleto', 'Ingresa los 6 dígitos que recibiste por SMS.')
+      return
+    }
+    setLoading(true)
+    try {
+      // Validar con Supabase Auth
+      const { data: { session }, error: authError } = await supabase.auth.verifyOtp({
+        phone: '+52' + telefono.trim(),
+        token: codigo.trim(),
+        type: 'sms'
+      })
+
+      if (authError || !session) {
+        throw new Error('Código incorrecto o expirado.')
+      }
+
+      // Una vez logueado, vinculamos el auth_user_id a nuestra tabla clientes
+      const { data: bindData, error: bindError } = await supabase.rpc('vincular_cliente_auth', {
+        p_nombre: isExisting ? null : nombre.trim(),
+        p_email: isExisting ? null : email.trim() || null
+      })
+
+      if (bindError) throw bindError
+      if (bindData?.error) throw new Error(bindData.error)
+
+      // Éxito, regresar a la pantalla anterior
+      navigateBack()
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Error al verificar el código.')
     } finally {
       setLoading(false)
     }
@@ -94,10 +129,11 @@ export default function IdentificacionScreen() {
     >
       <View style={styles.content}>
         <TouchableOpacity style={styles.backBtn} onPress={() => {
-          if (router.canGoBack()) router.back()
+          if (paso === 'codigo' || paso === 'registro') setPaso('telefono')
+          else if (router.canGoBack()) router.back()
           else router.replace('/(tabs)/inicio')
         }}>
-          <Text style={styles.backText}>Cancelar</Text>
+          <Text style={styles.backText}>{paso === 'telefono' ? 'Cancelar' : 'Atrás'}</Text>
         </TouchableOpacity>
 
         <View style={styles.logoContainer}>
@@ -105,15 +141,15 @@ export default function IdentificacionScreen() {
           <Text style={styles.logoSub}>Beauty Studio</Text>
         </View>
 
-        {paso === 'telefono' ? (
+        {paso === 'telefono' && (
           <>
-            <Text style={styles.title}>Identificate</Text>
+            <Text style={styles.title}>Identifícate</Text>
             <Text style={styles.subtitle}>
-              Ingresa tu numero de telefono. Si ya eres clienta, te reconoceremos al instante.
+              Ingresa tu número de teléfono. Te enviaremos un código SMS para entrar de forma segura.
             </Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Numero de telefono</Text>
+              <Text style={styles.label}>Número de teléfono celular</Text>
               <TextInput
                 style={styles.input}
                 value={telefono}
@@ -131,17 +167,16 @@ export default function IdentificacionScreen() {
               onPress={handleContinuar}
               disabled={loading}
             >
-              {loading
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.btnText}>Continuar</Text>
-              }
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Continuar</Text>}
             </TouchableOpacity>
           </>
-        ) : (
+        )}
+
+        {paso === 'registro' && (
           <>
             <Text style={styles.title}>Nuevo cliente</Text>
             <Text style={styles.subtitle}>
-              Es tu primera vez. Solo necesitamos unos datos basicos.
+              Es tu primera vez. Necesitamos tu nombre para crear tu expediente.
             </Text>
 
             <View style={styles.inputGroup}>
@@ -157,7 +192,7 @@ export default function IdentificacionScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Correo electronico (opcional)</Text>
+              <Text style={styles.label}>Correo electrónico (opcional)</Text>
               <TextInput
                 style={styles.input}
                 value={email}
@@ -174,14 +209,42 @@ export default function IdentificacionScreen() {
               onPress={handleRegistrar}
               disabled={loading}
             >
-              {loading
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.btnText}>Crear mi perfil</Text>
-              }
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Enviar código SMS</Text>}
+            </TouchableOpacity>
+          </>
+        )}
+
+        {paso === 'codigo' && (
+          <>
+            <Text style={styles.title}>Verifica tu número</Text>
+            <Text style={styles.subtitle}>
+              Hemos enviado un código SMS de 6 dígitos al {telefono}.
+            </Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Código SMS</Text>
+              <TextInput
+                style={[styles.input, { fontSize: 24, letterSpacing: 8, textAlign: 'center' }]}
+                value={codigo}
+                onChangeText={(v) => setCodigo(sanitize(v).slice(0, 6))}
+                keyboardType="number-pad"
+                placeholder="123456"
+                placeholderTextColor="#d0d0d0"
+                maxLength={6}
+                autoFocus
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.btn, loading && styles.btnDisabled]}
+              onPress={handleVerificarCodigo}
+              disabled={loading}
+            >
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Entrar</Text>}
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => setPaso('telefono')} style={styles.back}>
-              <Text style={styles.backAlt}>Cambiar numero</Text>
+            <TouchableOpacity onPress={() => enviarOtp(telefono)} style={styles.back} disabled={loading}>
+              <Text style={styles.backAlt}>Reenviar código</Text>
             </TouchableOpacity>
           </>
         )}

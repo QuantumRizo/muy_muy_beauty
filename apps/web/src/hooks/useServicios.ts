@@ -8,9 +8,11 @@ export function useServicios() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('servicios')
-        .select('*')
+        .select(`
+          *,
+          categoria:categorias_servicio(nombre)
+        `)
         .eq('activo', true)
-        .order('familia')
         .order('nombre')
       if (error) throw error
       return data ?? []

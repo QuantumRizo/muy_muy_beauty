@@ -1,72 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../../lib/supabase'
 
-const SLUG_MAP: Record<string, string> = {
-  'Esmaltado Permanente': 'esmaltado-permanente',
-  'Uñas Esculpidas': 'unas-esculpidas',
-  'Eyes & Brows': 'eyes-brows',
-  'Manicura & Spa': 'manicura-spa',
-  'Cuidado Facial': 'cuidado-facial',
-  'Masajes Terapéuticos': 'masajes-terapeuticos',
-  'Pedicura Avanzada': 'pedicura-avanzada',
-  'Nail Art & Diseño': 'nail-art-diseno',
-  'Depilación Láser': 'depilacion-laser'
+function slugify(text: string) {
+  return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-')
 }
-
-const SERVICES_DATA = [
-  {
-    title: 'Esmaltado Permanente',
-    image: '/esmaltado permanente_compressed.webp',
-    description: 'Técnica revolucionaria de larga duración con acabado profesional.',
-  },
-  {
-    title: 'Uñas Esculpidas',
-    image: '/unas esculpidas_compressed.webp',
-    description: 'Técnica de gel con las mejores técnicas del mercado.',
-  },
-  {
-    title: 'Eyes & Brows',
-    image: '/Eyes Beauty_compressed.webp',
-    description: 'Realzamos tu mirada con elegancia y naturalidad.',
-  },
-  {
-    title: 'Manicura & Spa',
-    image: '/manicura_compressed.webp',
-    description: 'Cuídalas con nuestros servicios de manicura básica y spa.',
-  },
-  {
-    title: 'Cuidado Facial',
-    image: '/facial_compressed.webp',
-    description: 'Protocolos de higiene profunda y personalizados.',
-  },
-  {
-    title: 'Masajes Terapéuticos',
-    image: '/Masaje_compressed.webp',
-    description: 'Un refugio para el estrés. Sesiones terapéuticas.',
-  },
-  {
-    title: 'Pedicura Avanzada',
-    image: '/Pedicura_compressed.webp',
-    description: 'Salud y estética integral para tus pies.',
-  },
-  {
-    title: 'Nail Art & Diseño',
-    image: '/Nail art_compressed.webp',
-    description: 'Decoraciones exclusivas y diseños personalizados.',
-  },
-  {
-    title: 'Depilación Láser',
-    image: '/depilacion_compressed.webp',
-    description: 'Piel suave y perfecta con tecnología indolora.',
-  },
-]
 
 function Tile({
   tile,
   globalIndex,
   isMobile,
 }: {
-  tile: typeof SERVICES_DATA[0]
+  tile: { nombre: string; imagen_url: string; descripcion?: string }
   globalIndex: number
   isMobile: boolean
 }) {
@@ -84,7 +29,7 @@ function Tile({
 
   return (
     <Link
-      to={`/servicios/${SLUG_MAP[tile.title] || ''}`}
+      to={`/servicios/${slugify(tile.nombre)}`}
       ref={ref}
       className="svc-tile"
       style={{
@@ -100,23 +45,26 @@ function Tile({
         transform: visible ? 'translateY(0)' : 'translateY(40px)',
         transition: `opacity 0.9s ease ${globalIndex * 0.1}s, transform 1.1s cubic-bezier(0.2, 1, 0.3, 1) ${globalIndex * 0.1}s`,
         boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+        backgroundColor: '#f5f5f7'
       }}
     >
-      <img
-        src={tile.image}
-        alt={tile.title}
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-      />
+      {tile.imagen_url && (
+        <img
+          src={tile.imagen_url}
+          alt={tile.nombre}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      )}
       <div style={{
         position: 'absolute', inset: 0,
         background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)',
       }} />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: isMobile ? '24px' : '32px', zIndex: 1 }}>
         <h3 style={{ color: '#fff', fontSize: isMobile ? '22px' : '26px', fontWeight: 800, marginBottom: 8, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
-          {tile.title}
+          {tile.nombre}
         </h3>
         <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '14px', lineHeight: 1.45, marginBottom: 16, maxWidth: '95%' }}>
-          {tile.description}
+          {tile.descripcion || 'Descubre nuestros servicios de alta calidad y atención personalizada.'}
         </p>
         <span style={{ color: '#fff', fontSize: '13px', fontWeight: 500, textDecoration: 'underline', textUnderlineOffset: '4px', opacity: 0.9 }}>
           Descubre más
@@ -130,6 +78,8 @@ export default function ServicesSection() {
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 880 : false
   )
+  const [categories, setCategories] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 880)
@@ -137,12 +87,21 @@ export default function ServicesSection() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  useEffect(() => {
+    async function loadCategories() {
+      const { data } = await supabase
+        .from('categorias_servicio')
+        .select('id, nombre, descripcion, imagen_url, orden')
+        .eq('activo', true)
+        .order('orden')
+      setCategories(data || [])
+      setLoading(false)
+    }
+    loadCategories()
+  }, [])
+
   return (
     <section id="services" style={{ background: '#ffffff', padding: isMobile ? '60px 16px' : '120px 40px', overflow: 'hidden' }}>
-      {/*
-        CSS puro: en móvil los tiles SIEMPRE visibles, sin depender de JS ni IntersectionObserver.
-        Desktop queda intacto con su animación de scroll reveal.
-      */}
       <style>{`
         @media (max-width: 879px) {
           .svc-tile {
@@ -160,20 +119,26 @@ export default function ServicesSection() {
           </h2>
         </div>
 
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', 
-          gap: '32px' 
-        }}>
-          {SERVICES_DATA.map((tile, idx) => (
-            <Tile
-              key={tile.title}
-              tile={tile}
-              globalIndex={idx}
-              isMobile={isMobile}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#888' }}>
+            Cargando servicios...
+          </div>
+        ) : (
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', 
+            gap: '32px' 
+          }}>
+            {categories.map((cat, idx) => (
+              <Tile
+                key={cat.id}
+                tile={cat}
+                globalIndex={idx}
+                isMobile={isMobile}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

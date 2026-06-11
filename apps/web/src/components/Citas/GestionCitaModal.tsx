@@ -72,13 +72,13 @@ export default function GestionCitaModal({ cita, onClose, onValidar }: Props) {
     if (!s) return servicios
     return servicios.filter(item => 
       item.nombre.toLowerCase().includes(s) || 
-      item.familia?.toLowerCase().includes(s)
+      item.categoria?.nombre?.toLowerCase().includes(s)
     )
   }, [servicios, search])
 
   const groups = useMemo(() => {
     return filteredServices.reduce<Record<string, Servicio[]>>((acc, s: Servicio) => {
-      const fam = s.familia ?? 'Otros'
+      const fam = s.categoria?.nombre ?? 'Otros'
       acc[fam] = acc[fam] ? [...acc[fam], s] : [s]
       return acc
     }, {})

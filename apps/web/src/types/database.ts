@@ -64,8 +64,10 @@ export interface Servicio {
   nombre: string
   duracion_slots: number
   precio: number
-  familia: string | null
+  categoria_id: string | null
   activo: boolean
+  // Join
+  categoria?: { nombre: string }
 }
 
 export interface Producto {

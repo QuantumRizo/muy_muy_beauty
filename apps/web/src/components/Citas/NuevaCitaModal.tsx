@@ -69,15 +69,16 @@ export default function NuevaCitaModal({
   const filteredServices = useMemo(() => {
     const s = search.toLowerCase().trim()
     if (!s) return servicios
-    return servicios.filter(item => 
-      item.nombre.toLowerCase().includes(s) || 
-      item.familia?.toLowerCase().includes(s)
-    )
+    return servicios.filter(item => {
+      const nameMatch = item.nombre.toLowerCase().includes(s)
+      const famMatch = item.categoria?.nombre?.toLowerCase().includes(s)
+      return nameMatch || famMatch
+    })
   }, [servicios, search])
 
   const groups = useMemo(() => {
     return filteredServices.reduce<Record<string, Servicio[]>>((acc, s) => {
-      const fam = s.familia ?? 'Otros'
+      const fam = s.categoria?.nombre ?? 'Otros'
       acc[fam] = acc[fam] ? [...acc[fam], s] : [s]
       return acc
     }, {})

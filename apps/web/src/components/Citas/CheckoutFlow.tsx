@@ -124,7 +124,7 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
   const filteredServices = useMemo(() => {
     const s = searchService.toLowerCase().trim()
     if (!s) return servicios
-    return servicios.filter(i => i.nombre.toLowerCase().includes(s) || i.familia?.toLowerCase().includes(s))
+    return servicios.filter(i => i.nombre.toLowerCase().includes(s) || i.categoria?.nombre?.toLowerCase().includes(s))
   }, [servicios, searchService])
 
   const handleAddServiceToValidation = (s: Servicio) => {

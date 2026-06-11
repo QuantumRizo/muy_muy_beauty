@@ -519,9 +519,9 @@ async function q_facturacion_neta(desglose: string, sort: string, fi: string, ff
   const ingresosGroups: Record<string, number> = {}
 
   if (desglose === 'familia') {
-    const { data: servicios } = await supabase.from('servicios').select('nombre, familia')
+    const { data: servicios } = await supabase.from('servicios').select('nombre, categoria:categorias_servicio(nombre)')
     const familiaMap: Record<string, string> = {}
-    servicios?.forEach(s => { familiaMap[s.nombre] = s.familia || 'Otros' })
+    servicios?.forEach(s => { familiaMap[s.nombre] = (s.categoria as any)?.nombre || 'Otros' })
     
     ;(ticketsItems || []).forEach((t: any) => {
       totalIngresos += (t.total || 0)
@@ -757,9 +757,9 @@ async function q_facturacion_familia(desglose: string, sort: string, fi: string,
   if (error) throw error
 
   // We need to join with servicios to get familia. Build a fast lookup.
-  const { data: servicios } = await supabase.from('servicios').select('nombre, familia')
+  const { data: servicios } = await supabase.from('servicios').select('nombre, categoria:categorias_servicio(nombre)')
   const familiaByNombre: Record<string, string> = {}
-  servicios?.forEach(s => { familiaByNombre[s.nombre] = s.familia || 'Sin familia' })
+  servicios?.forEach(s => { familiaByNombre[s.nombre] = (s.categoria as any)?.nombre || 'Sin familia' })
 
   const keyFn = (item: any) => {
     if (desglose === 'sucursal') return (item.ticket as any)?.sucursal?.nombre || 'Sin sucursal'
@@ -1159,9 +1159,9 @@ async function q_service_mix(fi: string, ff: string, suc: string): Promise<Repor
   const { data, error } = await query
   if (error) throw error
 
-  const { data: servicios } = await supabase.from('servicios').select('nombre, familia')
+  const { data: servicios } = await supabase.from('servicios').select('nombre, categoria:categorias_servicio(nombre)')
   const familiaMap: Record<string, string> = {}
-  servicios?.forEach(s => { familiaMap[s.nombre] = s.familia || 'Otros' })
+  servicios?.forEach(s => { familiaMap[s.nombre] = (s.categoria as any)?.nombre || 'Otros' })
 
   const groups: Record<string, number> = {}
   data?.forEach((i: any) => {

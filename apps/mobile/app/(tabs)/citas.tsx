@@ -10,15 +10,30 @@ export default function CitasScreen() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(false)
+  const [clienteId, setClienteId] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
-    const clienteId = await SecureStore.getItemAsync('cliente_id')
-    if (!clienteId) { router.replace('/(auth)/identificacion?returnTo=citas'); return }
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) { router.replace('/(auth)/identificacion?returnTo=citas'); return }
+
+    const { data: cliente, error: cliErr } = await supabase
+      .from('clientes')
+      .select('id')
+      .eq('auth_user_id', session.user.id)
+      .single()
+
+    if (cliErr || !cliente) {
+      setError(true)
+      setLoading(false)
+      return
+    }
+
+    setClienteId(cliente.id)
 
     const { data, error: err } = await supabase
       .from('citas')
       .select('*, sucursal:sucursales(nombre), servicios:cita_servicios(servicio:servicios(nombre))')
-      .eq('cliente_id', clienteId)
+      .eq('cliente_id', cliente.id)
       .order('fecha', { ascending: false })
       .order('bloque_inicio', { ascending: false })
       .limit(30)
@@ -54,7 +69,6 @@ export default function CitasScreen() {
           text: 'Sí, cancelar',
           style: 'destructive',
           onPress: async () => {
-            const clienteId = await SecureStore.getItemAsync('cliente_id')
             if (!clienteId) return
             
             setLoading(true)

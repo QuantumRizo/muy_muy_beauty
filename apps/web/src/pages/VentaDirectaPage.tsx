@@ -90,7 +90,7 @@ export default function VentaDirectaPage() {
 
   const filteredServicios = useMemo(() => {
     const s = searchServicio.toLowerCase().trim()
-    return allServicios.filter(sv => sv.nombre.toLowerCase().includes(s) || sv.familia?.toLowerCase().includes(s))
+    return allServicios.filter(sv => sv.nombre.toLowerCase().includes(s) || sv.categoria?.nombre?.toLowerCase().includes(s))
   }, [allServicios, searchServicio])
 
   const subtotal = items.reduce((sum, item) => sum + item.total, 0)
@@ -507,7 +507,7 @@ export default function VentaDirectaPage() {
                   >
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 13 }}>{s.nombre}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{s.familia || ''} · {(s.duracion_slots || 0) * 15} min</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{s.categoria?.nombre || ''} · {(s.duracion_slots || 0) * 15} min</div>
                     </div>
                     <div style={{ fontWeight: 700, color: 'var(--accent)', fontSize: 14 }}>${s.precio.toFixed(2)}</div>
                   </div>
