@@ -8,28 +8,29 @@ import type { Sucursal, Servicio, Empleada } from '../types/database'
 import { useToast } from '../components/Common/Toast'
 import { BookingCalendar } from '../components/Landing/BookingCalendar'
 import { TimeSlotPicker } from '../components/Landing/TimeSlotPicker'
+import { timeToSlots, slotsToTime } from '../utils/agenda'
 
 // ─── HELPERS ──────────────────────────────────────────────────
 // Lee las horas de apertura/cierre de la sucursal para un día concreto.
 // Prioriza horarios_por_dia (por día de semana), con fallback a los campos generales.
-function getSucursalHours(sucursal: any, date: Date): { start: number; end: number } {
+function getSucursalHours(sucursal: Sucursal, date: Date): { start: number; end: number } {
   const dow = date.getDay() // 0=Dom, 6=Sáb
-  const hpd = sucursal?.horarios_por_dia
+  const hpd = sucursal.horarios_por_dia
   if (hpd && hpd[dow] && !hpd[dow].cerrado) {
     return {
-      start: parseInt(hpd[dow].apertura.split(':')[0]),
-      end:   parseInt(hpd[dow].cierre.split(':')[0]),
+      start: parseInt(hpd[dow].apertura.split(':')[0], 10),
+      end:   parseInt(hpd[dow].cierre.split(':')[0], 10),
     }
   }
-  // Fallback: nanoseconds stored as integers → convert to hours
-  const toHour = (val: any): number => {
-    if (typeof val === 'string') return parseInt(val.split(':')[0])
-    if (typeof val === 'number') return Math.floor(val / 3_600_000_000_000) // nanoseconds
+  // Fallback: algunos valores legacy pueden llegar como nanosegundos enteros (PostgreSQL interval)
+  const toHour = (val: string | number | null | undefined): number => {
+    if (typeof val === 'string') return parseInt(val.split(':')[0], 10)
+    if (typeof val === 'number') return Math.floor(val / 3_600_000_000_000) // nanoseconds → hours
     return 10 // safe default
   }
   const esFinde = dow === 0 || dow === 6
-  const apertura = esFinde ? (sucursal?.hora_apertura_finde ?? sucursal?.hora_apertura) : sucursal?.hora_apertura
-  const cierre   = esFinde ? (sucursal?.hora_cierre_finde   ?? sucursal?.hora_cierre)   : sucursal?.hora_cierre
+  const apertura = esFinde ? (sucursal.hora_apertura_finde ?? sucursal.hora_apertura) : sucursal.hora_apertura
+  const cierre   = esFinde ? (sucursal.hora_cierre_finde   ?? sucursal.hora_cierre)   : sucursal.hora_cierre
   return { start: toHour(apertura) || 10, end: toHour(cierre) || 20 }
 }
 
@@ -133,13 +134,13 @@ export default function BookingPage() {
           perfilesToCheck.forEach(emp => {
             const occupied = new Array(96).fill(false)
             citas.filter(c => c.empleada_id === emp.id).forEach(c => {
-              const start = Math.floor(parseInt(c.bloque_inicio.split(':')[0]) * 4 + parseInt(c.bloque_inicio.split(':')[1]) / 15)
+              const start    = timeToSlots(c.bloque_inicio)
               const duration = c.duracion_manual_slots || 4
               for (let i = 0; i < duration; i++) if (start + i < 96) occupied[start + i] = true
             })
             bloqueos.filter(b => b.empleada_id === emp.id).forEach(b => {
-              const start = Math.floor(parseInt(b.hora_inicio.split(':')[0]) * 4 + parseInt(b.hora_inicio.split(':')[1]) / 15)
-              const end = Math.floor(parseInt(b.hora_fin.split(':')[0]) * 4 + parseInt(b.hora_fin.split(':')[1]) / 15)
+              const start = timeToSlots(b.hora_inicio)
+              const end   = timeToSlots(b.hora_fin)
               for (let i = start; i < end; i++) if (i < 96) occupied[i] = true
             })
             for (let h = START_HOUR; h < END_HOUR; h++) {
@@ -153,7 +154,7 @@ export default function BookingPage() {
                   }
                 }
                 if (canFit) {
-                  slotsFound.add(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`)
+                  slotsFound.add(slotsToTime(sIndex))
                 }
               }
             }

@@ -1,115 +1,162 @@
 # 🏗️ MUYMUY Beauty — Arquitectura del Monorepo
 
-## Estructura
+> **Última actualización:** Junio 2026
+
+---
+
+## Estructura actual del proyecto
 
 ```
 muy_muy_beauty/
 │
 ├── apps/
-│   └── mobile/              ← App iPhone (Expo + React Native)
+│   ├── web/                    ← Dashboard admin + booking público (Vite + React 19 + TS)
+│   │   ├── src/
+│   │   │   ├── components/     ← UI agrupada por dominio (Agenda, Citas, Dashboard…)
+│   │   │   ├── pages/          ← Una página por ruta (/admin/agenda, /reservar, etc.)
+│   │   │   ├── hooks/          ← TanStack Query hooks (useCitas, useTickets, useCaja…)
+│   │   │   ├── lib/            ← Utilidades puras (reportQueries, dateUtils, supabase)
+│   │   │   ├── context/        ← React Context (AuthContext, SucursalContext)
+│   │   │   ├── types/          ← Tipos TypeScript del esquema de BD
+│   │   │   └── utils/          ← Helpers compartidos (agenda.ts: timeToSlots, etc.)
+│   │   └── .env.example        ← Plantilla de variables — copia a .env.local
+│   │
+│   └── mobile/                 ← App iOS (Expo + React Native)
+│       ├── app/
+│       │   ├── (auth)/         ← Pantallas de login
+│       │   └── (tabs)/         ← Navegación principal con tabs
+│       ├── lib/                ← supabase.ts, dateUtils, Zustand store
+│       └── .env.example        ← Plantilla de variables — copia a .env.local
 │
-├── packages/                ← Código COMPARTIDO entre web y mobile
-│   ├── supabase/            ← createClient re-exportado
-│   ├── types/               ← Tipos TypeScript (fuente de verdad)
-│   └── logic/               ← Lógica de negocio pura (comisiones, etc.)
+├── supabase/
+│   ├── functions/
+│   │   └── meta-insights/      ← Edge Function: proxy seguro para Meta Graph API
+│   └── migrations/             ← 33 migraciones SQL en orden cronológico
 │
-├── src/                     ← Web app actual (Vite + React)
-│   ├── components/
-│   ├── pages/
-│   ├── lib/
-│   └── types/               ← ⚠️ Migrar a @muymuy/types (ver abajo)
-│
-├── pnpm-workspace.yaml      ← Define los workspaces
-└── ARCHITECTURE.md          ← Este archivo
+├── pnpm-workspace.yaml         ← Define los workspaces
+└── ARCHITECTURE.md             ← Este archivo
 ```
 
 ---
 
-## Paquetes compartidos
+## Setup rápido (nuevo desarrollador)
 
-| Paquete | Descripción | Importar como |
+```bash
+# 1. Clonar e instalar dependencias
+git clone <repo> && pnpm install
+
+# 2. Configurar variables de entorno
+cp apps/web/.env.example apps/web/.env.local      # → editar con tus valores
+cp apps/mobile/.env.example apps/mobile/.env.local # → editar con tus valores
+
+# 3. Iniciar Supabase local (requiere Docker)
+npx supabase start
+
+# 4. Aplicar migraciones locales
+npx supabase db reset  # aplica todas las migraciones en orden
+
+# 5. Iniciar apps
+cd apps/web && npm run dev       # http://localhost:5173
+cd apps/mobile && npx expo start # escáner QR para iOS
+```
+
+---
+
+## Clientes Supabase — uno por app
+
+Cada app tiene **su propio cliente Supabase** con sus propias env vars:
+
+| App | Archivo | Variable |
 |---|---|---|
-| `@muymuy/types` | Tipos TypeScript del esquema de Supabase | `import type { Cita } from '@muymuy/types'` |
-| `@muymuy/logic` | Cálculo de comisiones, formatters | `import { calcularComision } from '@muymuy/logic'` |
-| `@muymuy/supabase` | Re-exporta `createClient` de Supabase | Base para cada app |
+| Web (Vite) | `apps/web/src/lib/supabase.ts` | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` |
+| Mobile (Expo) | `apps/mobile/lib/supabase.ts` | `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` |
+
+Ambas apps apuntan al **mismo proyecto Supabase**. En desarrollo local apuntan a `http://127.0.0.1:54321`.
 
 ---
 
-## Cómo funciona el Supabase en cada app
+## Edge Functions
 
-Cada app tiene **su propio cliente** (distintas env vars), pero comparten el mismo proyecto de Supabase:
+| Función | Ruta | Descripción |
+|---|---|---|
+| `meta-insights` | `supabase/functions/meta-insights/` | Proxy seguro para la Meta Graph API. El `access_token` nunca sale al cliente. |
 
+Para desplegar una Edge Function:
+```bash
+npx supabase functions deploy meta-insights
 ```
-Web (Vite)              →  src/lib/supabase.ts  →  VITE_SUPABASE_URL
-Mobile (Expo)           →  apps/mobile/lib/supabase.ts  →  EXPO_PUBLIC_SUPABASE_URL
-```
-
-Ambos apuntan al mismo Supabase. Las env vars son idénticas en valor, diferente en nombre (prefijo del bundler).
 
 ---
 
-## Migración pendiente (cuando arranque mobile)
+## 🔒 Seguridad y RLS
 
-Cuando empiece el desarrollo de la app móvil, completar:
+### Roles de acceso
 
-### Paso 1 — Mover web a `apps/web/`
-```bash
-mkdir -p apps/web
-mv src public index.html vite.config.ts tsconfig*.json eslint.config.js apps/web/
-mv package.json apps/web/package.json
-# Crear nuevo package.json en raíz (workspace root)
-```
+| Rol | Acceso | Descripción |
+|---|---|---|
+| `anon` | Solo lectura de `servicios` y `sucursales` + RPCs de booking | Clientes en el formulario de reserva público |
+| `authenticated` | Todas las tablas operativas via RLS | Personal con login en el dashboard |
 
-### Paso 2 — Actualizar Vercel
-En el dashboard de Vercel → Settings → General:
-- **Root Directory:** `apps/web`
-- **Build Command:** `npm run build` (sin cambios)
-- **Output Directory:** `dist` (sin cambios)
+### Flujo de reserva pública (`/reservar`)
 
-### Paso 3 — Migrar imports de tipos en web
-```ts
-// ANTES (web actual):
-import type { Cita } from '../types/database'
+El flujo de booking funciona de forma **anónima** (`anon`) sin cuenta de usuario. Usa exclusivamente **funciones RPC SECURITY DEFINER** para proteger los datos:
 
-// DESPUÉS (cuando sea monorepo completo):
-import type { Cita } from '@muymuy/types'
-```
+| RPC | Rol | Descripción |
+|---|---|---|
+| `verificar_cliente_por_telefono(p_telefono)` | `anon` | Solo devuelve nombre + email si existe, nunca el ID ni sucursal |
+| `crear_reserva_publica(...)` | `anon` | Crea cliente + cita + cita_servicios server-side con validaciones completas |
 
-### Paso 4 — Inicializar Expo
-```bash
-cd apps/mobile
-npx create-expo-app@latest . --template blank-typescript
-```
+**⚠️ IMPORTANTE:** El rol `anon` **NO tiene** acceso directo INSERT/UPDATE en `clientes`, `citas` ni `cita_servicios`. Toda escritura va por RPC. Las políticas RLS de acceso directo para `anon` en esas tablas fueron eliminadas en `20260609010000_secure_booking_rpc.sql`.
+
+### Validaciones en `crear_reserva_publica`
+
+La función RPC (migración `20260612200000_security_service_validation.sql`) valida:
+1. Teléfono de 10 dígitos mínimo
+2. Nombre no vacío  
+3. Máximo 5 servicios por reserva (anti-abuse)
+4. Todos los servicios deben existir y estar **activos**
+5. La empleada (si se especifica) debe pertenecer a **la misma sucursal**
+
+---
+
+## Stack tecnológico
+
+| Capa | Tecnología |
+|---|---|
+| Frontend web | React 19 + TypeScript + Vite |
+| Estado servidor | TanStack Query v5 |
+| Frontend mobile | Expo + React Native |
+| Backend | Supabase (PostgreSQL + Auth + RLS + Edge Functions) |
+| Routing web | React Router v7 |
+| Charts | Recharts |
+| Icons | Lucide React |
+| Gestión monorepo | pnpm workspaces |
+| Deploy web | Vercel (Root Directory: `apps/web`) |
+| Deploy mobile | Expo EAS Build |
 
 ---
 
 ## Decisiones de arquitectura
 
-### ¿Por qué pnpm workspaces y no npm workspaces?
-- pnpm es más eficiente en disco (hard links en node_modules)
+### ¿Por qué pnpm workspaces?
+- Más eficiente en disco (hard links en node_modules)
 - Mejor soporte para monorepos en el ecosistema React Native/Expo
 
+### ¿Por qué no un paquete `@muymuy/types` compartido?
+- Con solo 2 apps activas el overhead de configuración no vale la pena
+- Los tipos del mobile son un subconjunto de los del web
+- Se puede extraer cuando la divergencia lo justifique
+
 ### ¿Por qué no Turborepo?
-- Para 2 apps, el overhead de configuración no vale la pena todavía
+- Para 2 apps, el overhead de configuración no aporta valor aún
 - Se puede agregar después sin romper nada
 
-### ¿Por qué no un solo App.tsx para web y mobile?
-- Web usa HTML/CSS, mobile usa View/StyleSheet — son incompatibles
-- La lógica de negocio SÍ es compartible, la UI NO
+### ¿Por qué el dashboard usa caché de módulo y no React Query?
+- El dashboard hace 13 queries paralelas y necesita un TTL propio de 3 minutos
+- React Query global tiene `staleTime: 60s` — los dos sistemas coexisten sin interferir
+- Ver `apps/web/src/hooks/useDashboardData.ts` para la implementación
 
----
-
-## 🔒 Políticas RLS y Seguridad (Booking Público)
-
-⚠️ **IMPORTANTE PARA AUDITORES E IA DE DESARROLLO:**
-El flujo de reservas (tanto en la aplicación móvil como en la web pública `/booking`) funciona de forma **anónima** (`anon`), ya que los clientes agendan citas sin necesidad de crearse una cuenta de usuario en Supabase Auth.
-
-Por esta razón, existen políticas RLS explícitas para el rol `anon` en las siguientes tablas:
-- `perfiles_empleadas` (Lectura): Para listar el staff de las sucursales.
-- `citas` (Lectura e Inserción): Para calcular qué horarios están ocupados e insertar nuevas citas.
-- `bloqueos_agenda` (Lectura): Para calcular descansos y bloqueos de agenda.
-- `clientes` (Lectura e Inserción): Para verificar duplicados de teléfonos y crear fichas de nuevos clientes.
-- `cita_servicios` (Lectura e Inserción): Para enlazar los servicios a la cita agendada.
-
-**NO ELIMINAR NI RESTRINGIR estas políticas de lectura/escritura pública en futuras auditorías de seguridad (ej: hardening de RLS). Hacerlo romperá por completo el flujo de agendamiento online.**
-
+### ¿Por qué una Edge Function para Meta API y no llamar directamente?
+- Llamar desde el browser expone el `access_token` en el tráfico de red (DevTools)
+- La Edge Function recupera el token desde la BD y llama a Meta server-side
+- El token **nunca** llega al navegador del usuario

@@ -45,7 +45,9 @@ export default function MarketingPage() {
     saveConfig, addCampana, updateCampana, deleteCampana, fetchInsights, refresh
   } = useMarketing(sucursalId, 'meta')
 
-  const isConnected = !!config?.api_key
+  // isConnected: hay una integración configurada en BD.
+  // El api_key vive en el servidor (Edge Function), no en el cliente.
+  const isConnected = !!config
 
   // Summary from manual campaigns (when no API)
   const summaryFromCampanas = {

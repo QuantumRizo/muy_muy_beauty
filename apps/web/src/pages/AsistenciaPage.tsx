@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Clock, Search, Users, MapPin, CheckCircle2, LogIn, Coffee, LogOut, Activity } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -12,6 +12,15 @@ import { hoyMX, ahoraMX } from '../lib/dateUtils'
 
 type TipoAsistencia = 'Entrada' | 'Salida Comida' | 'Salida'
 
+interface RegistroAsistencia {
+  id: string
+  empleada_id: string
+  sucursal_id: string
+  tipo: TipoAsistencia
+  created_at: string
+  empleada?: { nombre: string } | null
+}
+
 export default function AsistenciaPage() {
   const { selectedSucursalId } = useSucursalContext()
   const { data: sucursales = [] } = useSucursales()
@@ -20,10 +29,11 @@ export default function AsistenciaPage() {
   const queryClient = useQueryClient()
 
   const [selectedEmpleadaId, setSelectedEmpleadaId] = useState('')
-  const [history, setHistory] = useState<any[]>([])
+  const [history, setHistory] = useState<RegistroAsistencia[]>([])
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [registering, setRegistering] = useState(false)
+  const cancelledRef = useRef(false)
 
   const activeSucursal = sucursales.find(s => s.id === selectedSucursalId)
 
@@ -33,12 +43,15 @@ export default function AsistenciaPage() {
     const today = hoyMX()
     
     setFetchError(null)
+    cancelledRef.current = false
     const { data, error } = await supabase
       .from('asistencia')
       .select('*, empleada:perfiles_empleadas(nombre)')
       .eq('sucursal_id', selectedSucursalId)
       .gte('created_at', today)
       .order('created_at', { ascending: false })
+
+    if (cancelledRef.current) return // Componente desmontado — no actualizar estado
 
     if (error) {
       console.error(error)
@@ -51,6 +64,7 @@ export default function AsistenciaPage() {
 
   useEffect(() => {
     fetchTodayHistory()
+    return () => { cancelledRef.current = true }
   }, [selectedSucursalId])
 
   const handleRegister = async (tipo: TipoAsistencia) => {

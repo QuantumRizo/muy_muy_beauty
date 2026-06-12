@@ -17,11 +17,14 @@ dist-ssr
 .env.*
 !.env.example
 
+# macOS metadata — ignore globally across all subdirectories
+.DS_Store
+**/.DS_Store
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
@@ -32,3 +35,10 @@ dist-ssr
 supabase/.temp/
 supabase/.branches/
 supabase/.project-id
+
+# Development scripts that should not be in version control
+apps/web/check_db.ts
+apps/mobile/upload_assets.js
+
+# Build artifacts
+scratch/

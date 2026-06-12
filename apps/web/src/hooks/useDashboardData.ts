@@ -2,8 +2,28 @@ import { useState, useEffect, useCallback } from 'react'
 import { runQuery } from '../lib/reportQueries'
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 import { ahoraMX, fechaMX, hoyMX } from '../lib/dateUtils'
+import type { ReportRow } from '../lib/reportQueries'
 
 export type TimeRange = 'today' | 'week' | 'month'
+
+// ─── Tipo de datos del Dashboard ─────────────────────────────────
+export interface DashboardData {
+  revenue: number
+  appointments: number
+  newClients: number
+  attendanceRate: number
+  inventoryMetrics: Record<string, number>
+  salaryExpense: number
+  cashDifference: number
+  ticketPromedio: number
+  ocupacion: number
+  retentionRate: number
+  nuevosVsRecurrentes: { nuevos: number; recurrentes: number }
+  ingresosSucursal: ReportRow[]
+  topEmpleados: ReportRow[]
+  serviciosTendencia: ReportRow[]
+  pagosPreferidos: ReportRow[]
+}
 
 // ─── Module-level cache (survives re-renders and navigation) ─────
 // NOTA: El dashboard usa este caché de módulo propio (no React Query) porque:
@@ -12,7 +32,7 @@ export type TimeRange = 'today' | 'week' | 'month'
 // Los dos sistemas NO se pisan — cada uno gestiona su dominio.
 const TTL_MS = 3 * 60 * 1000 // 3 minutes
 
-interface CacheEntry { data: any; timestamp: number }
+interface CacheEntry { data: DashboardData; timestamp: number }
 const cache = new Map<string, CacheEntry>()
 
 export function invalidateDashboardCache() {
@@ -21,7 +41,7 @@ export function invalidateDashboardCache() {
 
 // ─────────────────────────────────────────────────────────────────
 
-async function loadDashboardData(sucursalId: string, range: TimeRange): Promise<any> {
+async function loadDashboardData(sucursalId: string, range: TimeRange): Promise<DashboardData> {
   const now = ahoraMX()
   let sFi: string, sFf: string
 
@@ -91,7 +111,7 @@ export function useDashboardData(sucursalId: string, range: TimeRange) {
   const cached = cache.get(cacheKey)
 
   // Start with cached data (shows instantly if available)
-  const [data, setData] = useState<any>(cached?.data ?? null)
+  const [data, setData] = useState<DashboardData | null>(cached?.data ?? null)
   const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)

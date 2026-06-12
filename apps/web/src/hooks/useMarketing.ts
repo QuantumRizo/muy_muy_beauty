@@ -214,12 +214,14 @@ export function useMarketing(sucursalId: string, platform: MarketingPlatform = '
     }
   }, [refresh])
 
-  // ─── Fetch Insights from Meta API ────────────────────────────
-  // Llama a la Graph API de Meta para obtener métricas de la cuenta
+  // ─── Fetch Insights vía Edge Function (proxy seguro) ──────────
+  // La Edge Function recupera el api_key desde la BD y llama a Meta
+  // server-side. El token NUNCA viaja al navegador del usuario.
   const fetchInsights = useCallback(async (
     dateRange?: { from: string; to: string }
   ): Promise<void> => {
-    if (!config?.api_key || !config?.account_id) return
+    // Solo necesitamos que haya config en BD (la Edge Function lee el api_key)
+    if (!config) return
     setLoadingInsights(true)
     setError(null)
 
@@ -227,47 +229,39 @@ export function useMarketing(sucursalId: string, platform: MarketingPlatform = '
       const from = dateRange?.from ?? inicioMesMX()
       const to   = dateRange?.to   ?? hoyMX()
 
-      // Meta Graph API endpoint for account insights
-      const url = new URL(`https://graph.facebook.com/v19.0/act_${config.account_id}/insights`)
-      url.searchParams.set('access_token', config.api_key)
-      url.searchParams.set('fields', 'spend,impressions,clicks,reach,actions')
-      url.searchParams.set('time_range', JSON.stringify({ since: from, until: to }))
-      url.searchParams.set('level', 'account')
+      // Obtener la sesión activa para pasar el JWT a la Edge Function
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Sesión no activa')
 
-      const res = await fetch(url.toString())
-      if (!res.ok) {
-        const errJSON = await res.json().catch(() => ({}))
-        throw new Error(errJSON?.error?.message || `Error de Meta API: ${res.status}`)
-      }
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+      const res = await fetch(`${supabaseUrl}/functions/v1/meta-insights`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // JWT del usuario — la Edge Function verifica rol antes de ejecutar
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          sucursal_id: sucursalId,
+          from,
+          to,
+        }),
+      })
 
       const json = await res.json()
-      const data = json.data?.[0] ?? {}
-      
-      // Extract leads from actions array
-      const leadsAction = (data.actions ?? []).find((a: any) => a.action_type === 'lead')
-      const leads = leadsAction ? parseInt(leadsAction.value, 10) : 0
 
-      const spend       = parseFloat(data.spend ?? '0')
-      const impressions = parseInt(data.impressions ?? '0', 10)
-      const clicks      = parseInt(data.clicks ?? '0', 10)
-      const reach       = parseInt(data.reach ?? '0', 10)
+      if (!res.ok) {
+        throw new Error(json?.error || `Error al conectar con Meta: ${res.status}`)
+      }
 
-      setInsights({
-        spend,
-        impressions,
-        clicks,
-        leads,
-        reach,
-        ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
-        cpl: leads > 0 ? spend / leads : 0,
-        cpc: clicks > 0 ? spend / clicks : 0,
-      })
-    } catch (err: any) {
-      setError(err.message || 'No se pudo conectar con la API de Meta')
+      setInsights(json.data)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'No se pudo conectar con la API de Meta'
+      setError(message)
     } finally {
       setLoadingInsights(false)
     }
-  }, [config])
+  }, [config, sucursalId])
 
   return {
     config,

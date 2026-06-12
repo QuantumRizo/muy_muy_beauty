@@ -10,6 +10,35 @@ export type TipoMovimientoCaja = 'Ingreso Extra' | 'Gasto / Salida'
 export type MarketingPlatform = 'meta' | 'google'
 export type EstadoCampana = 'activa' | 'pausada' | 'finalizada'
 
+// ─── Pago Detalles — tipo discriminado por método de pago ─────
+// Evita el uso de `any` en el campo más crítico del sistema financiero.
+export interface PagoDetallesEfectivo {
+  cambio?: number
+  monto_recibido?: number
+}
+export interface PagoDetallesTarjeta {
+  ultimos_4?: string
+  banco?: string
+  tipo?: 'debito' | 'credito'
+  referencia?: string
+}
+export interface PagoDetallesTransferencia {
+  referencia?: string
+  banco_origen?: string
+  concepto?: string
+}
+export interface PagoDetallesGenerico {
+  nota?: string
+  referencia?: string
+  [key: string]: string | number | boolean | null | undefined
+}
+export type PagoDetalles =
+  | PagoDetallesEfectivo
+  | PagoDetallesTarjeta
+  | PagoDetallesTransferencia
+  | PagoDetallesGenerico
+  | null
+
 
 export interface Sucursal {
   id: string
@@ -199,7 +228,7 @@ export interface Pago {
   ticket_id: string
   metodo_pago: MetodoPago
   importe: number
-  detalles: any
+  detalles: PagoDetalles
   fecha: string
   hora: string
 }
