@@ -366,6 +366,7 @@ export default function VentaDirectaPage() {
               <thead>
                 <tr>
                   <th>Concepto</th>
+                  <th>Vendedor</th>
                   <th style={{ textAlign: 'center' }}>Uds.</th>
                   <th style={{ textAlign: 'right' }}>Precio</th>
                   <th style={{ textAlign: 'right' }}>Total</th>
@@ -378,6 +379,21 @@ export default function VentaDirectaPage() {
                     <td>
                       <div style={{ fontWeight: 600 }}>{item.nombre}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{item.tipo}</div>
+                    </td>
+                    <td>
+                      <select 
+                        value={item.vendedor_id || ''}
+                        onChange={(e) => {
+                          const newId = e.target.value;
+                          setItems(prev => prev.map(i => i.id === item.id ? { ...i, vendedor_id: newId } : i))
+                        }}
+                        style={{ fontSize: 11, padding: '2px 4px', maxWidth: 120, border: !item.vendedor_id ? '1px solid var(--danger)' : '1px solid var(--border)', borderRadius: 4 }}
+                      >
+                        <option value="">Sin Vendedor</option>
+                        {empleadas.map(emp => (
+                          <option key={emp.id} value={emp.id}>{emp.nombre}</option>
+                        ))}
+                      </select>
                     </td>
                     <td style={{ textAlign: 'center' }}>{item.cantidad}</td>
                     <td style={{ textAlign: 'right' }}>${item.precio_unitario.toFixed(2)}</td>
@@ -402,6 +418,12 @@ export default function VentaDirectaPage() {
               <button className="btn-secondary" onClick={() => { setDescuentoInput(String(descuentoGlobal)); setShowDescuentoModal(true) }}>
                 <Percent size={14} /> {descuentoGlobal > 0 ? `Descuento: -$${descuentoGlobal.toFixed(2)}` : 'Descuento / Promo'}
               </button>
+            </div>
+          )}
+
+          {items.some(i => !i.vendedor_id) && (
+            <div style={{ marginTop: 16, padding: 12, background: 'var(--danger-bg)', color: 'var(--danger)', borderRadius: 8, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <UserSearch size={16} /> <strong>Atención:</strong> Hay items sin vendedor asignado. Nadie recibirá comisión por ellos.
             </div>
           )}
         </div>

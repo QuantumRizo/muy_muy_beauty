@@ -4,35 +4,14 @@ import { MapPin, ChevronRight, CheckCircle, ArrowLeft, RefreshCw, User, Sparkles
 import { supabase } from '../lib/supabase'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import type { Sucursal, Servicio, Empleada } from '../types/database'
+import type { Sucursal, Servicio } from '../types/database'
 import { useToast } from '../components/Common/Toast'
 import { BookingCalendar } from '../components/Landing/BookingCalendar'
 import { TimeSlotPicker } from '../components/Landing/TimeSlotPicker'
-import { timeToSlots, slotsToTime } from '../utils/agenda'
 
-// ─── HELPERS ──────────────────────────────────────────────────
-// Lee las horas de apertura/cierre de la sucursal para un día concreto.
-// Prioriza horarios_por_dia (por día de semana), con fallback a los campos generales.
-function getSucursalHours(sucursal: Sucursal, date: Date): { start: number; end: number } {
-  const dow = date.getDay() // 0=Dom, 6=Sáb
-  const hpd = sucursal.horarios_por_dia
-  if (hpd && hpd[dow] && !hpd[dow].cerrado) {
-    return {
-      start: parseInt(hpd[dow].apertura.split(':')[0], 10),
-      end:   parseInt(hpd[dow].cierre.split(':')[0], 10),
-    }
-  }
-  // Fallback: algunos valores legacy pueden llegar como nanosegundos enteros (PostgreSQL interval)
-  const toHour = (val: string | number | null | undefined): number => {
-    if (typeof val === 'string') return parseInt(val.split(':')[0], 10)
-    if (typeof val === 'number') return Math.floor(val / 3_600_000_000_000) // nanoseconds → hours
-    return 10 // safe default
-  }
-  const esFinde = dow === 0 || dow === 6
-  const apertura = esFinde ? (sucursal.hora_apertura_finde ?? sucursal.hora_apertura) : sucursal.hora_apertura
-  const cierre   = esFinde ? (sucursal.hora_cierre_finde   ?? sucursal.hora_cierre)   : sucursal.hora_cierre
-  return { start: toHour(apertura) || 10, end: toHour(cierre) || 20 }
-}
+import { useBookingData } from '../hooks/useBookingData'
+import { useBookingAvailability } from '../hooks/useBookingAvailability'
+import { useClientVerification } from '../hooks/useClientVerification'
 
 const sanitizePhone = (val: string) => val.replace(/\D/g, '').slice(0, 10)
 
@@ -40,10 +19,6 @@ type Step = 'sucursal' | 'servicio' | 'profesional' | 'fecha' | 'cliente' | 'con
 
 export default function BookingPage() {
   const [step, setStep] = useState<Step>('sucursal')
-  const [sucursales, setSucursales] = useState<Sucursal[]>([])
-  const [servicios, setServicios] = useState<Servicio[]>([])
-  const [perfiles, setPerfiles] = useState<Empleada[]>([])
-
   const [selectedSucursal, setSelectedSucursal] = useState<Sucursal | null>(null)
   const [selectedServicios, setSelectedServicios] = useState<Servicio[]>([])
   const [selectedProfesional, setSelectedProfesional] = useState<string | null>(null)
@@ -51,19 +26,23 @@ export default function BookingPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
 
-  const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [clientInfo, setClientInfo] = useState({ nombre: '', telefono: '', email: '', notas_cliente: '' })
-  const [isExistingClient, setIsExistingClient] = useState(false)
 
-  // Real availability state
-  const [availableSlots, setAvailableSlots] = useState<string[]>([])
-  const [fetchingSlots, setFetchingSlots] = useState(false)
-
-  // Responsive state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 850)
-
   const toast = useToast()
+
+  const { sucursales, servicios, perfiles, loading } = useBookingData(selectedSucursal)
+  
+  const { availableSlots, fetchingSlots } = useBookingAvailability(
+    selectedDate,
+    selectedSucursal,
+    selectedServicios,
+    perfiles,
+    selectedProfesional
+  )
+
+  const { isExistingClient } = useClientVerification(clientInfo.telefono, setClientInfo)
 
   // ─── RESPONSIVE EFFECT ────────────────────────────────────────
   useEffect(() => {
@@ -71,121 +50,6 @@ export default function BookingPage() {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
-
-  // ─── INIT ─────────────────────────────────────────────────────
-  useEffect(() => {
-    async function fetchData() {
-      const [resSuc, resSer] = await Promise.all([
-        supabase.from('sucursales').select('*').order('nombre'),
-        supabase.from('servicios').select('*, categoria:categorias_servicio(nombre)').eq('activo', true).order('nombre')
-      ])
-      if (resSuc.data) setSucursales(resSuc.data)
-      if (resSer.data) setServicios(resSer.data)
-      setLoading(false)
-    }
-    fetchData()
-  }, [])
-
-  // ─── FETCH EMPLEADAS ──────────────────────────────────────────
-  useEffect(() => {
-    if (selectedSucursal) {
-      supabase.from('perfiles_empleadas')
-        .select('*')
-        .eq('activo', true)
-        .eq('sucursal_id', selectedSucursal.id)
-        .then(({ data }) => {
-          if (data) setPerfiles(data)
-        })
-    }
-  }, [selectedSucursal])
-
-  // ─── FETCH AVAILABILITY ───────────────────────────────────────
-  useEffect(() => {
-    if (selectedDate && selectedSucursal && selectedServicios.length > 0 && perfiles.length > 0) {
-      async function checkAvailability() {
-        setFetchingSlots(true)
-        const dateStr = format(selectedDate!, 'yyyy-MM-dd')
-        const totalDuration = selectedServicios.reduce((acc, s) => acc + s.duracion_slots, 0)
-
-        // Horario real de la sucursal para el día seleccionado
-        const { start: START_HOUR, end: END_HOUR } = getSucursalHours(selectedSucursal, selectedDate!)
-
-        try {
-          // We query all appointments for that day regardless of branch to check true availability of the pro
-          const [resCitas, resBloqueos] = await Promise.all([
-            supabase.from('citas')
-              .select('bloque_inicio, duracion_manual_slots, empleada_id')
-              .eq('fecha', dateStr)
-              .neq('estado', 'Cancelada'),
-            supabase.from('bloqueos_agenda')
-              .select('hora_inicio, hora_fin, empleada_id')
-              .eq('fecha', dateStr)
-          ])
-
-          const citas = resCitas.data || []
-          const bloqueos = resBloqueos.data || []
-
-          const slotsFound = new Set<string>()
-
-          const perfilesToCheck = selectedProfesional
-            ? perfiles.filter(p => p.id === selectedProfesional)
-            : perfiles
-
-          perfilesToCheck.forEach(emp => {
-            const occupied = new Array(96).fill(false)
-            citas.filter(c => c.empleada_id === emp.id).forEach(c => {
-              const start    = timeToSlots(c.bloque_inicio)
-              const duration = c.duracion_manual_slots || 4
-              for (let i = 0; i < duration; i++) if (start + i < 96) occupied[start + i] = true
-            })
-            bloqueos.filter(b => b.empleada_id === emp.id).forEach(b => {
-              const start = timeToSlots(b.hora_inicio)
-              const end   = timeToSlots(b.hora_fin)
-              for (let i = start; i < end; i++) if (i < 96) occupied[i] = true
-            })
-            for (let h = START_HOUR; h < END_HOUR; h++) {
-              for (let m = 0; m < 60; m += 15) {
-                const sIndex = h * 4 + m / 15
-                let canFit = true
-                for (let i = 0; i < totalDuration; i++) {
-                  if (sIndex + i >= 96 || occupied[sIndex + i]) {
-                    canFit = false
-                    break
-                  }
-                }
-                if (canFit) {
-                  slotsFound.add(slotsToTime(sIndex))
-                }
-              }
-            }
-          })
-          setAvailableSlots(Array.from(slotsFound).sort())
-        } catch (err) {
-          console.error(err)
-        } finally {
-          setFetchingSlots(false)
-        }
-      }
-      checkAvailability()
-    }
-  }, [selectedDate, selectedSucursal, selectedServicios, perfiles, selectedProfesional])
-
-  // ─── CHECK EXISTING CLIENT (via RPC — no expone datos directamente) ────────
-  useEffect(() => {
-    if (clientInfo.telefono.length === 10) {
-      supabase.rpc('verificar_cliente_por_telefono', { p_telefono: clientInfo.telefono })
-        .then(({ data }) => {
-          if (data?.existe) {
-            setClientInfo(prev => ({ ...prev, nombre: data.nombre_completo, email: data.email || prev.email }))
-            setIsExistingClient(true)
-          } else {
-            setIsExistingClient(false)
-          }
-        })
-    } else {
-      setIsExistingClient(false)
-    }
-  }, [clientInfo.telefono])
 
   // ─── HANDLERS ─────────────────────────────────────────────────
   const toggleServicio = (s: Servicio) => {

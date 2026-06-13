@@ -308,6 +308,7 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
           <thead>
             <tr>
               <th style={{ textAlign: 'left', padding: '8px 0', fontSize: 11, color: 'var(--text-3)' }}>CONCEPTO</th>
+              <th style={{ textAlign: 'left', padding: '8px 0', fontSize: 11, color: 'var(--text-3)' }}>VENDEDOR</th>
               <th style={{ textAlign: 'right', padding: '8px 0', fontSize: 11, color: 'var(--text-3)' }}>PRECIO</th>
               <th style={{ width: 40 }}></th>
             </tr>
@@ -318,6 +319,21 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
                 <td style={{ padding: '8px 0' }}>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>{item.nombre}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{item.tipo}</div>
+                </td>
+                <td style={{ padding: '8px 0' }}>
+                  <select 
+                    value={item.vendedor_id || ''}
+                    onChange={(e) => {
+                      const newId = e.target.value;
+                      setItems(prev => prev.map(i => i.id === item.id ? { ...i, vendedor_id: newId } : i))
+                    }}
+                    style={{ fontSize: 11, padding: '2px 4px', maxWidth: 120, border: !item.vendedor_id ? '1px solid var(--danger)' : '1px solid var(--border)', borderRadius: 4 }}
+                  >
+                    <option value="">Sin Vendedor</option>
+                    {empleadas.map(emp => (
+                      <option key={emp.id} value={emp.id}>{emp.nombre}</option>
+                    ))}
+                  </select>
                 </td>
                 <td style={{ textAlign: 'right', padding: '8px 0', fontWeight: 600 }}>${item.total.toFixed(2)}</td>
                 <td style={{ padding: '8px 0', textAlign: 'right' }}>
@@ -369,6 +385,12 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
           </div>
         ))}
       </div>
+
+      {items.some(i => !i.vendedor_id) && (
+        <div style={{ marginTop: 16, padding: 12, background: 'var(--danger-bg)', color: 'var(--danger)', borderRadius: 8, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <User size={16} /> <strong>Atención:</strong> Hay items sin vendedor asignado. Nadie recibirá comisión por ellos.
+        </div>
+      )}
 
       <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

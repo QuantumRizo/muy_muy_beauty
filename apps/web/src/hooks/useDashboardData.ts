@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { runQuery } from '../lib/reportQueries'
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 import { ahoraMX, fechaMX, hoyMX } from '../lib/dateUtils'
@@ -25,18 +25,8 @@ export interface DashboardData {
   pagosPreferidos: ReportRow[]
 }
 
-// ─── Module-level cache (survives re-renders and navigation) ─────
-// NOTA: El dashboard usa este caché de módulo propio (no React Query) porque:
-// 1. Los datos del dashboard tienen 13 queries paralelas — queremos TTL propio de 3 min.
-// 2. React Query (staleTime: 60s) maneja el resto de la app (clientes, tickets, etc.).
-// Los dos sistemas NO se pisan — cada uno gestiona su dominio.
-const TTL_MS = 3 * 60 * 1000 // 3 minutes
-
-interface CacheEntry { data: DashboardData; timestamp: number }
-const cache = new Map<string, CacheEntry>()
-
-export function invalidateDashboardCache() {
-  cache.clear()
+export function invalidateDashboardCache(queryClient: any) {
+  queryClient.invalidateQueries({ queryKey: ['dashboard'] })
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -107,50 +97,23 @@ async function loadDashboardData(sucursalId: string, range: TimeRange): Promise<
 // ─────────────────────────────────────────────────────────────────
 
 export function useDashboardData(sucursalId: string, range: TimeRange) {
-  const cacheKey = `${sucursalId}__${range}`
-  const cached = cache.get(cacheKey)
+  const queryClient = useQueryClient()
 
-  // Start with cached data (shows instantly if available)
-  const [data, setData] = useState<DashboardData | null>(cached?.data ?? null)
-  const [loading, setLoading] = useState(!cached)
-  const [error, setError] = useState<string | null>(null)
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const { data, isLoading, isError, error, isFetching, refetch } = useQuery<DashboardData>({
+    queryKey: ['dashboard', sucursalId, range],
+    queryFn: () => loadDashboardData(sucursalId, range),
+    staleTime: 3 * 60 * 1000, // 3 minutes stale time to match previous TTL behavior
+    refetchOnWindowFocus: false, // Prevent excessive refetching
+  })
 
-  const refresh = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true)
-    else setIsRefreshing(true)
-    setError(null)
-    try {
-      const result = await loadDashboardData(sucursalId, range)
-      cache.set(cacheKey, { data: result, timestamp: Date.now() })
-      setData(result)
-    } catch (err: any) {
-      console.error('Error fetching dashboard data:', err)
-      setError(err.message)
-    } finally {
-      setLoading(false)
-      setIsRefreshing(false)
-    }
-  }, [sucursalId, range, cacheKey])
-
-  useEffect(() => {
-    const entry = cache.get(cacheKey)
-    const isStale = !entry || (Date.now() - entry.timestamp) > TTL_MS
-
-    if (entry && !isStale) {
-      // Cache hit and fresh — show immediately, no network call
-      setData(entry.data)
-      setLoading(false)
-    } else if (entry && isStale) {
-      // Stale cache — show old data instantly, refresh in background
-      setData(entry.data)
-      setLoading(false)
-      refresh(true) // silent background refresh
-    } else {
-      // No cache — full load
-      refresh(false)
-    }
-  }, [cacheKey])
-
-  return { data, loading, error, isRefreshing, refresh: () => refresh(false) }
+  return { 
+    data: data ?? null, 
+    loading: isLoading, 
+    error: isError ? (error as any).message : null, 
+    isRefreshing: isFetching, 
+    refresh: () => {
+      invalidateDashboardCache(queryClient)
+      refetch()
+    } 
+  }
 }

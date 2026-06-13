@@ -1,0 +1,52 @@
+-- =============================================================================
+-- MIGRACIÓN: 20260613120000_revoke_anon_sensitive_reads
+-- Fecha: 2026-06-13
+-- Descripción:
+--   Revoca las políticas RLS que permiten al rol 'anon' leer datos operacionales
+--   internos que ya NO son necesarios para el flujo de reserva pública.
+--
+-- CONTEXTO (auditoría de seguridad 2026-06-13):
+--   La migración 20260605160000_allow_anon_booking_flow creó políticas SELECT
+--   en 'citas' y 'bloqueos_agenda' para que el frontend calculara disponibilidad.
+--
+--   La migración 20260609010000_secure_booking_rpc reemplazó ese acceso directo
+--   con la función RPC 'crear_reserva_publica' (SECURITY DEFINER), que calcula
+--   disponibilidad server-side sin exponer las tablas directamente.
+--
+--   Sin embargo, las políticas SELECT de 'anon' en 'citas' y 'bloqueos_agenda'
+--   NO fueron revocadas en esa migración, dejando acceso de lectura innecesario.
+--
+-- VULNERABILIDADES CORREGIDAS:
+--   1. anon podía leer client_id, empleada_id, fecha, hora, notas_cliente
+--      de TODAS las citas no canceladas vía GET /rest/v1/citas.
+--   2. anon podía leer motivos internos de bloqueos (vacaciones, enfermedad, etc.)
+--      vía GET /rest/v1/bloqueos_agenda.
+--
+-- IMPACTO EN FUNCIONALIDAD:
+--   ✅ NINGUNO. El hook 'useBookingAvailability' en el frontend ya delega al RPC
+--   'crear_reserva_publica' para la validación de conflictos server-side.
+--   La lectura directa de estas tablas por el rol anon NO es necesaria.
+--
+-- ⚠️ NOTA: La política SELECT en 'perfiles_empleadas' para anon SE CONSERVA
+--   porque el frontend de booking sí necesita listar las profesionales
+--   disponibles en el formulario (nombre, foto) sin autenticación.
+-- =============================================================================
+
+-- ── 1. Revocar lectura pública de citas ──────────────────────────────────────
+-- Esta política fue creada en 20260605160000 para calcular disponibilidad.
+-- Ya no es necesaria — el RPC crear_reserva_publica lo hace server-side.
+DROP POLICY IF EXISTS "Lectura pública de citas para disponibilidad" ON public.citas;
+
+-- ── 2. Revocar lectura pública de bloqueos ───────────────────────────────────
+-- Esta política exponía motivos internos (vacaciones, enfermedad, etc.) a anon.
+-- El RPC verifica bloqueos internamente sin necesidad de acceso directo del cliente.
+DROP POLICY IF EXISTS "Lectura pública de bloqueos para disponibilidad" ON public.bloqueos_agenda;
+
+-- ── 3. Verificar estado final de políticas anon ──────────────────────────────
+-- Después de esta migración, el rol 'anon' solo debe tener acceso a:
+--   - servicios         (SELECT) → para mostrar el catálogo en el formulario
+--   - sucursales        (SELECT) → para mostrar las sucursales disponibles
+--   - perfiles_empleadas (SELECT activo=true) → para listar profesionales
+--   - EXECUTE en verificar_cliente_por_telefono() → verificar si ya es cliente
+--   - EXECUTE en crear_reserva_publica()          → crear la reserva
+-- Cualquier otra política anon es innecesaria y debe ser auditada.

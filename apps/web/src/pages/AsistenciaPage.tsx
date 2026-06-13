@@ -234,14 +234,14 @@ export default function AsistenciaPage() {
                   position: 'relative',
                   overflow: 'hidden'
                 }}>
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: getTipoColor(lastLog?.tipo) }} />
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: getTipoColor(lastLog?.tipo || '') }} />
                   <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
                     Estado Actual
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: getTipoColor(lastLog?.tipo) }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: getTipoColor(lastLog?.tipo || '') }}>
                     <Activity size={20} />
                     <span style={{ fontSize: '20px', fontWeight: 800 }}>
-                      {getCurrentStatusLabel(lastLog?.tipo)}
+                      {getCurrentStatusLabel(lastLog?.tipo || '')}
                     </span>
                   </div>
                 </div>

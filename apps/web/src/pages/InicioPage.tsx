@@ -137,7 +137,7 @@ export default function InicioPage() {
                 value={`${data?.retentionRate || 0}%`} 
                 Icon={RefreshCw} 
                 subtitle="Clientes que regresan (30d)" 
-                variant={data?.retentionRate >= 50 ? 'success' : 'accent'} 
+                variant={(data?.retentionRate || 0) >= 50 ? 'success' : 'accent'} 
               />
               <KPICard 
                 title="Ticket Promedio" 

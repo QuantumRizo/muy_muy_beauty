@@ -5,7 +5,7 @@ import { useSucursales } from '../../hooks/useSucursales'
 import { useCrearCita, useCheckDisponibilidad } from '../../hooks/useCitas'
 import { useEmpleadas } from '../../hooks/useEmpleadas'
 import type { Cliente, Servicio } from '../../types/database'
-import { timeToSlots, haySolapamiento } from '../../utils/agenda'
+import { timeToSlots, slotsToTime, haySolapamiento, findNextAvailableSlot } from '../../utils/agenda'
 import { useToast } from '../Common/Toast'
 
 interface Props {
@@ -21,7 +21,7 @@ interface Props {
 export default function NuevaCitaModal({
   cliente,
   empleadaId: initialEmpleadaId,
-  horaInicio,
+  horaInicio: initialHoraInicio,
   fecha,
   sucursalId,
   onClose,
@@ -37,6 +37,7 @@ export default function NuevaCitaModal({
   const [search, setSearch] = useState('')
   const [comentarios, setComentarios] = useState('')
   const [localEmpleadaId, setLocalEmpleadaId] = useState(initialEmpleadaId || '')
+  const [localHoraInicio, setLocalHoraInicio] = useState(initialHoraInicio || '')
   
   // Modules management
   const [manualSlots, setManualSlots] = useState<number | null>(null)
@@ -56,12 +57,18 @@ export default function NuevaCitaModal({
   const { data: ocupacion = [] } = useCheckDisponibilidad(fecha, localEmpleadaId)
   
   const hasOverlap = useMemo(() => {
-    if (!localEmpleadaId || !horaInicio) return false
-    const start = timeToSlots(horaInicio)
+    if (!localEmpleadaId || !localHoraInicio) return false
+    const start = timeToSlots(localHoraInicio)
     const end = start + effectiveSlots
     return ocupacion.some(slot => haySolapamiento({ start, end }, slot))
-  }, [ocupacion, horaInicio, effectiveSlots, localEmpleadaId])
+  }, [ocupacion, localHoraInicio, effectiveSlots, localEmpleadaId])
 
+  const nextAvailableHora = useMemo(() => {
+    if (!hasOverlap || !localHoraInicio || ocupacion.length === 0) return null
+    const start = timeToSlots(localHoraInicio)
+    const nextSlot = findNextAvailableSlot(start, effectiveSlots, ocupacion)
+    return nextSlot !== null ? slotsToTime(nextSlot) : null
+  }, [hasOverlap, localHoraInicio, ocupacion, effectiveSlots])
   // When services change, if not manually adjusted yet, keep it null to follow auto
   // But user wants a UI like < 6 >. 
   // If manualSlots is null, we show autoSlots.
@@ -94,7 +101,7 @@ export default function NuevaCitaModal({
           empleada_id: localEmpleadaId,
           sucursal_id: sucursalId,
           fecha,
-          bloque_inicio: horaInicio,
+          bloque_inicio: localHoraInicio,
           estado: 'Programada',
           duracion_manual_slots: effectiveSlots,
           comentarios: comentarios || null,
@@ -133,7 +140,7 @@ export default function NuevaCitaModal({
                 <Calendar size={13} color="var(--text-3)" /> <span>{fecha}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Clock size={13} color="var(--text-3)" /> <span>{horaInicio}</span>
+                <Clock size={13} color="var(--text-3)" /> <span>{localHoraInicio}</span>
               </div>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -281,20 +288,32 @@ export default function NuevaCitaModal({
 
         <div className="modal-footer">
           {hasOverlap && (
-            <div style={{ color: 'var(--danger)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <X size={16} /> Horario ocupado para este profesional
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+              <div style={{ color: 'var(--danger)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <X size={16} /> Horario ocupado para este profesional
+              </div>
+              {nextAvailableHora && (
+                <div style={{ fontSize: 12, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>Sugerencia: {nextAvailableHora}</span>
+                  <button type="button" onClick={() => setLocalHoraInicio(nextAvailableHora)} style={{ background: 'var(--kpi-gradient)', color: 'white', border: 'none', borderRadius: 4, padding: '2px 8px', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>
+                    Mover a {nextAvailableHora}
+                  </button>
+                </div>
+              )}
             </div>
           )}
-          <button type="button" onClick={onClose} className="btn-ghost">Cancelar</button>
-          <button 
-            type="button" 
-            onClick={handleSubmit} 
-            disabled={!selected.length || !sucursalId || crearCita.isPending || hasOverlap} 
-            className="btn-primary"
-            style={{ padding: '10px 24px' }}
-          >
-            {crearCita.isPending ? 'Agendando...' : 'Confirmar y Guardar'}
-          </button>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <button type="button" onClick={onClose} className="btn-ghost">Cancelar</button>
+            <button 
+              type="button" 
+              onClick={handleSubmit} 
+              disabled={!selected.length || !sucursalId || crearCita.isPending || hasOverlap} 
+              className="btn-primary"
+              style={{ padding: '10px 24px' }}
+            >
+              {crearCita.isPending ? 'Agendando...' : 'Confirmar y Guardar'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
