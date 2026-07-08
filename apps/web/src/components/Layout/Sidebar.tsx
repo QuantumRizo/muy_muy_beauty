@@ -6,7 +6,7 @@ import { useAuthContext } from '../../context/AuthContext'
 import { useSucursalContext } from '../../context/SucursalContext'
 
 // Section type is still exported so other parts of the codebase can use it if needed
-export type Section = 'inicio' | 'agenda' | 'asistencia' | 'clientes' | 'inventario' | 'documentos' | 'profesionales' | 'validacion' | 'cobro' | 'analisis' | 'caja' | 'venta-directa' | 'marketing' | 'seguridad' | 'administracion' | 'vacaciones' | 'mi-cuenta'
+export type Section = 'inicio' | 'agenda' | 'asistencia' | 'clientes' | 'inventario' | 'documentos' | 'profesionales' | 'validacion' | 'cobro' | 'analisis' | 'caja' | 'venta-directa' | 'marketing' | 'seguridad' | 'administracion' | 'vacaciones' | 'accesos'
 
 interface NavItem {
   id: Section
@@ -48,9 +48,9 @@ const navGroups: NavGroup[] = [
     ]
   },
   {
-    name: 'Preferencias',
+    name: 'Seguridad',
     items: [
-      { id: 'mi-cuenta', label: 'Mi Cuenta', Icon: Settings, path: '/admin/mi-cuenta' },
+      { id: 'accesos', label: 'Accesos', Icon: Settings, path: '/admin/accesos' },
     ]
   }
 ]
@@ -126,7 +126,7 @@ export default function Sidebar() {
           // Filter items based on user role
           const allowedItems = group.items.filter(({ id }) => {
             if (!profile || profile.rol === 'admin' || profile.rol === 'superadmin') return true
-            const allowedForEmpleado: Section[] = ['clientes', 'agenda', 'asistencia', 'venta-directa', 'caja', 'vacaciones', 'mi-cuenta']
+            const allowedForEmpleado: Section[] = ['clientes', 'agenda', 'asistencia', 'venta-directa', 'caja', 'vacaciones', 'accesos']
             return allowedForEmpleado.includes(id)
           })
 

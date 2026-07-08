@@ -23,7 +23,7 @@ import VentaDirectaPage from './pages/VentaDirectaPage'
 import MarketingPage from './pages/MarketingPage'
 import AsistenciaPage from './pages/AsistenciaPage'
 import VacacionesPage from './pages/VacacionesPage'
-import MiCuentaPage from './pages/MiCuentaPage'
+import AccesosPage from './pages/AccesosPage'
 import SucursalGuard from './components/Common/SucursalGuard'
 import type { Cliente } from './types/database'
 
@@ -138,7 +138,7 @@ export default function App() {
                     <Route path="analisis"      element={<AnalisisPage />} />
                     <Route path="administracion" element={<AdministracionPage />} />
                     <Route path="vacaciones"    element={<SucursalGuard><VacacionesPage /></SucursalGuard>} />
-                    <Route path="mi-cuenta"     element={<MiCuentaPage />} />
+                    <Route path="accesos"       element={<AccesosPage />} />
                   </Route>
 
                   {/* Fallback */}

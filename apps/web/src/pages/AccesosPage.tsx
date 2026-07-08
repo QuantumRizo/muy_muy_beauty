@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { Lock, Save } from 'lucide-react'
+import { Lock, Save, ShieldAlert } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../components/Common/Toast'
-import { useTodasEmpleadas } from '../hooks/useEmpleadas'
+import { useEmpleadas } from '../hooks/useEmpleadas'
+import { useSucursalContext } from '../context/SucursalContext'
 
-export default function MiCuentaPage() {
+export default function AccesosPage() {
   const toast = useToast()
-  const { data: empleadas = [] } = useTodasEmpleadas()
+  const { selectedSucursalId } = useSucursalContext()
+  const { data: empleadas = [] } = useEmpleadas(selectedSucursalId)
   
   const [selectedEmpleadaId, setSelectedEmpleadaId] = useState<string>('')
   const [pin, setPin] = useState('')
@@ -58,21 +60,24 @@ export default function MiCuentaPage() {
     <div className="page-container fade-in" style={{ padding: '24px' }}>
       <div className="page-header" style={{ marginBottom: '24px' }}>
         <div>
-          <h1 className="page-title">Mi Cuenta</h1>
-          <p className="page-subtitle">Ajustes y configuración de tu perfil</p>
+          <h1 className="page-title">Accesos</h1>
+          <p className="page-subtitle">Seguridad y control de PINs del personal</p>
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
         {/* Información General */}
         <div className="card" style={{ flex: '1 1 300px', padding: '24px', background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 16px', color: 'var(--text-1)' }}>Gestión de Acceso</h2>
+          <h2 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 16px', color: 'var(--text-1)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ShieldAlert size={20} style={{ color: 'var(--kpi)' }} />
+            Gestión de Seguridad
+          </h2>
           <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6, marginBottom: '20px' }}>
-            En esta sección puedes asignar o restablecer el PIN de acceso al Quiosco para ti o para cualquier otra empleada del sistema.
+            En esta sección puedes asignar o restablecer el PIN de acceso al Quiosco para las empleadas de tu sucursal.
           </p>
           <div style={{ padding: '12px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
             <p style={{ fontSize: '12px', color: 'var(--text-2)', margin: 0 }}>
-              <strong>Nota de seguridad:</strong> Asegúrate de comunicar el nuevo PIN de forma segura. El código debe contener exactamente 4 dígitos numéricos.
+              <strong>Nota importante:</strong> Asegúrate de comunicar el nuevo PIN de forma segura. El código debe contener exactamente 4 dígitos numéricos.
             </p>
           </div>
         </div>
