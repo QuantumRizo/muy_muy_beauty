@@ -9,6 +9,7 @@ import { es } from 'date-fns/locale'
 import { hoyMX } from '../lib/dateUtils'
 import { Plus, CalendarRange, ChevronDown, User } from 'lucide-react'
 import type { SolicitudVacaciones, Empleada } from '../types/database'
+import PinDialog from '../components/Kiosk/PinDialog'
 
 const ESTADO_BADGE: Record<string, { label: string; color: string }> = {
   pendiente:  { label: 'Pendiente',  color: '#F59E0B' },
@@ -47,6 +48,7 @@ function FormularioSolicitud({
   const [fechaFin, setFechaFin] = useState(minStart)
   const [notas, setNotas] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPin, setShowPin] = useState(false)
 
   const { data: empleadas = [] } = useQuery<Empleada[]>({
     queryKey: ['empleadas_sucursal', sucursalId],
@@ -66,6 +68,12 @@ function FormularioSolicitud({
     e.preventDefault()
     if (!empleadaId) return toast('Selecciona una empleada', 'error')
     if (fechaFin < fechaInicio) return toast('La fecha fin no puede ser anterior al inicio', 'error')
+    // Show PIN dialog before submitting
+    setShowPin(true)
+  }
+
+  const confirmSubmit = async () => {
+    setShowPin(false)
     setLoading(true)
     try {
       const { error } = await supabase.from('solicitudes_vacaciones').insert({
@@ -89,7 +97,17 @@ function FormularioSolicitud({
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <>
+      {showPin && empleadaId && (
+        <PinDialog
+          empleadaId={empleadaId}
+          empleadaNombre={empleadas.find(e => e.id === empleadaId)?.nombre ?? ''}
+          accion="solicitar vacaciones"
+          onSuccess={confirmSubmit}
+          onCancel={() => setShowPin(false)}
+        />
+      )}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="filter-field">
         <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 6, display: 'block' }}>Empleada</label>
         <div style={{ position: 'relative' }}>
@@ -206,6 +224,7 @@ function FormularioSolicitud({
         </button>
       </div>
     </form>
+    </>
   )
 }
 

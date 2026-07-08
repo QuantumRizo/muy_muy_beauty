@@ -84,34 +84,36 @@ export default function Sidebar() {
           }}
         />
       </div>
-      <div style={{ padding: '10px 16px 8px' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', letterSpacing: '0.05em', marginBottom: 8 }}>SUCURSAL ACTIVA</div>
-        <select
-          value={selectedSucursalId}
-          onChange={(e) => setSelectedSucursalId(e.target.value)}
-          disabled={displaySucursales.length <= 1}
-          style={{
-            width: '100%',
-            background: 'var(--surface-2)',
-            border: '1px solid var(--border)',
-            borderRadius: '10px',
-            padding: '8px 12px',
-            fontSize: '13px',
-            fontWeight: 600,
-            color: 'var(--text-1)',
-            outline: 'none',
-            cursor: displaySucursales.length <= 1 ? 'default' : 'pointer',
-            opacity: displaySucursales.length <= 1 ? 0.7 : 1,
-            transition: 'all 0.2s'
-          }}
-          onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
-          onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
-        >
-          {displaySucursales.map(s => (
-            <option key={s.id} value={s.id}>{s.nombre}</option>
-          ))}
-        </select>
-      </div>
+      {profile?.rol !== 'empleado' && (
+        <div style={{ padding: '10px 16px 8px' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-3)', letterSpacing: '0.05em', marginBottom: 8 }}>SUCURSAL ACTIVA</div>
+          <select
+            value={selectedSucursalId}
+            onChange={(e) => setSelectedSucursalId(e.target.value)}
+            disabled={displaySucursales.length <= 1}
+            style={{
+              width: '100%',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              borderRadius: '10px',
+              padding: '8px 12px',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--text-1)',
+              outline: 'none',
+              cursor: displaySucursales.length <= 1 ? 'default' : 'pointer',
+              opacity: displaySucursales.length <= 1 ? 0.7 : 1,
+              transition: 'all 0.2s'
+            }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+            onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+          >
+            {displaySucursales.map(s => (
+              <option key={s.id} value={s.id}>{s.nombre}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="sidebar-nav" style={{ padding: '8px' }}>
         {navGroups.map((group, groupIndex) => {

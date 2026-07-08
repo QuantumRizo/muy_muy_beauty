@@ -9,6 +9,7 @@ import { useToast } from '../components/Common/Toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { hoyMX, ahoraMX } from '../lib/dateUtils'
+import PinDialog from '../components/Kiosk/PinDialog'
 
 type TipoAsistencia = 'Entrada' | 'Salida Comida' | 'Salida'
 
@@ -34,6 +35,9 @@ export default function AsistenciaPage() {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [registering, setRegistering] = useState(false)
   const cancelledRef = useRef(false)
+
+  // PIN verification state
+  const [pendingAction, setPendingAction] = useState<TipoAsistencia | null>(null)
 
   const activeSucursal = sucursales.find(s => s.id === selectedSucursalId)
 
@@ -67,11 +71,22 @@ export default function AsistenciaPage() {
     return () => { cancelledRef.current = true }
   }, [selectedSucursalId])
 
-  const handleRegister = async (tipo: TipoAsistencia) => {
+  // Step 1: intercept — show PIN dialog
+  const handleRegister = (tipo: TipoAsistencia) => {
     if (!selectedEmpleadaId) {
       toast('Por favor selecciona tu nombre del personal', 'warning')
       return
     }
+    if (!selectedSucursalId) {
+      toast('No hay una sucursal seleccionada', 'error')
+      return
+    }
+    setPendingAction(tipo)
+  }
+
+  // Step 2: execute after PIN verified
+  const confirmRegister = async (tipo: TipoAsistencia) => {
+    if (!selectedEmpleadaId) return
     if (!selectedSucursalId) {
       toast('No hay una sucursal seleccionada', 'error')
       return
@@ -178,6 +193,17 @@ export default function AsistenciaPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      {/* PIN Dialog — appears when a button is clicked */}
+      {pendingAction && selectedEmpleadaId && (
+        <PinDialog
+          empleadaId={selectedEmpleadaId}
+          empleadaNombre={empleadas.find(e => e.id === selectedEmpleadaId)?.nombre ?? ''}
+          accion={pendingAction}
+          onSuccess={() => confirmRegister(pendingAction)}
+          onCancel={() => setPendingAction(null)}
+        />
+      )}
+
       <div className="page-header" style={{ padding: '24px 24px 0', marginBottom: 24 }}>
         <div className="page-header-content">
           <h1 className="page-title">Jornada Laboral</h1>
