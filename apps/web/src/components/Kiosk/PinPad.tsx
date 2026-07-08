@@ -6,9 +6,11 @@ interface PinPadProps {
   onCancel: () => void
   error?: string | null
   isLoading?: boolean
+  title?: string
+  subtitle?: string
 }
 
-export default function PinPad({ onPinComplete, onCancel, error, isLoading }: PinPadProps) {
+export default function PinPad({ onPinComplete, onCancel, error, isLoading, title = "Ingresa tu PIN", subtitle = "4 dígitos para verificar tu identidad" }: PinPadProps) {
   const [pin, setPin] = useState('')
 
   useEffect(() => {
@@ -46,9 +48,9 @@ export default function PinPad({ onPinComplete, onCancel, error, isLoading }: Pi
         <X size={20} />
       </button>
 
-      <h2 className="text-xl font-bold mb-2 text-[var(--text-1)]">Ingresa tu PIN</h2>
+      <h2 className="text-xl font-bold mb-2 text-[var(--text-1)]">{title}</h2>
       <p className="text-sm text-[var(--text-3)] mb-6 text-center">
-        4 dígitos para verificar tu identidad
+        {subtitle}
       </p>
 
       {/* Dots display */}

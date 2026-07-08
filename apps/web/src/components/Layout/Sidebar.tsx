@@ -6,7 +6,7 @@ import { useAuthContext } from '../../context/AuthContext'
 import { useSucursalContext } from '../../context/SucursalContext'
 
 // Section type is still exported so other parts of the codebase can use it if needed
-export type Section = 'inicio' | 'agenda' | 'asistencia' | 'clientes' | 'inventario' | 'documentos' | 'profesionales' | 'validacion' | 'cobro' | 'analisis' | 'caja' | 'venta-directa' | 'marketing' | 'seguridad' | 'administracion' | 'vacaciones'
+export type Section = 'inicio' | 'agenda' | 'asistencia' | 'clientes' | 'inventario' | 'documentos' | 'profesionales' | 'validacion' | 'cobro' | 'analisis' | 'caja' | 'venta-directa' | 'marketing' | 'seguridad' | 'administracion' | 'vacaciones' | 'mi-cuenta'
 
 interface NavItem {
   id: Section
@@ -45,6 +45,12 @@ const navGroups: NavGroup[] = [
       { id: 'administracion', label: 'Administración', Icon: Settings,     path: '/admin/administracion' },
       { id: 'inventario',     label: 'Inventario',     Icon: Package,      path: '/admin/inventario'     },
       { id: 'marketing',      label: 'Marketing',      Icon: Megaphone,    path: '/admin/marketing'      },
+    ]
+  },
+  {
+    name: 'Preferencias',
+    items: [
+      { id: 'mi-cuenta', label: 'Mi Cuenta', Icon: Settings, path: '/admin/mi-cuenta' },
     ]
   }
 ]
@@ -120,7 +126,7 @@ export default function Sidebar() {
           // Filter items based on user role
           const allowedItems = group.items.filter(({ id }) => {
             if (!profile || profile.rol === 'admin' || profile.rol === 'superadmin') return true
-            const allowedForEmpleado: Section[] = ['clientes', 'agenda', 'asistencia', 'venta-directa', 'caja', 'vacaciones']
+            const allowedForEmpleado: Section[] = ['clientes', 'agenda', 'asistencia', 'venta-directa', 'caja', 'vacaciones', 'mi-cuenta']
             return allowedForEmpleado.includes(id)
           })
 

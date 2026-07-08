@@ -11,7 +11,7 @@ interface KioskModalProps {
   onClose: () => void
 }
 
-type KioskStep = 'SELECT_EMPLOYEE' | 'ENTER_PIN' | 'PORTAL'
+type KioskStep = 'SELECT_EMPLOYEE' | 'ENTER_PIN' | 'PORTAL' | 'CREATE_PIN' | 'CONFIRM_PIN'
 
 export default function KioskModal({ isOpen, onClose }: KioskModalProps) {
   const { selectedSucursalId } = useSucursalContext()
@@ -22,6 +22,7 @@ export default function KioskModal({ isOpen, onClose }: KioskModalProps) {
   
   const [verifying, setVerifying] = useState(false)
   const [pinError, setPinError] = useState<string | null>(null)
+  const [newPin, setNewPin] = useState<string | null>(null)
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -34,10 +35,31 @@ export default function KioskModal({ isOpen, onClose }: KioskModalProps) {
 
   if (!isOpen) return null
 
-  const handleSelectEmpleada = (empleada: {id: string, nombre: string}) => {
+  const handleSelectEmpleada = async (empleada: {id: string, nombre: string}) => {
     setSelectedEmpleada(empleada)
-    setStep('ENTER_PIN')
     setPinError(null)
+    setVerifying(true)
+    
+    try {
+      const { data, error } = await supabase.rpc('tiene_pin_empleada', {
+        p_empleada_id: empleada.id
+      })
+      
+      if (error) throw error
+      
+      if (data === true) {
+        setStep('ENTER_PIN')
+      } else {
+        setStep('CREATE_PIN')
+        setNewPin(null)
+      }
+    } catch (err) {
+      console.error(err)
+      setPinError('Error al verificar empleado. Intenta de nuevo.')
+      setStep('SELECT_EMPLOYEE')
+    } finally {
+      setVerifying(false)
+    }
   }
 
   const handlePinComplete = async (pin: string) => {
@@ -62,6 +84,44 @@ export default function KioskModal({ isOpen, onClose }: KioskModalProps) {
     } catch (err) {
       console.error(err)
       setPinError('Error de conexión. Intenta de nuevo.')
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  const handleCreatePin = (pin: string) => {
+    setNewPin(pin)
+    setStep('CONFIRM_PIN')
+    setPinError(null)
+  }
+
+  const handleConfirmPin = async (pin: string) => {
+    if (pin !== newPin) {
+      setPinError('Los PINs no coinciden. Intenta de nuevo.')
+      setStep('CREATE_PIN')
+      setNewPin(null)
+      return
+    }
+
+    if (!selectedEmpleada) return
+
+    setVerifying(true)
+    setPinError(null)
+
+    try {
+      const { error } = await supabase.rpc('asignar_pin_empleada', {
+        p_empleada_id: selectedEmpleada.id,
+        p_pin: pin
+      })
+
+      if (error) throw error
+
+      setStep('PORTAL')
+    } catch (err) {
+      console.error(err)
+      setPinError('Error al guardar el PIN. Intenta de nuevo.')
+      setStep('CREATE_PIN')
+      setNewPin(null)
     } finally {
       setVerifying(false)
     }
@@ -145,6 +205,47 @@ export default function KioskModal({ isOpen, onClose }: KioskModalProps) {
               onCancel={handleBackToSelect}
               error={pinError}
               isLoading={verifying}
+            />
+          </div>
+        )}
+
+        {step === 'CREATE_PIN' && selectedEmpleada && (
+          <div className="w-full animate-in slide-in-from-bottom-8 fade-in duration-300">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-2xl font-bold mx-auto mb-3 shadow-lg shadow-[var(--accent)]/20">
+                {selectedEmpleada.nombre.charAt(0)}
+              </div>
+              <h2 className="text-xl font-bold text-[var(--text-1)]">¡Hola, {selectedEmpleada.nombre}!</h2>
+              <p className="text-sm text-[var(--text-3)] mt-1">Parece que es tu primera vez aquí. Por favor, crea un PIN.</p>
+            </div>
+            
+            <PinPad 
+              onPinComplete={handleCreatePin}
+              onCancel={handleBackToSelect}
+              error={pinError}
+              isLoading={verifying}
+              title="Crea tu PIN"
+              subtitle="Ingresa 4 dígitos"
+            />
+          </div>
+        )}
+
+        {step === 'CONFIRM_PIN' && selectedEmpleada && (
+          <div className="w-full animate-in slide-in-from-right-8 fade-in duration-300">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-2xl font-bold mx-auto mb-3 shadow-lg shadow-[var(--accent)]/20">
+                {selectedEmpleada.nombre.charAt(0)}
+              </div>
+              <h2 className="text-xl font-bold text-[var(--text-1)]">Confirma tu PIN</h2>
+            </div>
+            
+            <PinPad 
+              onPinComplete={handleConfirmPin}
+              onCancel={() => { setStep('CREATE_PIN'); setNewPin(null); setPinError(null) }}
+              error={pinError}
+              isLoading={verifying}
+              title="Vuelve a ingresar tu PIN"
+              subtitle="Para asegurarnos de que no hay errores"
             />
           </div>
         )}
