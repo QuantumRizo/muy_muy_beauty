@@ -24,7 +24,9 @@ export default function VentaDirectaPage() {
   const toast = useToast()
 
   const { selectedSucursalId: sucursalId } = useSucursalContext()
-  const { data: empleadas = [] } = useEmpleadas(sucursalId || undefined)
+  const { data: empleadas = [] } = useEmpleadas()
+  const empleadasLocales = empleadas.filter(e => e.sucursal_id === sucursalId)
+  const otrasEmpleadas = empleadas.filter(e => e.sucursal_id !== sucursalId)
   const [vendedorId, setVendedorId] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -291,7 +293,12 @@ export default function VentaDirectaPage() {
             <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 3 }}>Profesional / Vendedora</label>
             <select className="form-input" value={vendedorId} onChange={e => setVendedorId(e.target.value)} style={{ height: 34, fontSize: 13, minWidth: 160 }}>
               <option value="">— Seleccionar —</option>
-              {empleadas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+              <optgroup label="Esta sucursal">
+                {empleadasLocales.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+              </optgroup>
+              <optgroup label="Otras sucursales">
+                {otrasEmpleadas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+              </optgroup>
             </select>
           </div>
           <div>
@@ -390,9 +397,16 @@ export default function VentaDirectaPage() {
                         style={{ fontSize: 11, padding: '2px 4px', maxWidth: 120, border: !item.vendedor_id ? '1px solid var(--danger)' : '1px solid var(--border)', borderRadius: 4 }}
                       >
                         <option value="">Sin Vendedor</option>
-                        {empleadas.map(emp => (
-                          <option key={emp.id} value={emp.id}>{emp.nombre}</option>
-                        ))}
+                        <optgroup label="Esta sucursal">
+                          {empleadasLocales.map(emp => (
+                            <option key={emp.id} value={emp.id}>{emp.nombre}</option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Otras sucursales">
+                          {otrasEmpleadas.map(emp => (
+                            <option key={emp.id} value={emp.id}>{emp.nombre}</option>
+                          ))}
+                        </optgroup>
                       </select>
                     </td>
                     <td style={{ textAlign: 'center' }}>{item.cantidad}</td>

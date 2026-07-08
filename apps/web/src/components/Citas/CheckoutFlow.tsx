@@ -24,7 +24,9 @@ interface Props {
 
 export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
   const [step, setStep] = useState<'validacion' | 'cobro' | 'ticket'>('validacion')
-  const { data: empleadas = [] } = useEmpleadas(cita.sucursal_id)
+  const { data: empleadas = [] } = useEmpleadas()
+  const empleadasLocales = empleadas.filter(e => e.sucursal_id === cita.sucursal_id)
+  const otrasEmpleadas = empleadas.filter(e => e.sucursal_id !== cita.sucursal_id)
   const { data: servicios = [] } = useServicios()
   const { data: allProducts = [] } = useProductos()
   const crearTicket = useCrearTicket()
@@ -34,7 +36,7 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
   const [selectedServicios, setSelectedServicios] = useState<ServicioConProfesional[]>(() =>
     (cita.servicios || []).map(s => ({
       ...s,
-      profesional_id: cita.empleada_id || (empleadas[0]?.id ?? '')
+      profesional_id: cita.empleada_id || (empleadasLocales[0]?.id ?? '')
     }))
   )
   const [comentarios, setComentarios] = useState(cita.comentarios || '')
@@ -92,13 +94,13 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
 
   // Auto-fill profesional if missing
   useEffect(() => {
-    if (empleadas.length > 0) {
+    if (empleadasLocales.length > 0) {
       setSelectedServicios(prev => prev.map(s => ({
         ...s,
-        profesional_id: s.profesional_id || cita.empleada_id || empleadas[0]?.id || ''
+        profesional_id: s.profesional_id || cita.empleada_id || empleadasLocales[0]?.id || ''
       })))
     }
-  }, [empleadas, cita.empleada_id])
+  }, [empleadasLocales, cita.empleada_id])
 
   useEffect(() => {
     const totalSlots = selectedServicios.reduce((sum, s) => sum + (s.duracion_slots || 0), 0) || 4
@@ -128,7 +130,7 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
   }, [servicios, searchService])
 
   const handleAddServiceToValidation = (s: Servicio) => {
-    const defaultProf = cita.empleada_id || empleadas[0]?.id || ''
+    const defaultProf = cita.empleada_id || empleadasLocales[0]?.id || ''
     setSelectedServicios([...selectedServicios, { ...s, profesional_id: defaultProf }])
     setShowAddService(false)
     setSearchService('')
@@ -266,7 +268,12 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
                 setSelectedServicios(newServs)
               }}
             >
-              {empleadas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+              <optgroup label="Esta sucursal">
+                {empleadasLocales.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+              </optgroup>
+              <optgroup label="Otras sucursales">
+                {otrasEmpleadas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+              </optgroup>
             </select>
             <button 
               className="btn-icon danger" 
@@ -330,9 +337,16 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
                     style={{ fontSize: 11, padding: '2px 4px', maxWidth: 120, border: !item.vendedor_id ? '1px solid var(--danger)' : '1px solid var(--border)', borderRadius: 4 }}
                   >
                     <option value="">Sin Vendedor</option>
-                    {empleadas.map(emp => (
-                      <option key={emp.id} value={emp.id}>{emp.nombre}</option>
-                    ))}
+                    <optgroup label="Esta sucursal">
+                      {empleadasLocales.map(emp => (
+                        <option key={emp.id} value={emp.id}>{emp.nombre}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Otras sucursales">
+                      {otrasEmpleadas.map(emp => (
+                        <option key={emp.id} value={emp.id}>{emp.nombre}</option>
+                      ))}
+                    </optgroup>
                   </select>
                 </td>
                 <td style={{ textAlign: 'right', padding: '8px 0', fontWeight: 600 }}>${item.total.toFixed(2)}</td>
