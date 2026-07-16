@@ -22,7 +22,7 @@ export const FAMILIES_DATA: FamilyData[] = [
     image: '/esmaltado permanente_compressed.webp',
     description: 'Nuestra especialidad en color de larga duración. Garantizamos un acabado brillante y resistente que respeta la salud de tu uña natural. Ideal para quienes buscan perfección y durabilidad diaria.',
     services: [
-      { id: '1adf6cb4-75d3-466a-a875-70cca16866f2', nombre: 'ESMALTADO LONG LASTING', precio: '450.00', duracion_slots: 4 },
+      { id: '1adf6cb4-75d3-466a-a875-70cca16866f2', nombre: 'ESMALTADO RUBBER', precio: '450.00', duracion_slots: 4 },
       { id: 'adaa7a68-5e03-4174-b6b3-05cb5472b518', nombre: 'ESMALTADO EN GEL', precio: '280.00', duracion_slots: 2 },
     ]
   },
@@ -113,6 +113,16 @@ export const FAMILIES_DATA: FamilyData[] = [
     services: [
       { id: '9a5cafd9-b538-4cf6-b6c5-6ba232dc6a4a', nombre: 'DECORACION BABY BOOMER - AURA', precio: '170.00', duracion_slots: 1 },
       { id: 'e8d4e1fc-ee43-429c-9fa5-9872f33fb5d6', nombre: 'DECORACION FRANCES', precio: '120.00', duracion_slots: 1 },
+      { id: '10000000-0000-4000-8000-000000000050', nombre: 'DECORACION $50', precio: '50.00', duracion_slots: 1 },
+      { id: '10000000-0000-4000-8000-000000000100', nombre: 'DECORACION $100', precio: '100.00', duracion_slots: 1 },
+      { id: '10000000-0000-4000-8000-000000000150', nombre: 'DECORACION $150', precio: '150.00', duracion_slots: 1 },
+      { id: '10000000-0000-4000-8000-000000000200', nombre: 'DECORACION $200', precio: '200.00', duracion_slots: 1 },
+      { id: '10000000-0000-4000-8000-000000000250', nombre: 'DECORACION $250', precio: '250.00', duracion_slots: 1 },
+      { id: '10000000-0000-4000-8000-000000000300', nombre: 'DECORACION $300', precio: '300.00', duracion_slots: 1 },
+      { id: '10000000-0000-4000-8000-000000000350', nombre: 'DECORACION $350', precio: '350.00', duracion_slots: 1 },
+      { id: '10000000-0000-4000-8000-000000000400', nombre: 'DECORACION $400', precio: '400.00', duracion_slots: 1 },
+      { id: '10000000-0000-4000-8000-000000000450', nombre: 'DECORACION $450', precio: '450.00', duracion_slots: 1 },
+      { id: '10000000-0000-4000-8000-000000000500', nombre: 'DECORACION $500', precio: '500.00', duracion_slots: 1 },
     ]
   },
   {

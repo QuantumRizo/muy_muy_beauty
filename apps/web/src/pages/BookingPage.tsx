@@ -181,15 +181,57 @@ export default function BookingPage() {
                   <div key={family}>
                     <h3 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: '#86868b', marginBottom: 12, letterSpacing: '1px' }}>{family}</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {servicios.filter(s => (s.categoria?.nombre || 'Otros') === family).map(s => {
-                        const isSelected = selectedServicios.some(item => item.id === s.id)
+                      {(() => {
+                        const allServices = servicios.filter(s => (s.categoria?.nombre || 'Otros') === family).sort((a, b) => { const aNum = a.nombre.includes('$'); const bNum = b.nombre.includes('$'); if (aNum && !bNum) return -1; if (!aNum && bNum) return 1; return Number(a.precio) - Number(b.precio); });
+                        
+                        const priceTiers = allServices.filter(s => s.nombre.includes('DECORACION $'));
+                        const regularServices = allServices.filter(s => !s.nombre.includes('DECORACION $'));
+                        
+                        const selectedPriceTier = priceTiers.find(s => selectedServicios.some(item => item.id === s.id));
+
                         return (
-                          <button key={s.id} onClick={() => toggleServicio(s)} style={{ padding: 16, borderRadius: 14, background: isSelected ? 'var(--primary-light)' : '#fff', border: isSelected ? '1px solid var(--primary)' : '1px solid #efefef', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s' }}>
-                            <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 600, color: isSelected ? 'var(--primary)' : '#1d1d1f' }}>{s.nombre}</div><div style={{ fontSize: 12, color: isSelected ? 'var(--primary)' : '#86868b' }}>{s.duracion_slots * 15} min • ${s.precio}</div></div>
-                            {isSelected ? <CheckCircle size={20} color="var(--primary)" /> : <div style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid #efefef' }} />}
-                          </button>
+                          <>
+                            {priceTiers.length > 0 && (
+                              <div style={{ padding: 16, borderRadius: 14, background: selectedPriceTier ? 'var(--primary-light)' : '#fff', border: selectedPriceTier ? '1px solid var(--primary)' : '1px solid #efefef', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 16, fontWeight: 600, color: selectedPriceTier ? 'var(--primary)' : '#1d1d1f' }}>Decoración Personalizada</div>
+                                  <div style={{ fontSize: 12, color: selectedPriceTier ? 'var(--primary)' : '#86868b' }}>Elige por presupuesto (15 min)</div>
+                                </div>
+                                <select 
+                                  value={selectedPriceTier ? selectedPriceTier.id : ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setSelectedServicios(prev => {
+                                      const filtered = prev.filter(item => !priceTiers.some(pt => pt.id === item.id));
+                                      if (val) {
+                                        const newTier = priceTiers.find(pt => pt.id === val);
+                                        return newTier ? [...filtered, newTier] : filtered;
+                                      }
+                                      return filtered;
+                                    });
+                                  }}
+                                  style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #efefef', background: '#fff', outline: 'none', fontSize: 14, fontWeight: 600, color: 'var(--primary)', cursor: 'pointer' }}
+                                >
+                                  <option value="">Ninguna</option>
+                                  {priceTiers.map(pt => (
+                                    <option key={pt.id} value={pt.id}>${pt.precio}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+
+                            {regularServices.map(s => {
+                              const isSelected = selectedServicios.some(item => item.id === s.id)
+                              return (
+                                <button key={s.id} onClick={() => toggleServicio(s)} style={{ padding: 16, borderRadius: 14, background: isSelected ? 'var(--primary-light)' : '#fff', border: isSelected ? '1px solid var(--primary)' : '1px solid #efefef', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                  <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 600, color: isSelected ? 'var(--primary)' : '#1d1d1f' }}>{s.nombre}</div><div style={{ fontSize: 12, color: isSelected ? 'var(--primary)' : '#86868b' }}>{s.duracion_slots * 15} min • ${s.precio}</div></div>
+                                  {isSelected ? <CheckCircle size={20} color="var(--primary)" /> : <div style={{ width: 22, height: 22, borderRadius: '50%', border: '2px solid #efefef' }} />}
+                                </button>
+                              )
+                            })}
+                          </>
                         )
-                      })}
+                      })()}
                     </div>
                   </div>
                 ))}
