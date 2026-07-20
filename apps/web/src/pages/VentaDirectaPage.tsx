@@ -16,6 +16,7 @@ import { useToast } from '../components/Common/Toast'
 import { useSucursalContext } from '../context/SucursalContext'
 import ConfirmDialog from '../components/Common/ConfirmDialog'
 import AjusteImporte from '../components/Common/AjusteImporte'
+import DescuentoModal from '../components/Common/DescuentoModal'
 import { hoyMX } from '../lib/dateUtils'
 
 export default function VentaDirectaPage() {
@@ -76,7 +77,6 @@ export default function VentaDirectaPage() {
   const [propina, setPropina] = useState(0)
 
   const [showDescuentoModal, setShowDescuentoModal] = useState(false)
-  const [descuentoInput, setDescuentoInput] = useState('')
   const [descuentoGlobal, setDescuentoGlobal] = useState(0)
 
   // Confirm Dialog
@@ -146,12 +146,6 @@ export default function VentaDirectaPage() {
     setPropinaInput('')
   }
 
-  const handleConfirmDescuento = () => {
-    const val = parseFloat(descuentoInput)
-    if (!isNaN(val) && val >= 0 && val <= subtotal) setDescuentoGlobal(val)
-    setShowDescuentoModal(false)
-    setDescuentoInput('')
-  }
 
   const handleFinalizar = async () => {
     if (!sucursalId) { toast('Selecciona una sucursal', 'warning'); return }
@@ -429,7 +423,7 @@ export default function VentaDirectaPage() {
               <button className="btn-secondary" onClick={() => { setPropinaInput(String(propina)); setShowPropinaModal(true) }}>
                 <Plus size={14} /> {propina > 0 ? `Propina: $${propina.toFixed(2)}` : 'Añadir propina'}
               </button>
-              <button className="btn-secondary" onClick={() => { setDescuentoInput(String(descuentoGlobal)); setShowDescuentoModal(true) }}>
+              <button className="btn-secondary" onClick={() => setShowDescuentoModal(true)}>
                 <Percent size={14} /> {descuentoGlobal > 0 ? `Descuento: -$${descuentoGlobal.toFixed(2)}` : 'Descuento / Promo'}
               </button>
             </div>
@@ -602,14 +596,10 @@ export default function VentaDirectaPage() {
 
       {/* Modal Descuento */}
       {showDescuentoModal && (
-        <AjusteImporte
-          label="Aplicar descuento"
-          subtitle={`Monto del descuento (MXN) - Máximo local: $${subtotal.toFixed(2)}`}
-          value={descuentoInput}
-          onValueChange={setDescuentoInput}
-          isDanger
-          max={subtotal}
-          onConfirm={handleConfirmDescuento}
+        <DescuentoModal
+          subtotal={subtotal}
+          currentDescuento={descuentoGlobal}
+          onConfirm={(monto) => { setDescuentoGlobal(monto); setShowDescuentoModal(false) }}
           onClose={() => setShowDescuentoModal(false)}
         />
       )}

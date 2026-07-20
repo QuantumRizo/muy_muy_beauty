@@ -10,6 +10,7 @@ import TicketPrintView from './TicketPrintView'
 import { useToast } from '../Common/Toast'
 import ConfirmDialog from '../Common/ConfirmDialog'
 import AjusteImporte from '../Common/AjusteImporte'
+import DescuentoModal from '../Common/DescuentoModal'
 import { hoyMX } from '../../lib/dateUtils'
 
 interface ServicioConProfesional extends Servicio {
@@ -72,7 +73,6 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
   const [showPropinaModal, setShowPropinaModal] = useState(false)
   const [propinaInput, setPropinaInput] = useState('')
   const [showDescuentoModal, setShowDescuentoModal] = useState(false)
-  const [descuentoInput, setDescuentoInput] = useState('')
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', action: () => {} })
 
   // Estado final del ticket guardado
@@ -634,14 +634,10 @@ export default function CheckoutFlow({ cita, onClose, onFinish }: Props) {
       )}
 
       {showDescuentoModal && (
-        <AjusteImporte
-          label="Descuento"
-          subtitle={`Monto del descuento (MXN) - Máximo local: $${subtotal.toFixed(2)}`}
-          value={descuentoInput}
-          onValueChange={setDescuentoInput}
-          isDanger
-          max={subtotal}
-          onConfirm={() => { setDescuentoGlobal(Number(descuentoInput) || 0); setShowDescuentoModal(false) }}
+        <DescuentoModal
+          subtotal={subtotal}
+          currentDescuento={descuentoGlobal}
+          onConfirm={(monto) => { setDescuentoGlobal(monto); setShowDescuentoModal(false) }}
           onClose={() => setShowDescuentoModal(false)}
         />
       )}
