@@ -195,7 +195,7 @@ export default function BookingPage() {
                               <div style={{ padding: 16, borderRadius: 14, background: selectedPriceTier ? 'var(--primary-light)' : '#fff', border: selectedPriceTier ? '1px solid var(--primary)' : '1px solid #efefef', display: 'flex', alignItems: 'center', gap: 12 }}>
                                 <div style={{ flex: 1 }}>
                                   <div style={{ fontSize: 16, fontWeight: 600, color: selectedPriceTier ? 'var(--primary)' : '#1d1d1f' }}>Decoración Personalizada</div>
-                                  <div style={{ fontSize: 12, color: selectedPriceTier ? 'var(--primary)' : '#86868b' }}>Elige por presupuesto (15 min)</div>
+                                  <div style={{ fontSize: 12, color: selectedPriceTier ? 'var(--primary)' : '#86868b' }}>{selectedPriceTier ? `${selectedPriceTier.duracion_slots * 15} min` : 'Elige por presupuesto (15 – 60 min)'}</div>
                                 </div>
                                 <select 
                                   value={selectedPriceTier ? selectedPriceTier.id : ""}
