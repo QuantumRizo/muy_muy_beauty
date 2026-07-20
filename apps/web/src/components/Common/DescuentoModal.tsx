@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Percent, DollarSign } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 interface Props {
   subtotal: number
@@ -11,26 +10,64 @@ interface Props {
 const PORCENTAJES_RAPIDOS = [5, 10, 12, 15, 20]
 
 export default function DescuentoModal({ subtotal, currentDescuento, onConfirm, onClose }: Props) {
-  const [tab, setTab] = useState<'pct' | 'mxn'>('pct')
+  // Input states
+  const [pctInput, setPctInput] = useState('')
+  const [mxnInput, setMxnInput] = useState('')
+  const [lastEdited, setLastEdited] = useState<'pct' | 'mxn'>('pct')
 
-  // Porcentaje tab
-  const initialPct = currentDescuento > 0 ? Math.round((currentDescuento / subtotal) * 100) : 0
-  const [pctInput, setPctInput] = useState(initialPct > 0 ? String(initialPct) : '')
+  // Initialize
+  useEffect(() => {
+    if (currentDescuento > 0 && subtotal > 0) {
+      setMxnInput(String(currentDescuento))
+      const pct = (currentDescuento / subtotal) * 100
+      setPctInput(String(Number(pct.toFixed(2))))
+      setLastEdited('mxn')
+    }
+  }, [currentDescuento, subtotal])
 
-  // Monto tab
-  const [mxnInput, setMxnInput] = useState(currentDescuento > 0 ? String(currentDescuento) : '')
+  // Calculate values
+  const rawPct = parseFloat(pctInput) || 0
+  const rawMxn = parseFloat(mxnInput) || 0
 
-  const pctValue = Math.min(100, Math.max(0, parseFloat(pctInput) || 0))
-  const mxnValue = parseFloat(mxnInput) || 0
+  const montoDescuento = lastEdited === 'pct'
+    ? Math.min((rawPct / 100) * subtotal, subtotal)
+    : Math.min(rawMxn, subtotal)
 
-  const montoDesdePorc = Math.min((pctValue / 100) * subtotal, subtotal)
-  const montoDesdeFixed = Math.min(mxnValue, subtotal)
+  const pctEquivalente = subtotal > 0 ? (montoDescuento / subtotal) * 100 : 0
+  const totalConDescuento = Math.max(0, subtotal - montoDescuento)
 
-  const montoFinal = tab === 'pct' ? montoDesdePorc : montoDesdeFixed
+  // Handlers for 2-way synchronization
+  const handlePctChange = (val: string) => {
+    setLastEdited('pct')
+    setPctInput(val)
+    const p = parseFloat(val)
+    if (!isNaN(p) && subtotal > 0) {
+      const calcMxn = (p / 100) * subtotal
+      setMxnInput(calcMxn > 0 ? String(Number(calcMxn.toFixed(2))) : '')
+    } else {
+      setMxnInput('')
+    }
+  }
+
+  const handleMxnChange = (val: string) => {
+    setLastEdited('mxn')
+    setMxnInput(val)
+    const m = parseFloat(val)
+    if (!isNaN(m) && subtotal > 0) {
+      const calcPct = (m / subtotal) * 100
+      setPctInput(calcPct > 0 ? String(Number(calcPct.toFixed(2))) : '')
+    } else {
+      setPctInput('')
+    }
+  }
+
+  const handleQuickPct = (p: number) => {
+    handlePctChange(String(p))
+  }
 
   const handleConfirm = () => {
-    if (montoFinal < 0 || montoFinal > subtotal) return
-    onConfirm(montoFinal)
+    if (montoDescuento < 0 || montoDescuento > subtotal) return
+    onConfirm(montoDescuento)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -40,83 +77,65 @@ export default function DescuentoModal({ subtotal, currentDescuento, onConfirm, 
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" style={{ maxWidth: 360 }} onClick={e => e.stopPropagation()}>
+      <div className="modal-box" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3 className="modal-title">Aplicar Descuento</h3>
         </div>
 
         <div className="modal-body p-5">
-          {/* Tabs */}
-          <div style={{
-            display: 'flex',
-            background: 'var(--surface-2)',
-            borderRadius: 10,
-            padding: 4,
-            marginBottom: 20,
-            gap: 4
-          }}>
-            <button
-              onClick={() => setTab('pct')}
-              style={{
-                flex: 1,
-                padding: '8px 0',
-                borderRadius: 8,
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: 700,
-                fontSize: 13,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                background: tab === 'pct' ? 'var(--danger)' : 'transparent',
-                color: tab === 'pct' ? '#fff' : 'var(--text-3)',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Percent size={14} /> Porcentaje
-            </button>
-            <button
-              onClick={() => setTab('mxn')}
-              style={{
-                flex: 1,
-                padding: '8px 0',
-                borderRadius: 8,
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: 700,
-                fontSize: 13,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                background: tab === 'mxn' ? 'var(--danger)' : 'transparent',
-                color: tab === 'mxn' ? '#fff' : 'var(--text-3)',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <DollarSign size={14} /> Monto fijo
-            </button>
+          {/* Botones rápidos % */}
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Atajos rápidos (%)
+            </p>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {PORCENTAJES_RAPIDOS.map(p => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => handleQuickPct(p)}
+                  style={{
+                    flex: 1,
+                    minWidth: 44,
+                    padding: '8px 4px',
+                    borderRadius: 8,
+                    border: '1px solid',
+                    borderColor: pctInput === String(p) ? 'var(--danger)' : 'var(--border)',
+                    background: pctInput === String(p) ? 'var(--danger-bg)' : 'var(--surface-2)',
+                    color: pctInput === String(p) ? 'var(--danger)' : 'var(--text-2)',
+                    fontWeight: 800,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    transition: 'all 0.12s ease'
+                  }}
+                >
+                  {p}%
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* ─── TAB PORCENTAJE ─── */}
-          {tab === 'pct' && (
+          {/* Dos campos sincronizados en paralelo */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            {/* Campo % */}
             <div>
-              {/* Input manual libre */}
-              <div style={{ position: 'relative', marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6 }}>
+                Porcentaje (%)
+              </label>
+              <div style={{ position: 'relative' }}>
                 <input
                   type="number"
                   className="form-input"
                   style={{
-                    paddingRight: 42,
-                    fontSize: 28,
+                    paddingRight: 32,
+                    fontSize: 20,
                     fontWeight: 800,
                     textAlign: 'right',
-                    color: 'var(--danger)'
+                    color: lastEdited === 'pct' ? 'var(--danger)' : 'var(--text-1)'
                   }}
                   placeholder="0"
                   value={pctInput}
-                  onChange={e => setPctInput(e.target.value)}
+                  onChange={e => handlePctChange(e.target.value)}
                   onKeyDown={handleKeyDown}
                   autoFocus
                   min={0}
@@ -124,110 +143,69 @@ export default function DescuentoModal({ subtotal, currentDescuento, onConfirm, 
                   step="any"
                 />
                 <span style={{
-                  position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-                  color: 'var(--danger)', fontSize: 22, fontWeight: 800, pointerEvents: 'none'
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  color: 'var(--text-3)', fontSize: 16, fontWeight: 700, pointerEvents: 'none'
                 }}>%</span>
               </div>
-
-              {/* Botones rápidos / atajos sugeridos */}
-              <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-                {PORCENTAJES_RAPIDOS.map(p => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPctInput(String(p))}
-                    style={{
-                      flex: 1,
-                      minWidth: 44,
-                      padding: '6px 4px',
-                      borderRadius: 8,
-                      border: '1px solid',
-                      borderColor: pctInput === String(p) ? 'var(--danger)' : 'var(--border)',
-                      background: pctInput === String(p) ? 'var(--danger-bg)' : 'var(--surface-2)',
-                      color: pctInput === String(p) ? 'var(--danger)' : 'var(--text-2)',
-                      fontWeight: 700,
-                      fontSize: 12,
-                      cursor: 'pointer',
-                      transition: 'all 0.12s ease'
-                    }}
-                  >
-                    {p}%
-                  </button>
-                ))}
-              </div>
-
-              {/* Preview */}
-              {pctValue > 0 && (
-                <div style={{
-                  marginTop: 14,
-                  padding: '12px 16px',
-                  background: 'var(--danger-bg)',
-                  borderRadius: 10,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <span style={{ fontSize: 13, color: 'var(--text-2)', fontWeight: 600 }}>
-                    {pctValue}% de ${subtotal.toFixed(2)}
-                  </span>
-                  <span style={{ fontSize: 20, fontWeight: 900, color: 'var(--danger)' }}>
-                    -${montoDesdePorc.toFixed(2)}
-                  </span>
-                </div>
-              )}
             </div>
-          )}
 
-          {/* ─── TAB MONTO FIJO ─── */}
-          {tab === 'mxn' && (
+            {/* Campo $ MXN */}
             <div>
-              <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 12 }}>
-                Monto a descontar (MXN) — Máximo: ${subtotal.toFixed(2)}
-              </p>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-2)', marginBottom: 6 }}>
+                Monto ($ MXN)
+              </label>
               <div style={{ position: 'relative' }}>
                 <span style={{
-                  position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)',
-                  color: 'var(--danger)', fontSize: 20, fontWeight: 800, pointerEvents: 'none'
-                }}>-$</span>
+                  position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+                  color: 'var(--text-3)', fontSize: 16, fontWeight: 700, pointerEvents: 'none'
+                }}>$</span>
                 <input
                   type="number"
                   className="form-input"
                   style={{
-                    paddingLeft: 40,
-                    fontSize: 28,
+                    paddingLeft: 24,
+                    fontSize: 20,
                     fontWeight: 800,
                     textAlign: 'right',
-                    color: 'var(--danger)'
+                    color: lastEdited === 'mxn' ? 'var(--danger)' : 'var(--text-1)'
                   }}
-                  placeholder="0"
+                  placeholder="0.00"
                   value={mxnInput}
-                  onChange={e => setMxnInput(e.target.value)}
+                  onChange={e => handleMxnChange(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  autoFocus
                   min={0}
                   max={subtotal}
-                  step={10}
+                  step="any"
                 />
               </div>
-
-              {mxnValue > 0 && (
-                <div style={{
-                  marginTop: 14,
-                  padding: '12px 16px',
-                  background: 'var(--danger-bg)',
-                  borderRadius: 10,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <span style={{ fontSize: 13, color: 'var(--text-2)', fontWeight: 600 }}>Total después:</span>
-                  <span style={{ fontSize: 20, fontWeight: 900, color: 'var(--danger)' }}>
-                    ${(subtotal - montoDesdeFixed).toFixed(2)}
-                  </span>
-                </div>
-              )}
             </div>
-          )}
+          </div>
+
+          {/* Resumen dinámico del resultado */}
+          <div style={{
+            padding: '14px 16px',
+            background: 'var(--surface-2)',
+            borderRadius: 12,
+            border: '1px solid var(--border)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-3)' }}>
+              <span>Subtotal:</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            {montoDescuento > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--danger)', fontWeight: 700 }}>
+                <span>Descuento ({pctEquivalente.toFixed(1)}%):</span>
+                <span>-${montoDescuento.toFixed(2)}</span>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 900, color: 'var(--text-1)', borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 2 }}>
+              <span>Total final:</span>
+              <span>${totalConDescuento.toFixed(2)}</span>
+            </div>
+          </div>
         </div>
 
         <div className="modal-footer">
@@ -235,9 +213,9 @@ export default function DescuentoModal({ subtotal, currentDescuento, onConfirm, 
           <button
             className="btn-danger"
             onClick={handleConfirm}
-            disabled={montoFinal <= 0 || montoFinal > subtotal}
+            disabled={montoDescuento <= 0 || montoDescuento > subtotal}
           >
-            Aplicar -{montoFinal > 0 ? `$${montoFinal.toFixed(2)}` : ''}
+            Aplicar -{montoDescuento > 0 ? `$${montoDescuento.toFixed(2)}` : ''}
           </button>
         </div>
       </div>
